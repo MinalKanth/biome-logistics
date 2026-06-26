@@ -23,7 +23,7 @@ html {
 /* ================= HEADER ================= */
 
 .bamboo-header {
-    background: linear-gradient(rgba(10, 26, 34, .72), rgba(10, 26, 34, .72)), url("../img/bamboo-banner.jpg") center/cover;
+    background: linear-gradient(rgba(10, 26, 34, .72), rgba(10, 26, 34, .72)), url("../img/bamboo-banner.png") center/cover;
 }
 
 .bamboo-header::before {

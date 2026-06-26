@@ -40,7 +40,7 @@ PAGE HEADER
     position: relative;
     overflow: hidden;
     padding: 120px 0;
-    background: linear-gradient(rgba(10, 25, 47, .75), rgba(10, 25, 47, .78)), url("../img/legal-banner.jpg");
+    background: linear-gradient(rgba(10, 25, 47, .75), rgba(10, 25, 47, .78)), url("../img/legal-banner.png");
     background-size: cover;
     background-position: center;
     background-attachment: fixed;

@@ -12,7 +12,7 @@ HEADER
 ==============================*/
 
 .page-header {
-    background: linear-gradient(rgba(7, 24, 40, .72), rgba(7, 24, 40, .72)), url("../img/contact-banner.png") center center/cover;
+    background: linear-gradient(rgba(7, 24, 40, .72), rgba(7, 24, 40, .72)), url("../img/restaurant-banner.png") center center/cover;
     position: relative;
 }
 
