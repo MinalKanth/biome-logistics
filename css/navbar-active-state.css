@@ -5,6 +5,10 @@
 
 /* ============ ACTIVE NAV LINK STYLING ============ */
 
+.bg-primary {
+    background-color: #68c06d !important;
+}
+
 .navbar-nav .nav-link {
     position: relative;
     transition: all 0.3s ease;

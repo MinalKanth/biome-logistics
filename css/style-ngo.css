@@ -1,0 +1,398 @@
+.gallery-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, .12);
+    background: #fff;
+}
+
+.gallery-card img {
+    width: 100%;
+    height: 320px;
+    object-fit: cover;
+    transition: .6s ease;
+    display: block;
+}
+
+.gallery-card:hover img {
+    transform: scale(1.08);
+}
+
+.gallery-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, .35), transparent 55%);
+    opacity: 0;
+    transition: .4s;
+}
+
+.gallery-card:hover::after {
+    opacity: 1;
+}
+
+.col-lg-8 .gallery-card img {
+    height: 660px;
+}
+
+@media(max-width:991px) {
+    .col-lg-8 .gallery-card img,
+    .gallery-card img {
+        height: 320px;
+    }
+}
+
+
+/*==============================
+CONTACT PAGE
+==============================*/
+
+body {
+    background: #f8fafc;
+}
+
+
+/*==============================
+HEADER
+==============================*/
+
+.page-header {
+    background: linear-gradient(rgba(7, 24, 40, .72), rgba(7, 24, 40, .72)), url("../img/ngo-banner.png") center center/cover;
+    position: relative;
+}
+
+.page-header::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 20% 30%, rgba(25, 135, 84, .18), transparent 40%), radial-gradient(circle at 80% 20%, rgba(255, 193, 7, .15), transparent 35%);
+    animation: headerMove 10s linear infinite alternate;
+}
+
+@keyframes headerMove {
+    from {
+        transform: translateY(0);
+    }
+    to {
+        transform: translateY(-20px);
+    }
+}
+
+
+/*==============================
+CONTACT INFO CARDS
+==============================*/
+
+.row.mb-5 .bg-white {
+    border-radius: 20px;
+    transition: .35s;
+    cursor: pointer;
+    border: 1px solid rgba(25, 135, 84, .08);
+}
+
+.row.mb-5 .bg-white:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, .12);
+    border-color: #198754;
+}
+
+.row.mb-5 i {
+    transition: .4s;
+}
+
+.row.mb-5 .bg-white:hover i {
+    transform: scale(1.15) rotate(8deg);
+}
+
+
+/*==============================
+FORM
+==============================*/
+
+.contact-form .bg-light {
+    border-radius: 25px;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, .08);
+}
+
+.form-control,
+.form-select {
+    border-radius: 15px;
+    border: 2px solid #edf1f6;
+    transition: .3s;
+    box-shadow: none;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #198754;
+    box-shadow: 0 0 0 .2rem rgba(25, 135, 84, .12);
+    transform: translateY(-2px);
+}
+
+.form-floating {
+    transition: .3s;
+}
+
+.form-floating:hover {
+    transform: translateY(-2px);
+}
+
+
+/*==============================
+BUTTON
+==============================*/
+
+.contact-form .btn {
+    border-radius: 50px;
+    transition: .35s;
+    font-weight: 600;
+    letter-spacing: .5px;
+}
+
+.contact-form .btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 35px rgba(25, 135, 84, .35);
+}
+
+
+/*==============================
+GOOGLE MAP
+==============================*/
+
+iframe {
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, .12);
+    transition: .4s;
+}
+
+iframe:hover {
+    transform: scale(1.02);
+}
+
+
+/*==============================
+FLOATING ANIMATION
+==============================*/
+
+.contact-page .col-md-6 {
+    transition: .4s;
+}
+
+.contact-page .col-md-6:hover {
+    transform: translateY(-4px);
+}
+
+
+/*==============================
+SMALL DEVICES
+==============================*/
+
+@media(max-width:991px) {
+    .page-header {
+        background-position: center;
+    }
+    iframe {
+        height: 450px !important;
+        position: relative !important;
+    }
+}
+
+
+/* ================================
+   PREMIUM ABOUT PAGE EFFECTS
+================================ */
+
+
+/* Animated Gradient Background */
+
+.page-header::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, rgba(25, 135, 84, .15), transparent, rgba(13, 110, 253, .12));
+    background-size: 300% 300%;
+    animation: gradientMove 15s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes gradientMove {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+
+/* Floating particles */
+
+.page-header {
+    overflow: hidden;
+}
+
+.page-header span {
+    position: relative;
+    z-index: 5;
+}
+
+
+/* Glass Cards */
+
+.about .bg-light,
+.about .border {
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, .25);
+}
+
+
+/* Shine Effect */
+
+.about .bg-light::before,
+.about .border::before {
+    content: "";
+    position: absolute;
+    top: -150%;
+    left: -60%;
+    width: 50%;
+    height: 300%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .5), transparent);
+    transform: rotate(25deg);
+    transition: .8s;
+}
+
+.about .bg-light:hover::before,
+.about .border:hover::before {
+    left: 130%;
+}
+
+
+/* Image Glow */
+
+.about img {
+    box-shadow: 0 25px 70px rgba(0, 0, 0, .18);
+}
+
+.about img:hover {
+    box-shadow: 0 35px 80px rgba(25, 135, 84, .35);
+}
+
+
+/* Statistics Cards */
+
+.bg-primary,
+.bg-success,
+.bg-secondary,
+.bg-dark {
+    overflow: hidden;
+    position: relative;
+}
+
+.bg-primary::before,
+.bg-success::before,
+.bg-secondary::before,
+.bg-dark::before {
+    content: "";
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    background: rgba(255, 255, 255, .08);
+    border-radius: 50%;
+    top: -90px;
+    right: -90px;
+}
+
+.bg-primary::after,
+.bg-success::after,
+.bg-secondary::after,
+.bg-dark::after {
+    content: "";
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    background: rgba(255, 255, 255, .05);
+    border-radius: 50%;
+    bottom: -60px;
+    left: -60px;
+}
+
+
+/* Ripple Buttons */
+
+.btn {
+    overflow: hidden;
+    position: relative;
+}
+
+.btn span {
+    position: relative;
+    z-index: 2;
+}
+
+.btn::before {
+    content: "";
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .25);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: .6s;
+}
+
+.btn:hover::before {
+    width: 320px;
+    height: 320px;
+}
+
+
+/* Heading Animation */
+
+h1,
+h2,
+h3 {
+    transition: .4s;
+}
+
+h1:hover {
+    letter-spacing: 1px;
+}
+
+
+/* Floating Icons */
+
+.about i {
+    transition: .4s;
+}
+
+.about i:hover {
+    filter: drop-shadow(0 0 15px rgba(25, 135, 84, .5));
+}
+
+
+/* Image Zoom Wrapper */
+
+.position-relative {
+    overflow: hidden;
+}
+
+
+/* Mouse Glow */
+
+.mouse-glow {
+    position: absolute;
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(25, 135, 84, .18), transparent 70%);
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: .15s;
+}
