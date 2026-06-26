@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Biome Enterprises | Contact Us</title>
+    <title>Biome Enterprises | About</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta content="" name="keywords">
     <meta content="" name="description">
@@ -366,8 +366,8 @@
 
     <script>
         /*===================================
-                                              ABOUT PAGE INTERACTIONS
-                                        ====================================*/
+                                                                              ABOUT PAGE INTERACTIONS
+                                                                        ====================================*/
 
         document.addEventListener("DOMContentLoaded", () => {
 
@@ -497,6 +497,159 @@
                     }
 
                 };
+
+            });
+
+        });
+
+        /*===================================
+      PREMIUM ABOUT EFFECTS
+====================================*/
+
+        /* Image Tilt */
+
+        document.querySelectorAll(".about img").forEach(img => {
+
+            img.addEventListener("mousemove", e => {
+
+                const rect = img.getBoundingClientRect();
+
+                const x = (e.clientX - rect.left - rect.width / 2) / 18;
+
+                const y = (e.clientY - rect.top - rect.height / 2) / 18;
+
+                img.style.transform =
+                    `rotateX(${-y}deg)
+         rotateY(${x}deg)
+         scale(1.05)`;
+
+            });
+
+            img.addEventListener("mouseleave", () => {
+
+                img.style.transform = "";
+
+            });
+
+        });
+
+
+        /* Magnetic Buttons */
+
+        document.querySelectorAll(".btn").forEach(btn => {
+
+            btn.addEventListener("mousemove", e => {
+
+                const r = btn.getBoundingClientRect();
+
+                const x = e.clientX - r.left - r.width / 2;
+
+                const y = e.clientY - r.top - r.height / 2;
+
+                btn.style.transform =
+                    `translate(${x*.15}px,${y*.15}px)`;
+
+            });
+
+            btn.addEventListener("mouseleave", () => {
+
+                btn.style.transform = "";
+
+            });
+
+        });
+
+
+        /* Floating Glow */
+
+        document.querySelectorAll(".about .bg-light,.about .border").forEach(card => {
+
+            const glow = document.createElement("div");
+
+            glow.className = "mouse-glow";
+
+            card.appendChild(glow);
+
+            card.addEventListener("mousemove", e => {
+
+                const r = card.getBoundingClientRect();
+
+                glow.style.left = e.clientX - r.left + "px";
+
+                glow.style.top = e.clientY - r.top + "px";
+
+                glow.style.opacity = 1;
+
+            });
+
+            card.addEventListener("mouseleave", () => {
+
+                glow.style.opacity = 0;
+
+            });
+
+        });
+
+
+        /* Sequential Card Animation */
+
+        const cards = document.querySelectorAll(".about .bg-light,.about .border");
+
+        cards.forEach((card, index) => {
+
+            card.style.animation =
+
+                `floatCard 6s ease-in-out ${index*.3}s infinite`;
+
+        });
+
+
+        /* Counter Card Bounce */
+
+        document.querySelectorAll(".bg-primary,.bg-success,.bg-dark,.bg-secondary")
+
+        .forEach(card => {
+
+            card.addEventListener("mouseenter", () => {
+
+                card.animate([
+
+                    {
+                        transform: "translateY(0)"
+                    },
+
+                    {
+                        transform: "translateY(-12px)"
+                    },
+
+                    {
+                        transform: "translateY(-6px)"
+                    },
+
+                    {
+                        transform: "translateY(-12px)"
+                    }
+
+                ], {
+
+                    duration: 500,
+
+                    easing: "ease"
+
+                });
+
+            });
+
+        });
+
+
+        /* Auto Parallax */
+
+        window.addEventListener("scroll", () => {
+
+            document.querySelectorAll("img").forEach(img => {
+
+                img.style.transform += ` translateY(${window.scrollY*.02}px)`;
 
             });
 

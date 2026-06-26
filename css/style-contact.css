@@ -152,3 +152,202 @@ SMALL DEVICES
         position: relative !important;
     }
 }
+
+
+/* ================================
+   PREMIUM ABOUT PAGE EFFECTS
+================================ */
+
+
+/* Animated Gradient Background */
+
+.page-header::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, rgba(25, 135, 84, .15), transparent, rgba(13, 110, 253, .12));
+    background-size: 300% 300%;
+    animation: gradientMove 15s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes gradientMove {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+
+/* Floating particles */
+
+.page-header {
+    overflow: hidden;
+}
+
+.page-header span {
+    position: relative;
+    z-index: 5;
+}
+
+
+/* Glass Cards */
+
+.about .bg-light,
+.about .border {
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, .25);
+}
+
+
+/* Shine Effect */
+
+.about .bg-light::before,
+.about .border::before {
+    content: "";
+    position: absolute;
+    top: -150%;
+    left: -60%;
+    width: 50%;
+    height: 300%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .5), transparent);
+    transform: rotate(25deg);
+    transition: .8s;
+}
+
+.about .bg-light:hover::before,
+.about .border:hover::before {
+    left: 130%;
+}
+
+
+/* Image Glow */
+
+.about img {
+    box-shadow: 0 25px 70px rgba(0, 0, 0, .18);
+}
+
+.about img:hover {
+    box-shadow: 0 35px 80px rgba(25, 135, 84, .35);
+}
+
+
+/* Statistics Cards */
+
+.bg-primary,
+.bg-success,
+.bg-secondary,
+.bg-dark {
+    overflow: hidden;
+    position: relative;
+}
+
+.bg-primary::before,
+.bg-success::before,
+.bg-secondary::before,
+.bg-dark::before {
+    content: "";
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    background: rgba(255, 255, 255, .08);
+    border-radius: 50%;
+    top: -90px;
+    right: -90px;
+}
+
+.bg-primary::after,
+.bg-success::after,
+.bg-secondary::after,
+.bg-dark::after {
+    content: "";
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    background: rgba(255, 255, 255, .05);
+    border-radius: 50%;
+    bottom: -60px;
+    left: -60px;
+}
+
+
+/* Ripple Buttons */
+
+.btn {
+    overflow: hidden;
+    position: relative;
+}
+
+.btn span {
+    position: relative;
+    z-index: 2;
+}
+
+.btn::before {
+    content: "";
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .25);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: .6s;
+}
+
+.btn:hover::before {
+    width: 320px;
+    height: 320px;
+}
+
+
+/* Heading Animation */
+
+h1,
+h2,
+h3 {
+    transition: .4s;
+}
+
+h1:hover {
+    letter-spacing: 1px;
+}
+
+
+/* Floating Icons */
+
+.about i {
+    transition: .4s;
+}
+
+.about i:hover {
+    filter: drop-shadow(0 0 15px rgba(25, 135, 84, .5));
+}
+
+
+/* Image Zoom Wrapper */
+
+.position-relative {
+    overflow: hidden;
+}
+
+
+/* Mouse Glow */
+
+.mouse-glow {
+    position: absolute;
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(25, 135, 84, .18), transparent 70%);
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: .15s;
+}

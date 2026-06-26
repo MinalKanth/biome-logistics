@@ -1,0 +1,323 @@
+/* ==========================================================
+   CAB SERVICE PAGE ONLY
+   Add to style-cab.css
+==========================================================*/
+
+:root {
+    --cab: #198754;
+    --cab-dark: #0f5132;
+    --cab-light: #eaf8ef;
+    --shadow: 0 18px 45px rgba(0, 0, 0, .12);
+    --transition: .45s cubic-bezier(.2, .8, .2, 1);
+}
+
+
+/* Smooth */
+
+html {
+    scroll-behavior: smooth;
+}
+
+
+/* Page Header */
+
+.page-header {
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+}
+
+.page-header::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(rgba(8, 35, 20, .72), rgba(8, 35, 20, .55));
+}
+
+.page-header>* {
+    position: relative;
+    z-index: 2;
+}
+
+
+/* Floating circles */
+
+.page-header::after {
+    content: "";
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    right: -200px;
+    top: -200px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .05);
+    animation: rotateCircle 18s linear infinite;
+}
+
+@keyframes rotateCircle {
+    0% {
+        transform: rotate(0deg) scale(1);
+    }
+    50% {
+        transform: rotate(180deg) scale(1.15);
+    }
+    100% {
+        transform: rotate(360deg) scale(1);
+    }
+}
+
+
+/* Hero Buttons */
+
+.page-header .btn {
+    transition: var(--transition);
+    overflow: hidden;
+    position: relative;
+}
+
+.page-header .btn::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -130%;
+    width: 120%;
+    height: 100%;
+    background: rgba(255, 255, 255, .25);
+    transform: skewX(-25deg);
+}
+
+.page-header .btn:hover::before {
+    left: 130%;
+    transition: .7s;
+}
+
+.page-header .btn:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 45px rgba(25, 135, 84, .35);
+}
+
+
+/* Cards */
+
+.service-item,
+.bg-white.rounded-4,
+.shadow-lg,
+.shadow-sm {
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.service-item::before,
+.bg-white.rounded-4::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #198754, #8BC34A);
+    transform: scaleX(0);
+    transition: .45s;
+}
+
+.service-item:hover::before,
+.bg-white.rounded-4:hover::before {
+    transform: scaleX(1);
+}
+
+.service-item:hover,
+.bg-white.rounded-4:hover,
+.shadow-sm:hover {
+    transform: translateY(-12px);
+    box-shadow: 0 28px 60px rgba(0, 0, 0, .18);
+}
+
+
+/* Images */
+
+.service-item img,
+img.rounded-4 {
+    transition: .7s ease;
+}
+
+.service-item:hover img {
+    transform: scale(1.08);
+}
+
+
+/* Icons */
+
+.fa,
+.bi {
+    transition: .45s;
+}
+
+.service-item:hover i,
+.bg-white:hover i {
+    transform: scale(1.2) rotate(8deg);
+    color: #198754;
+}
+
+
+/* Booking Form */
+
+form {
+    position: relative;
+}
+
+.form-control,
+.form-select {
+    border-radius: 14px;
+    transition: .35s;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #198754;
+    box-shadow: 0 0 0 .25rem rgba(25, 135, 84, .15);
+    transform: translateY(-2px);
+}
+
+textarea {
+    resize: none;
+}
+
+
+/* Submit Button */
+
+button.btn-success {
+    transition: .45s;
+}
+
+button.btn-success:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 40px rgba(25, 135, 84, .35);
+}
+
+
+/* CTA */
+
+.bg-dark {
+    overflow: hidden;
+    position: relative;
+}
+
+.bg-dark::after {
+    content: "";
+    position: absolute;
+    width: 450px;
+    height: 450px;
+    background: rgba(255, 255, 255, .05);
+    border-radius: 50%;
+    right: -150px;
+    top: -150px;
+    animation: floatCircle 12s linear infinite;
+}
+
+@keyframes floatCircle {
+    0% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(30px);
+    }
+    100% {
+        transform: translateY(0);
+    }
+}
+
+
+/* Glow */
+
+.glow {
+    animation: glow 2.5s infinite;
+}
+
+@keyframes glow {
+    0%,
+    100% {
+        box-shadow: 0 0 0 rgba(25, 135, 84, .2);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(25, 135, 84, .45);
+    }
+}
+
+
+/* Reveal */
+
+.reveal {
+    opacity: 0;
+    transform: translateY(60px);
+    transition: .8s;
+}
+
+.reveal.active {
+    opacity: 1;
+    transform: none;
+}
+
+
+/* Counter */
+
+.counter {
+    font-weight: 700;
+}
+
+
+/* Floating WhatsApp */
+
+.floating-call {
+    position: fixed;
+    right: 20px;
+    bottom: 90px;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: #198754;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 22px;
+    z-index: 999;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, .25);
+    animation: pulseCall 2s infinite;
+}
+
+@keyframes pulseCall {
+    0% {
+        box-shadow: 0 0 0 0 rgba(25, 135, 84, .5);
+    }
+    70% {
+        box-shadow: 0 0 0 18px rgba(25, 135, 84, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(25, 135, 84, 0);
+    }
+}
+
+
+/* Required for ripple effect */
+
+.btn {
+    overflow: hidden;
+    position: relative;
+}
+
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .45);
+    transform: scale(0);
+    animation: ripple .7s linear;
+    pointer-events: none;
+}
+
+@keyframes ripple {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
