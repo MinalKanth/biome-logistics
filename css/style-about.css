@@ -1,0 +1,171 @@
+/* ===========================
+   ABOUT PAGE INTERACTIONS
+===========================*/
+
+.about-page {
+    overflow: hidden;
+}
+
+
+/* Page Header */
+
+.page-header {
+    position: relative;
+    background-size: cover;
+    background-position: center;
+    transition: background-position .25s linear;
+}
+
+.page-header::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(10, 18, 30, .82), rgba(22, 40, 32, .72), rgba(25, 135, 84, .25));
+}
+
+.page-header>.container {
+    position: relative;
+    z-index: 2;
+}
+
+
+/* Image */
+
+.about img {
+    transition: .7s ease;
+    border-radius: 22px;
+}
+
+.about img:hover {
+    transform: scale(1.05) rotate(-1deg);
+}
+
+
+/* Feature Cards */
+
+.about .bg-light,
+.about .border {
+    transition: .4s ease;
+    border-radius: 18px;
+    cursor: pointer;
+}
+
+.about .bg-light:hover,
+.about .border:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 45px rgba(0, 0, 0, .12);
+    border-color: #198754!important;
+    background: #fff;
+}
+
+.about .bg-light i,
+.about .border i {
+    transition: .35s;
+}
+
+.about .bg-light:hover i,
+.about .border:hover i {
+    transform: scale(1.2) rotate(8deg);
+}
+
+
+/* Counter Cards */
+
+.bg-primary,
+.bg-success,
+.bg-secondary,
+.bg-dark {
+    transition: .4s;
+}
+
+.bg-primary:hover,
+.bg-success:hover,
+.bg-secondary:hover,
+.bg-dark:hover {
+    transform: translateY(-12px) scale(1.03);
+}
+
+
+/* Buttons */
+
+.btn {
+    transition: .35s;
+}
+
+.btn:hover {
+    transform: translateY(-4px);
+}
+
+
+/* Breadcrumb */
+
+.breadcrumb a {
+    transition: .3s;
+}
+
+.breadcrumb a:hover {
+    color: #ffc107!important;
+}
+
+
+/* Floating animation */
+
+@keyframes floatCard {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+.about .position-relative {
+    animation: floatCard 6s ease-in-out infinite;
+}
+
+
+/* Icon pulse */
+
+@keyframes pulseIcon {
+    50% {
+        transform: scale(1.12);
+    }
+}
+
+.about i:hover {
+    animation: pulseIcon .8s infinite;
+}
+
+
+/* Scroll reveal */
+
+.reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: 1s;
+}
+
+.reveal.active {
+    opacity: 1;
+    transform: none;
+}
+
+
+/* Card glow */
+
+.about .bg-light::after,
+.about .border::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 18px;
+    opacity: 0;
+    transition: .4s;
+    box-shadow: 0 0 30px rgba(25, 135, 84, .25);
+}
+
+.about .bg-light:hover::after,
+.about .border:hover::after {
+    opacity: 1;
+}
