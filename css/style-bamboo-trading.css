@@ -1,0 +1,271 @@
+/* =====================================================
+   BIOME BAMBOO TRADING PAGE
+   Premium Interactive CSS
+===================================================== */
+
+
+/* Smooth scrolling */
+
+html {
+    scroll-behavior: smooth;
+}
+
+
+/* Sections */
+
+.container-xxl,
+.container-fluid {
+    position: relative;
+    overflow: hidden;
+}
+
+
+/* ================= HEADER ================= */
+
+.bamboo-header {
+    background: linear-gradient(rgba(10, 26, 34, .72), rgba(10, 26, 34, .72)), url("../img/bamboo-banner.jpg") center/cover;
+}
+
+.bamboo-header::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 20% 30%, rgba(25, 135, 84, .20), transparent 35%), radial-gradient(circle at 80% 25%, rgba(255, 193, 7, .15), transparent 30%);
+    animation: headerGlow 12s linear infinite alternate;
+}
+
+@keyframes headerGlow {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(-20px);
+    }
+}
+
+
+/* ================= BUTTONS ================= */
+
+.btn {
+    transition: .35s ease;
+}
+
+.btn:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, .18);
+}
+
+
+/* ================= ABOUT IMAGE ================= */
+
+.position-relative img {
+    transition: .6s;
+}
+
+.position-relative:hover img {
+    transform: scale(1.05);
+}
+
+
+/* Floating Counter */
+
+.position-absolute.bg-success {
+    animation: floatBox 4s ease-in-out infinite;
+}
+
+@keyframes floatBox {
+    0%,
+    100% {
+        transform: translateY(-50%);
+    }
+    50% {
+        transform: translateY(-60%);
+    }
+}
+
+
+/* ================= FEATURE BOX ================= */
+
+.product-feature {
+    transition: .35s;
+    border: 1px solid rgba(25, 135, 84, .08);
+    background: #fff;
+}
+
+.product-feature:hover {
+    transform: translateY(-12px);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, .12);
+    border-color: #198754;
+}
+
+.product-feature i {
+    transition: .35s;
+}
+
+.product-feature:hover i {
+    transform: scale(1.2) rotate(10deg);
+}
+
+
+/* ================= PRODUCT CARDS ================= */
+
+.service-item {
+    transition: .45s;
+    overflow: hidden;
+    background: #fff;
+}
+
+.service-item img {
+    transition: .7s;
+}
+
+.service-item:hover img {
+    transform: scale(1.12);
+}
+
+.service-item:hover {
+    transform: translateY(-12px);
+    box-shadow: 0 30px 70px rgba(0, 0, 0, .15);
+}
+
+.service-item::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 4px;
+    width: 0;
+    background: #198754;
+    transition: .4s;
+}
+
+.service-item:hover::after {
+    width: 100%;
+}
+
+
+/* ================= APPLICATION BOX ================= */
+
+.bg-white.rounded-4 {
+    transition: .35s;
+    cursor: pointer;
+}
+
+.bg-white.rounded-4:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 45px rgba(0, 0, 0, .12);
+}
+
+.bg-white.rounded-4:hover i {
+    transform: scale(1.2);
+}
+
+.bg-white.rounded-4 i {
+    transition: .35s;
+}
+
+
+/* ================= WHY US ================= */
+
+.d-flex.mb-4 {
+    transition: .3s;
+}
+
+.d-flex.mb-4:hover {
+    transform: translateX(10px);
+}
+
+.d-flex.mb-4 i {
+    transition: .35s;
+}
+
+.d-flex.mb-4:hover i {
+    transform: rotate(12deg) scale(1.2);
+}
+
+
+/* ================= FORM ================= */
+
+#enquiry {
+    background: linear-gradient(135deg, #198754, #0b5d37);
+}
+
+#enquiry .bg-white {
+    border-radius: 25px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, .18);
+}
+
+.form-control,
+.form-select {
+    border-radius: 15px;
+    transition: .3s;
+    border: 2px solid #edf1f6;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #198754;
+    box-shadow: 0 0 0 .2rem rgba(25, 135, 84, .15);
+    transform: translateY(-2px);
+}
+
+textarea {
+    resize: none;
+}
+
+select[multiple] {
+    height: 230px;
+}
+
+button[type=submit] {
+    transition: .35s;
+}
+
+button[type=submit]:hover {
+    transform: translateY(-4px);
+}
+
+
+/* ================= CTA ================= */
+
+.bg-dark.rounded-4 {
+    transition: .4s;
+}
+
+.bg-dark.rounded-4:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 30px 70px rgba(0, 0, 0, .35);
+}
+
+
+/* ================= IMAGE SHADOW ================= */
+
+img {
+    user-select: none;
+}
+
+.rounded-4 {
+    transition: .35s;
+}
+
+.rounded-4:hover {
+    box-shadow: 0 25px 60px rgba(0, 0, 0, .15);
+}
+
+
+/* ================= MOBILE ================= */
+
+@media(max-width:991px) {
+    .display-3 {
+        font-size: 2.5rem;
+    }
+    .display-5 {
+        font-size: 2rem;
+    }
+    .position-absolute.bg-success {
+        position: relative !important;
+        transform: none !important;
+        margin-top: 20px;
+        display: inline-block;
+    }
+}
