@@ -1,0 +1,782 @@
+/*=========================================================
+ BIOME ENTERPRISES
+ LEGAL & ACCOUNTING PAGE
+ PREMIUM INTERACTIVE CSS
+ PART 1
+==========================================================*/
+
+:root {
+    --primary: #198754;
+    --secondary: #0d6efd;
+    --dark: #16213e;
+    --light: #f8fafc;
+    --white: #ffffff;
+    --text: #555;
+    --heading: #202124;
+    --radius: 18px;
+    --shadow-sm: 0 8px 25px rgba(0, 0, 0, .08);
+    --shadow-md: 0 18px 40px rgba(0, 0, 0, .12);
+    --shadow-lg: 0 30px 70px rgba(0, 0, 0, .18);
+    --transition: .35s ease;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: #f7f9fc;
+    color: var(--text);
+    overflow-x: hidden;
+}
+
+
+/*============================
+PAGE HEADER
+=============================*/
+
+.page-header {
+    position: relative;
+    overflow: hidden;
+    padding: 120px 0;
+    background: linear-gradient(rgba(10, 25, 47, .75), rgba(10, 25, 47, .78)), url("../img/legal-banner.jpg");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+.page-header::before {
+    content: "";
+    position: absolute;
+    width: 700px;
+    height: 700px;
+    border-radius: 50%;
+    background: rgba(25, 135, 84, .18);
+    top: -320px;
+    right: -220px;
+    filter: blur(20px);
+    animation: blobMove 12s infinite alternate;
+}
+
+.page-header::after {
+    content: "";
+    position: absolute;
+    width: 450px;
+    height: 450px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .05);
+    bottom: -180px;
+    left: -120px;
+    animation: blobMove2 10s infinite alternate;
+}
+
+
+/*============================
+HEADINGS
+=============================*/
+
+.display-3 {
+    font-weight: 800;
+    letter-spacing: -1px;
+}
+
+.display-5 {
+    font-weight: 700;
+    color: var(--heading);
+}
+
+h4 {
+    font-weight: 700;
+    color: #222;
+}
+
+h5 {
+    font-weight: 600;
+}
+
+.text-success {
+    color: var(--primary)!important;
+}
+
+
+/*============================
+BUTTONS
+=============================*/
+
+.btn {
+    border-radius: 50px;
+    transition: .4s;
+    font-weight: 600;
+    letter-spacing: .4px;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #198754, #28c76f);
+    border: none;
+    box-shadow: 0 15px 35px rgba(25, 135, 84, .25);
+}
+
+.btn-success:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 45px rgba(25, 135, 84, .35);
+}
+
+.btn-light {
+    transition: .4s;
+}
+
+.btn-light:hover {
+    transform: translateY(-5px);
+}
+
+
+/*============================
+SECTION SPACING
+=============================*/
+
+section {
+    padding: 100px 0;
+}
+
+
+/*============================
+CARDS
+=============================*/
+
+.bg-white.rounded-4 {
+    border-radius: 22px!important;
+    transition: .45s;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid rgba(25, 135, 84, .05);
+    position: relative;
+    overflow: hidden;
+    background: rgba(255, 255, 255, .92);
+    backdrop-filter: blur(12px);
+}
+
+.bg-white.rounded-4::before {
+    content: "";
+    position: absolute;
+    width: 120%;
+    height: 5px;
+    background: linear-gradient(90deg, #198754, #42d392, #198754);
+    left: -100%;
+    top: 0;
+    transition: .7s;
+}
+
+.bg-white.rounded-4:hover::before {
+    left: 0;
+}
+
+.bg-white.rounded-4:hover {
+    transform: translateY(-12px);
+    box-shadow: var(--shadow-lg);
+}
+
+
+/*============================
+ICONS
+=============================*/
+
+.fa-3x,
+.fa-4x {
+    transition: .4s;
+}
+
+.bg-white.rounded-4:hover i {
+    transform: scale(1.18) rotate(8deg);
+    color: #28c76f!important;
+}
+
+
+/*============================
+SERVICE LIST
+=============================*/
+
+.list-group {
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.list-group-item {
+    border: none;
+    padding: 20px 25px;
+    transition: .35s;
+    font-weight: 500;
+}
+
+.list-group-item:nth-child(even) {
+    background: #fcfcfc;
+}
+
+.list-group-item:hover {
+    padding-left: 38px;
+    background: #198754;
+    color: #fff;
+}
+
+.list-group-item:hover i {
+    color: #fff!important;
+}
+
+
+/*============================
+ABOUT SECTION
+=============================*/
+
+.about-box {
+    background: #fff;
+    padding: 50px;
+    border-radius: 24px;
+    box-shadow: var(--shadow-md);
+}
+
+.about-box h2 {
+    margin-bottom: 25px;
+}
+
+
+/*============================
+STATS
+=============================*/
+
+.border.rounded-4 {
+    transition: .35s;
+    background: #fff;
+}
+
+.border.rounded-4:hover {
+    background: #198754;
+    color: #fff;
+    transform: translateY(-8px);
+}
+
+.border.rounded-4:hover h2 {
+    color: #fff!important;
+}
+
+
+/*============================
+GLASS PANEL
+=============================*/
+
+.glass {
+    background: rgba(255, 255, 255, .25);
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 255, 255, .3);
+    box-shadow: var(--shadow-md);
+}
+
+
+/*============================
+IMAGES
+=============================*/
+
+img {
+    transition: .5s;
+}
+
+img:hover {
+    transform: scale(1.04);
+}
+
+
+/*============================
+LINKS
+=============================*/
+
+a {
+    transition: .3s;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #198754;
+}
+
+
+/*============================
+ANIMATIONS
+=============================*/
+
+@keyframes blobMove {
+    0% {
+        transform: translateY(0) translateX(0);
+    }
+    100% {
+        transform: translateY(60px) translateX(-40px);
+    }
+}
+
+@keyframes blobMove2 {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(60px);
+    }
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+    100% {
+        transform: translateY(0);
+    }
+}
+
+.floating {
+    animation: float 4s ease-in-out infinite;
+}
+
+
+/*============================
+HOVER GLOW
+=============================*/
+
+.glow:hover {
+    box-shadow: 0 0 20px rgba(25, 135, 84, .3), 0 0 60px rgba(25, 135, 84, .15);
+}
+
+
+/*============================
+TRANSITIONS
+=============================*/
+
+* {
+    transition: background .3s, color .3s, box-shadow .3s, transform .3s;
+}
+
+
+/*=========================================================
+ BIOME ENTERPRISES
+ LEGAL & ACCOUNTING PAGE
+ PREMIUM INTERACTIVE CSS
+ PART 2
+==========================================================*/
+
+
+/*==========================
+CONSULATION FORM
+==========================*/
+
+.contact-form {
+    position: relative;
+}
+
+.contact-form form {
+    background: #fff;
+    padding: 40px;
+    border-radius: 22px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .08);
+}
+
+.form-control,
+.form-select {
+    height: 58px;
+    border-radius: 14px;
+    border: 2px solid #edf1f5;
+    background: #fafbfd;
+    box-shadow: none;
+    transition: .35s;
+    font-size: 15px;
+}
+
+textarea.form-control {
+    height: 180px!important;
+    resize: none;
+    padding-top: 18px;
+}
+
+.form-control:hover,
+.form-select:hover {
+    border-color: #b5e6ca;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #198754;
+    background: #fff;
+    box-shadow: 0 0 0 .25rem rgba(25, 135, 84, .12);
+    transform: translateY(-2px);
+}
+
+.form-control::placeholder {
+    color: #9aa5b1;
+}
+
+
+/*==========================
+FAQ
+==========================*/
+
+.accordion-item {
+    border: none;
+    margin-bottom: 20px;
+    border-radius: 18px!important;
+    overflow: hidden;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, .08);
+}
+
+.accordion-button {
+    padding: 22px 28px;
+    font-weight: 600;
+    font-size: 17px;
+    background: #fff;
+    box-shadow: none;
+}
+
+.accordion-button:not(.collapsed) {
+    background: #198754;
+    color: #fff;
+}
+
+.accordion-button:focus {
+    box-shadow: none;
+}
+
+.accordion-body {
+    padding: 25px 30px;
+    line-height: 1.8;
+    color: #666;
+}
+
+
+/*==========================
+CTA
+==========================*/
+
+.bg-success {
+    background: linear-gradient(135deg, #198754, #1fb96d)!important;
+    position: relative;
+    overflow: hidden;
+}
+
+.bg-success::before {
+    content: "";
+    position: absolute;
+    width: 320px;
+    height: 320px;
+    background: rgba(255, 255, 255, .08);
+    border-radius: 50%;
+    top: -100px;
+    left: -80px;
+}
+
+.bg-success::after {
+    content: "";
+    position: absolute;
+    width: 280px;
+    height: 280px;
+    background: rgba(255, 255, 255, .05);
+    border-radius: 50%;
+    bottom: -100px;
+    right: -60px;
+}
+
+
+/*==========================
+BACK TO TOP
+==========================*/
+
+.back-to-top {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%!important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 15px 35px rgba(25, 135, 84, .35);
+    transition: .35s;
+}
+
+.back-to-top:hover {
+    transform: translateY(-8px) rotate(360deg);
+}
+
+
+/*==========================
+HOVER BORDER
+==========================*/
+
+.hover-border {
+    position: relative;
+    overflow: hidden;
+}
+
+.hover-border::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 0;
+    height: 4px;
+    background: #198754;
+    transition: .4s;
+    transform: translateX(-50%);
+}
+
+.hover-border:hover::after {
+    width: 100%;
+}
+
+
+/*==========================
+IMAGE EFFECT
+==========================*/
+
+.image-hover {
+    overflow: hidden;
+    border-radius: 22px;
+}
+
+.image-hover img {
+    transition: .6s;
+}
+
+.image-hover:hover img {
+    transform: scale(1.08);
+}
+
+
+/*==========================
+ICON BOX
+==========================*/
+
+.icon-box {
+    width: 75px;
+    height: 75px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #198754;
+    color: #fff;
+    font-size: 28px;
+    margin: auto;
+    box-shadow: 0 15px 35px rgba(25, 135, 84, .25);
+    transition: .4s;
+}
+
+.icon-box:hover {
+    transform: translateY(-8px) rotate(8deg);
+}
+
+
+/*==========================
+SECTION TITLE
+==========================*/
+
+.section-title {
+    position: relative;
+    display: inline-block;
+    padding-bottom: 15px;
+}
+
+.section-title::after {
+    content: "";
+    position: absolute;
+    width: 90px;
+    height: 4px;
+    background: #198754;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+    border-radius: 50px;
+}
+
+
+/*==========================
+FLOATING CIRCLES
+==========================*/
+
+.circle-one {
+    position: absolute;
+    width: 220px;
+    height: 220px;
+    background: rgba(25, 135, 84, .05);
+    border-radius: 50%;
+    top: 120px;
+    right: 40px;
+    animation: floatCircle 10s infinite alternate;
+}
+
+.circle-two {
+    position: absolute;
+    width: 160px;
+    height: 160px;
+    background: rgba(13, 110, 253, .05);
+    border-radius: 50%;
+    bottom: 100px;
+    left: 30px;
+    animation: floatCircle2 12s infinite alternate;
+}
+
+
+/*==========================
+SCROLLBAR
+==========================*/
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #edf2f7;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #198754;
+    border-radius: 50px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #146c43;
+}
+
+
+/*==========================
+TEXT SELECTION
+==========================*/
+
+::selection {
+    background: #198754;
+    color: #fff;
+}
+
+
+/*==========================
+FOCUS GLOW
+==========================*/
+
+.focus-glow:focus {
+    box-shadow: 0 0 15px rgba(25, 135, 84, .3), 0 0 40px rgba(25, 135, 84, .18);
+}
+
+
+/*==========================
+ANIMATIONS
+==========================*/
+
+@keyframes floatCircle {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(60px);
+    }
+}
+
+@keyframes floatCircle2 {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(70px);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes fadeUp {
+    0% {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-up {
+    animation: fadeUp .8s ease forwards;
+}
+
+
+/*==========================
+RESPONSIVE
+==========================*/
+
+@media(max-width:991px) {
+    .page-header {
+        padding: 90px 0;
+        background-attachment: scroll;
+    }
+    .display-3 {
+        font-size: 2.7rem;
+    }
+    .display-5 {
+        font-size: 2rem;
+    }
+    .contact-form form {
+        padding: 30px;
+    }
+    .bg-white.rounded-4 {
+        margin-bottom: 20px;
+    }
+}
+
+@media(max-width:768px) {
+    .page-header {
+        text-align: center;
+    }
+    .display-3 {
+        font-size: 2.2rem;
+    }
+    .display-5 {
+        font-size: 1.7rem;
+    }
+    .btn {
+        width: 100%;
+    }
+    .form-control,
+    .form-select {
+        height: 54px;
+    }
+    textarea.form-control {
+        height: 150px!important;
+    }
+    .back-to-top {
+        width: 48px;
+        height: 48px;
+    }
+}
+
+@media(max-width:576px) {
+    .contact-form form {
+        padding: 22px;
+    }
+    .list-group-item {
+        padding: 18px;
+    }
+    .accordion-button {
+        font-size: 15px;
+        padding: 18px;
+    }
+    .accordion-body {
+        padding: 20px;
+    }
+    .display-3 {
+        font-size: 1.9rem;
+    }
+    .display-5 {
+        font-size: 1.5rem;
+    }
+}

@@ -100,9 +100,8 @@ html {
 /* Cards */
 
 .service-item,
-.bg-white.rounded-4,
-.shadow-lg,
-.shadow-sm {
+.service-feature,
+.bg-white.rounded-4 {
     transition: var(--transition);
     position: relative;
     overflow: hidden;
@@ -127,8 +126,8 @@ html {
 }
 
 .service-item:hover,
-.bg-white.rounded-4:hover,
-.shadow-sm:hover {
+.service-feature:hover,
+.bg-white.rounded-4:hover {
     transform: translateY(-12px);
     box-shadow: 0 28px 60px rgba(0, 0, 0, .18);
 }
@@ -136,9 +135,26 @@ html {
 
 /* Images */
 
-.service-item img,
-img.rounded-4 {
-    transition: .7s ease;
+.service-item img {
+    transition: transform .7s ease;
+    display: block;
+    width: 100%;
+}
+
+.service-item:hover img {
+    transform: scale(1.05);
+}
+
+
+/* Prevent About image and logo from moving */
+
+img.rounded-4,
+.navbar-brand img,
+.page-header img,
+#navbar img,
+#footer img {
+    transform: none !important;
+    transition: none !important;
 }
 
 .service-item:hover img {
@@ -320,4 +336,35 @@ button.btn-success:hover {
         transform: scale(4);
         opacity: 0;
     }
+}
+
+
+/* ===== Fix image/logo movement ===== */
+
+.about-image img,
+.position-relative>img,
+.navbar-brand img,
+#navbar img,
+#footer img,
+.page-header img {
+    transform: none !important;
+    animation: none !important;
+    transition: opacity .3s ease !important;
+    will-change: auto;
+}
+
+
+/* Prevent generic shadow classes from animating */
+
+.shadow-lg,
+.shadow-sm {
+    transform: none;
+}
+
+
+/* Keep hover only for cards */
+
+.service-item:hover,
+.service-feature:hover {
+    transform: translateY(-10px);
 }
