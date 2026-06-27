@@ -3,11 +3,11 @@
 -- Import this file into MySQL/MariaDB before running the app
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS admin_panel
+CREATE DATABASE IF NOT EXISTS biome
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
-USE admin_panel;
+USE biome;
 
 -- ------------------------------------------------------------
 -- Admins table (no public registration - seeded manually only)
