@@ -1,0 +1,46 @@
+# =============================================================
+# Root .htaccess - security hardening (Apache)
+# =============================================================
+
+# Disable directory listing
+Options -Indexes
+
+# Block access to dotfiles (.env, .git, etc.)
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Block access to backup / editor files
+<FilesMatch "(\.sql|\.bak|\.swp|~)$">
+    Require all denied
+</FilesMatch>
+
+# Block access to create_admin.php over HTTP (CLI-only script)
+<Files "create_admin.php">
+    Require all denied
+</Files>
+
+# Disable PHP execution inside uploads (defense in depth in case
+# of future file-upload features)
+<IfModule mod_php7.c>
+    <Directory "uploads">
+        php_flag engine off
+    </Directory>
+</IfModule>
+<IfModule mod_php8.c>
+    <Directory "uploads">
+        php_flag engine off
+    </Directory>
+</IfModule>
+
+# Extra security headers (in addition to the ones PHP sets)
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Hide PHP version in headers (also set expose_php=Off in php.ini if possible)
+<IfModule mod_php.c>
+    php_flag expose_php off
+</IfModule>
