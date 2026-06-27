@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS activity_log (
 
 -- ------------------------------------------------------------
 -- Seed ONE admin account.
--- Default login: username = admin / password = ChangeMe!123
+-- Default login: username = admin / password = ChangeMe!123 admin@biome.com
 -- The hash below is generated with PHP's password_hash() (bcrypt).
 -- *** CHANGE THIS PASSWORD IMMEDIATELY AFTER FIRST LOGIN ***
 -- (Use create_admin.php, included in the package, to generate

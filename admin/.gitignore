@@ -1,0 +1,25 @@
+# --- Secrets / environment ---
+# config.php holds real DB credentials once you set it up locally.
+# Only config.example.php is tracked in git.
+config/config.php
+
+# --- Logs ---
+logs/*.log
+!logs/.gitkeep
+
+# --- Uploads (runtime user content, if used later) ---
+uploads/*
+!uploads/.gitkeep
+!uploads/.htaccess
+
+# --- OS / editor junk ---
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# --- Dependency dirs (in case Composer is added later) ---
+vendor/
+composer.lock
