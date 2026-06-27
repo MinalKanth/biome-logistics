@@ -18,11 +18,17 @@
                 </p>
 
                 <p class="mb-3">
-                    <i class="fa fa-phone-alt text-success me-3"></i> +91 96784 31656
+                    <i class="fa fa-phone-alt text-success me-3"></i>
+                    <a href="tel:+919678431656" class="text-light text-decoration-none">
+        +91 96784 31656
+    </a>
                 </p>
 
                 <p class="mb-4">
-                    <i class="fa fa-envelope text-success me-3"></i> info@biomeenterprises.com
+                    <i class="fa fa-envelope text-success me-3"></i>
+                    <a href="mailto:info@biomeenterprises.com" class="text-light text-decoration-none">
+        info@biomeenterprises.com
+    </a>
                 </p>
 
                 <div class="d-flex">
@@ -52,17 +58,17 @@
 
                 <h4 class="text-white mb-4">Our Services</h4>
 
-                <a class="btn btn-link" href="transportation.html">Transportation </a>
+                <a class="btn btn-link" href="transportation.php">Transportation </a>
 
-                <a class="btn btn-link" href="bamboo.html">Bamboo Trading</a>
+                <a class="btn btn-link" href="bamboo.php">Bamboo Trading</a>
 
-                <a class="btn btn-link" href="legal.html">Legal & Compliance</a>
+                <a class="btn btn-link" href="legal.php">Legal & Compliance</a>
 
-                <a class="btn btn-link" href="cab.html">Cab Rental</a>
+                <a class="btn btn-link" href="cab.php">Cab Rental</a>
 
-                <a class="btn btn-link" href="hotel.html">Hotels & Homestays</a>
+                <a class="btn btn-link" href="hotel.php">Hotels & Homestays</a>
 
-                <a class="btn btn-link" href="restaurant.html">Restaurant Booking</a>
+                <a class="btn btn-link" href="restaurant.php">Restaurant Booking</a>
 
             </div>
 
@@ -72,17 +78,17 @@
 
                 <h4 class="text-white mb-4">Quick Links</h4>
 
-                <a class="btn btn-link" href="index.html">Home</a>
+                <a class="btn btn-link" href="index.php">Home</a>
 
-                <a class="btn btn-link" href="about.html">About Us</a>
+                <a class="btn btn-link" href="about.php">About Us</a>
 
-                <a class="btn btn-link" href="service.html">Our Services</a>
+                <a class="btn btn-link" href="service.php">Our Services</a>
 
-                <a class="btn btn-link" href="quote.html">Get a Quote</a>
+                <a class="btn btn-link" href="quote.php">Get a Quote</a>
 
-                <a class="btn btn-link" href="contact.html">Contact Us</a>
+                <a class="btn btn-link" href="contact.php">Contact Us</a>
 
-                <a class="btn btn-link" href="privacy-policy.html">Privacy Policy</a>
+                <a class="btn btn-link" href="privacy-policy.php">Privacy Policy</a>
 
             </div>
 
@@ -96,7 +102,7 @@
                     Looking for transportation, bamboo supply, business registration, or travel services? Contact our experts today.
                 </p>
 
-                <a href="quote.html" class="btn btn-success w-100 py-3 mb-3">
+                <a href="quote.php" class="btn btn-success w-100 py-3 mb-3">
                     Request Free Quote
                 </a>
 

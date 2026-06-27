@@ -8,7 +8,7 @@
 
 <!-- Navbar Start -->
 <nav class="navbar navbar-expand-lg bg-white navbar-light shadow border-top border-5 border-primary sticky-top p-0">
-    <a href="index.html" class="navbar-brand bg-primary d-flex align-items-center px-3 px-lg-4">
+    <a href="index.php" class="navbar-brand bg-primary d-flex align-items-center px-3 px-lg-4">
 
         <img src="img/logo.png" alt="Biome Enterprises Logo" style="height:55px;width:auto;object-fit:contain;" class="me-3">
 
@@ -29,12 +29,12 @@
         <div class="navbar-nav ms-auto p-4 p-lg-0">
 
             <!-- Home Link -->
-            <a href="index.html" class="nav-item nav-link">
+            <a href="index.php" class="nav-item nav-link">
                 <i class="fa fa-home me-2"></i> Home
             </a>
 
             <!-- About Link -->
-            <a href="about.html" class="nav-item nav-link">
+            <a href="about.php" class="nav-item nav-link">
                 <i class="fa fa-info-circle me-2"></i> About
             </a>
 
@@ -46,27 +46,27 @@
 
                 <div class="dropdown-menu fade-up m-0">
 
-                    <a href="transportation.html" class="dropdown-item">
+                    <a href="transportation.php" class="dropdown-item">
                         <i class="fa fa-truck text-primary me-2"></i> Transportation & Logistics
                     </a>
 
-                    <a href="bamboo-trading.html" class="dropdown-item">
+                    <a href="bamboo-trading.php" class="dropdown-item">
                         <i class="fa fa-leaf text-success me-2"></i> Bamboo Trading
                     </a>
 
-                    <a href="legal.html" class="dropdown-item">
+                    <a href="legal.php" class="dropdown-item">
                         <i class="fa fa-balance-scale text-warning me-2"></i> Legal & Compliance
                     </a>
 
-                    <a href="cab.html" class="dropdown-item">
+                    <a href="cab.php" class="dropdown-item">
                         <i class="fa fa-car text-info me-2"></i> Cab Rental
                     </a>
 
-                    <a href="hotel.html" class="dropdown-item">
+                    <a href="hotel.php" class="dropdown-item">
                         <i class="fa fa-hotel text-danger me-2"></i> Hotels & Homestays
                     </a>
 
-                    <a href="restaurant.html" class="dropdown-item">
+                    <a href="restaurant.php" class="dropdown-item">
                         <i class="fa fa-utensils text-secondary me-2"></i> Restaurant
                     </a>
 
@@ -74,12 +74,12 @@
             </div>
 
             <!-- Contact Link -->
-            <a href="contact.html" class="nav-item nav-link">
+            <a href="contact.php" class="nav-item nav-link">
                 <i class="fa fa-phone me-2"></i> Contact
             </a>
 
             <!-- NGO & Sustainability Link -->
-            <a href="ngo.html" class="nav-item nav-link">
+            <a href="ngo.php" class="nav-item nav-link">
                 <i class="fa fa-seedling me-2"></i> NGO
             </a>
 
@@ -87,7 +87,9 @@
 
         <!-- Phone Number (Desktop Only) -->
         <h4 class="m-0 pe-lg-5 d-none d-lg-block">
-            <i class="fa fa-headphones text-primary me-3"></i> +91 96784 31656
+            <a href="tel:+919678431656" class="text-dark text-decoration-none">
+                <i class="fa fa-phone-alt text-primary me-3"></i>+91 96784 31656
+            </a>
         </h4>
     </div>
 </nav>

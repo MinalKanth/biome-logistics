@@ -1,3 +1,106 @@
+<?php
+declare(strict_types=1);
+
+require_once __DIR__ . '/admin/config/database.php';
+
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+if (empty($_SESSION['contact_csrf_token'])) {
+    $_SESSION['contact_csrf_token'] = bin2hex(random_bytes(32));
+}
+$contactCsrfToken = $_SESSION['contact_csrf_token'];
+
+$contactFormErrors = [];
+$contactFormSuccess = false;
+if (!empty($_SESSION['contact_flash_success'])) {
+    $contactFormSuccess = true;
+    unset($_SESSION['contact_flash_success']);
+}
+
+$contactFormValues = [
+    'name'    => '',
+    'email'   => '',
+    'subject' => '',
+    'message' => '',
+];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_form_submit'])) {
+
+    $postedToken = $_POST['csrf_token'] ?? '';
+    if (!hash_equals($_SESSION['contact_csrf_token'], $postedToken)) {
+        $contactFormErrors[] = 'Your session expired. Please refresh the page and try again.';
+    } else {
+
+        $name    = trim((string) ($_POST['name'] ?? ''));
+        $email   = trim((string) ($_POST['email'] ?? ''));
+        $subject = trim((string) ($_POST['subject'] ?? ''));
+        $message = trim((string) ($_POST['message'] ?? ''));
+
+        $contactFormValues = compact('name', 'email', 'subject', 'message');
+
+        if ($name === '' || mb_strlen($name) > 150) {
+            $contactFormErrors[] = 'Name is required (max 150 characters).';
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 150) {
+            $contactFormErrors[] = 'Please enter a valid email address.';
+        }
+
+        $allowedServices = [
+            'Transportation & Logistics', 'Bamboo Trading', 'GST Registration',
+            'Company Registration', 'MSME Registration', 'Accounting', 'Cab Rental', 'Other',
+        ];
+        if ($subject !== '' && !in_array($subject, $allowedServices, true)) {
+            $contactFormErrors[] = 'Please select a valid service from the list.';
+        }
+        if (mb_strlen($message) > 2000) {
+            $contactFormErrors[] = 'Message is too long (max 2000 characters).';
+        }
+
+        $now = time();
+        $bucket = $_SESSION['contact_rate_limit'] ?? ['count' => 0, 'start' => $now];
+        if ($now - $bucket['start'] > 600) {
+            $bucket = ['count' => 0, 'start' => $now];
+        }
+        $bucket['count']++;
+        $_SESSION['contact_rate_limit'] = $bucket;
+        if ($bucket['count'] > 3) {
+            $contactFormErrors[] = 'Too many submissions. Please wait a few minutes and try again.';
+        }
+
+        if (!$contactFormErrors) {
+            try {
+                $pdo = get_db();
+                $stmt = $pdo->prepare(
+                    'INSERT INTO contact_messages (full_name, email, service_required, message, ip_address)
+                     VALUES (:name, :email, :subject, :message, :ip)'
+                );
+                $stmt->execute([
+                    ':name'    => $name,
+                    ':email'   => $email,
+                    ':subject' => $subject !== '' ? $subject : null,
+                    ':message' => $message !== '' ? $message : null,
+                    ':ip'      => $_SERVER['REMOTE_ADDR'] ?? null,
+                ]);
+
+                $_SESSION['contact_flash_success'] = true;
+                $_SESSION['contact_csrf_token'] = bin2hex(random_bytes(32));
+                header('Location: ' . $_SERVER['PHP_SELF']);
+                exit;
+
+            } catch (PDOException $e) {
+                error_log('Contact form insert failed: ' . $e->getMessage());
+                $contactFormErrors[] = 'Something went wrong on our end. Please try again later.';
+            }
+        }
+    }
+}
+
+function cf_e(string $value): string
+{
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -36,7 +139,8 @@
 <body>
 
     <!-- Navbar -->
-    <div id="navbar"></div>
+    <!-- <div id="navbar"></div> -->
+     <?php include __DIR__ . '/navbar.php'; ?>
     <!-- Navbar End -->
 
 
@@ -83,7 +187,7 @@
 
             <nav>
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a class="text-white" href="index.html">Home</a></li>
+                    <li class="breadcrumb-item"><a class="text-white" href="index.php">Home</a></li>
                     <li class="breadcrumb-item text-white active">Transport Services</li>
                 </ol>
             </nav>
@@ -388,7 +492,11 @@
                         <i class="fa fa-phone-alt text-success me-3 mt-1"></i>
                         <div>
                             <strong>Call Dispatch</strong>
-                            <div class="text-muted">+91 96784 31656</div>
+                            <div>
+                                <a href="tel:+919678431656" class="text-muted text-decoration-none">
+                +91 96784 31656
+            </a>
+                            </div>
                         </div>
                     </div>
                     <div class="d-flex align-items-start">
@@ -402,45 +510,59 @@
 
                 <div class="col-lg-7 reveal-up" style="transition-delay:.1s;">
                     <div class="quote-panel">
-                        <form id="quote-form">
+                        <?php if ($contactFormSuccess): ?>
+                            <div class="alert alert-success">Thank you! Your message has been received. We'll get back to you shortly.</div>
+                        <?php endif; ?>
+
+                        <?php if ($contactFormErrors): ?>
+                            <div class="alert alert-danger">
+                                <ul class="mb-0">
+                                    <?php foreach ($contactFormErrors as $err): ?>
+                                        <li><?= cf_e($err) ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        <?php endif; ?>
+
+                        <form method="post" action="">
+                            <input type="hidden" name="csrf_token" value="<?= cf_e($contactCsrfToken) ?>">
+                            <input type="hidden" name="contact_form_submit" value="1">
+
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="t-name" placeholder="Your Name" required>
-                                        <label for="t-name">Your Name</label>
+                                        <input type="text" class="form-control" id="name" name="name" placeholder="Your Name" maxlength="150" required value="<?= cf_e($contactFormValues['name']) ?>">
+                                        <label for="name">Your Name</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <input type="tel" class="form-control" id="t-phone" placeholder="Your Phone" required>
-                                        <label for="t-phone">Your Phone</label>
+                                        <input type="email" class="form-control" id="email" name="email" placeholder="Your Email" maxlength="150" required value="<?= cf_e($contactFormValues['email']) ?>">
+                                        <label for="email">Your Email</label>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-12">
                                     <div class="form-floating">
-                                        <select class="form-select" id="t-vehicle" required>
-                                            <option value="">-- Select Vehicle --</option>
-                                            <option>32 ft. Single Axle Container</option>
-                                            <option>32 ft. Multi Axle Container</option>
-                                            <option>32 ft. Open Body Truck</option>
+                                        <select class="form-select" id="subject" name="subject">
+                                            <option value="" <?= $contactFormValues['subject'] === '' ? 'selected' : '' ?>>Select a service</option>
+                                            <?php
+                                            $services = ['Transportation & Logistics', 'Bamboo Trading', 'GST Registration', 'Company Registration', 'MSME Registration', 'Accounting', 'Cab Rental', 'Other'];
+                                            foreach ($services as $service):
+                                            ?>
+                                                <option value="<?= cf_e($service) ?>" <?= $contactFormValues['subject'] === $service ? 'selected' : '' ?>><?= cf_e($service) ?></option>
+                                            <?php endforeach; ?>
                                         </select>
-                                        <label for="t-vehicle">Vehicle Required</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control" id="t-route" placeholder="Pickup - Drop Location" required>
-                                        <label for="t-route">Pickup - Drop Location</label>
+                                        <label for="subject">Service Required</label>
                                     </div>
                                 </div>
                                 <div class="col-12">
                                     <div class="form-floating">
-                                        <textarea class="form-control" placeholder="Describe your cargo..." id="t-message" style="height: 100px" required></textarea>
-                                        <label for="t-message">Cargo Details (weight, type, dimensions)</label>
+                                        <textarea class="form-control" placeholder="Describe your requirements..." id="message" name="message" maxlength="2000" style="height: 100px"><?= cf_e($contactFormValues['message']) ?></textarea>
+                                        <label for="message">Message</label>
                                     </div>
                                 </div>
                                 <div class="col-12">
-                                    <button class="btn btn-primary w-100 py-3" type="submit">Request Quotation</button>
+                                    <button class="btn btn-primary w-100 py-3" type="submit">Request Consultation</button>
                                 </div>
                             </div>
                         </form>
@@ -454,7 +576,8 @@
 
 
     <!-- Footer -->
-    <div id="footer"></div>
+    <!-- <div id="footer"></div> -->
+     <?php include __DIR__ . '/footer.php'; ?>
     <!-- Footer End -->
 
 
@@ -476,27 +599,28 @@
 
     <!-- Page Script -->
     <script>
-        fetch("navbar.html")
-            .then(response => response.text())
-            .then(data => {
+        // fetch("navbar.php")
+        //     .then(response => response.text())
+        //     .then(data => {
 
-                document.getElementById("navbar").innerHTML = data;
+        //         document.getElementById("navbar").innerHTML = data;
 
-                document.querySelectorAll(".dropdown-toggle").forEach(function(el) {
+        //         document.querySelectorAll(".dropdown-toggle").forEach(function(el) {
 
-                    new bootstrap.Dropdown(el);
+        //             new bootstrap.Dropdown(el);
 
-                });
+        //         });
 
-            });
+        //     });
 
-        fetch("footer.html")
-            .then(response => response.text())
-            .then(data => {
+        // fetch("footer.php")
+        //     .then(response => response.text())
+        //     .then(data => {
 
-                document.getElementById("footer").innerHTML = data;
+        //         document.getElementById("footer").innerHTML = data;
 
-            });
+        //     });
+        <?php include __DIR__ . '/footer.php'; ?>
 
         window.addEventListener("scroll", function() {
 

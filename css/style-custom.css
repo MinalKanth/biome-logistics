@@ -918,17 +918,23 @@
 
 /* Image */
 
-.feature .position-relative {
+.feature .position-relative,
+.feature-image-wrapper {
     overflow: hidden;
     border-radius: 28px;
     box-shadow: 0 25px 60px rgba(0, 0, 0, .18);
+    height: 100%;
 }
 
-.feature .position-relative img {
+.feature-image-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
     transition: 1.2s;
 }
 
-.feature .position-relative:hover img {
+.feature .position-relative:hover img,
+.feature-image-wrapper:hover img {
     transform: scale(1.08);
 }
 
@@ -950,11 +956,19 @@
     pointer-events: none;
 }
 
-img {
+
+/* img {
     width: 100%;
     height: 100%;
     object-fit: contain;
     object-position: center;
+} */
+
+.feature-image-wrapper img {
+    width: 100%;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 28px;
 }
 
 @keyframes borderMove {
@@ -1064,6 +1078,7 @@ img {
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
+    pointer-events: none;
 }
 
 @keyframes borderMove {
@@ -1604,4 +1619,61 @@ textarea {
 
 .text-secondary {
     letter-spacing: 3px;
+}
+
+
+/* try fix for owl issue */
+
+
+/* Prevent Owl Carousel's cloned/internal elements from ever
+   overlaying content outside the carousel itself. */
+
+.owl-carousel,
+.owl-stage-outer,
+.owl-stage,
+.owl-item {
+    position: relative;
+    z-index: 1;
+}
+
+.owl-carousel .owl-stage-outer {
+    overflow: hidden;
+}
+
+
+/* The carousel section must never let its children escape
+   its own boundary and cover sections below it. */
+
+.header-carousel {
+    isolation: isolate;
+}
+
+
+/* Force the quote section (and everything in it) above
+   anything the carousel might leave behind. */
+
+.quote-section {
+    position: relative;
+    z-index: 10;
+}
+
+
+/* Tilt glare must never block form clicks */
+
+.quote-card .js-tilt-glare,
+.quote-card .js-tilt-glare-inner {
+    pointer-events: none !important;
+}
+
+
+/* Make sure inputs sit above the animated border/shine layers */
+
+.quote-card form {
+    position: relative;
+    z-index: 5;
+}
+
+.quote-card::before {
+    pointer-events: none;
+    /* animated gradient border */
 }

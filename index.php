@@ -1,3 +1,197 @@
+<?php
+/**
+ * Place this block at the very TOP of index.php, before any HTML output.
+ *
+ * It expects your existing admin panel's config/database.php to be
+ * reachable. Adjust the require path below to match where index.php
+ * lives relative to your admin-panel folder. Example assumes:
+ *
+ *   /htdocs/admin/index.php          <- your site, this file
+ *   /htdocs/admin/config/database.php <- already exists from the admin panel
+ *
+ * If your public site is a SEPARATE folder from the admin panel,
+ * change the path accordingly (see the comment below).
+ */
+
+declare(strict_types=1);
+
+// ---- Adjust this path if index.php is not inside the admin-panel folder ----
+require_once __DIR__ . '/admin/config/database.php';
+
+// ---------------------------------------------------------------
+// CSRF token for this form (separate, lightweight session - this
+// is a public page, so we don't need the full admin session guard,
+// just a token to stop cross-site forged submissions).
+// ---------------------------------------------------------------
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+if (empty($_SESSION['quote_csrf_token'])) {
+    $_SESSION['quote_csrf_token'] = bin2hex(random_bytes(32));
+}
+$quoteCsrfToken = $_SESSION['quote_csrf_token'];
+
+$quoteFormErrors = [];
+$quoteFormSuccess = false;
+if (!empty($_SESSION['quote_flash_success'])) {
+    $quoteFormSuccess = true;
+    unset($_SESSION['quote_flash_success']);
+}
+
+// Keep submitted values so the form can be re-filled if validation fails.
+$quoteFormValues = [
+    'full_name'         => '',
+    'mobile_number'     => '',
+    'email'             => '',
+    'city_state'        => '',
+    'service_required'  => '',
+    'company_name'       => '',
+    'message'            => '',
+];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quote_form_submit'])) {
+
+    // ---- CSRF check ----
+    $postedToken = $_POST['csrf_token'] ?? '';
+    if (!hash_equals($_SESSION['quote_csrf_token'], $postedToken)) {
+        $quoteFormErrors[] = 'Your session expired. Please refresh the page and try again.';
+    } else {
+
+        // ---- Collect + sanitize input ----
+        $fullName  = trim((string) ($_POST['full_name'] ?? ''));
+        $mobile    = trim((string) ($_POST['mobile_number'] ?? ''));
+        $email     = trim((string) ($_POST['email'] ?? ''));
+        $cityState = trim((string) ($_POST['city_state'] ?? ''));
+        $service   = trim((string) ($_POST['service_required'] ?? ''));
+        $company   = trim((string) ($_POST['company_name'] ?? ''));
+        $message   = trim((string) ($_POST['message'] ?? ''));
+
+        $quoteFormValues = compact(
+            'fullName', 'mobile', 'email', 'cityState', 'service', 'company', 'message'
+        );
+        // also keep snake_case keys for the HTML below
+        $quoteFormValues = [
+            'full_name'        => $fullName,
+            'mobile_number'    => $mobile,
+            'email'            => $email,
+            'city_state'       => $cityState,
+            'service_required' => $service,
+            'company_name'     => $company,
+            'message'          => $message,
+        ];
+
+        // ---- Validation ----
+        if ($fullName === '' || mb_strlen($fullName) > 150) {
+            $quoteFormErrors[] = 'Full name is required (max 150 characters).';
+        }
+
+        // Accepts digits, spaces, +, -, ( ) — 7 to 20 chars total
+        if ($mobile === '' || !preg_match('/^[0-9+\-\s()]{7,20}$/', $mobile)) {
+            $quoteFormErrors[] = 'Please enter a valid mobile number.';
+        }
+
+        if ($email !== '' && (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 150)) {
+            $quoteFormErrors[] = 'Please enter a valid email address.';
+        }
+
+        if (mb_strlen($cityState) > 150) {
+            $quoteFormErrors[] = 'City/State is too long.';
+        }
+
+        $allowedServices = [
+            'Transportation & Logistics', 'Bamboo Trading', 'Legal & Compliance',
+            'GST Registration', 'FSSAI Registration', 'MSME Registration',
+            'Company Registration', 'Accounting & Taxation', 'Cab Rental',
+        ];
+        if ($service !== '' && !in_array($service, $allowedServices, true)) {
+            $quoteFormErrors[] = 'Please select a valid service from the list.';
+        }
+
+        if (mb_strlen($company) > 150) {
+            $quoteFormErrors[] = 'Company/Business name is too long.';
+        }
+
+        if (mb_strlen($message) > 2000) {
+            $quoteFormErrors[] = 'Message is too long (max 2000 characters).';
+        }
+
+        // ---- Basic spam throttle: max 3 submissions per 10 minutes per session ----
+        $now = time();
+        $bucket = $_SESSION['quote_rate_limit'] ?? ['count' => 0, 'start' => $now];
+        if ($now - $bucket['start'] > 600) {
+            $bucket = ['count' => 0, 'start' => $now];
+        }
+        $bucket['count']++;
+        $_SESSION['quote_rate_limit'] = $bucket;
+        if ($bucket['count'] > 3) {
+            $quoteFormErrors[] = 'Too many submissions. Please wait a few minutes and try again.';
+        }
+
+        // ---- Insert into DB if everything is valid ----
+        if (!$quoteFormErrors) {
+            try {
+                $pdo = get_db();
+                $stmt = $pdo->prepare(
+                    'INSERT INTO quote_requests
+                        (full_name, mobile_number, email, city_state, service_required, company_name, message, ip_address)
+                     VALUES
+                        (:full_name, :mobile_number, :email, :city_state, :service_required, :company_name, :message, :ip)'
+                );
+                $stmt->execute([
+                    ':full_name'        => $fullName,
+                    ':mobile_number'    => $mobile,
+                    ':email'            => $email !== '' ? $email : null,
+                    ':city_state'       => $cityState !== '' ? $cityState : null,
+                    ':service_required' => $service !== '' ? $service : null,
+                    ':company_name'     => $company !== '' ? $company : null,
+                    ':message'          => $message !== '' ? $message : null,
+                    ':ip'               => $_SERVER['REMOTE_ADDR'] ?? null,
+                ]);
+
+                // $quoteFormSuccess = true;
+                // // Clear values so the form shows empty after a successful submit.
+                // $quoteFormValues = array_fill_keys(array_keys($quoteFormValues), '');
+                // // Rotate token so the form can't be resubmitted by hitting back+refresh.
+                // $_SESSION['quote_csrf_token'] = bin2hex(random_bytes(32));
+                // $quoteCsrfToken = $_SESSION['quote_csrf_token'];
+                // Use session flash + redirect (POST/Redirect/GET) so reloading
+// the page never resubmits the form.
+$_SESSION['quote_flash_success'] = true;
+$_SESSION['quote_csrf_token'] = bin2hex(random_bytes(32));
+header('Location: ' . $_SERVER['PHP_SELF']);
+exit;
+
+            } catch (PDOException $e) {
+                error_log('Quote form insert failed: ' . $e->getMessage());
+                $quoteFormErrors[] = 'Something went wrong on our end. Please try again later.';
+            }
+        }
+    }
+}
+
+/** Small escaping helper for use in the HTML below. */
+function qf_e(string $value): string
+{
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+}
+?>
+
+<?php if ($quoteFormSuccess): ?>
+    <div class="alert alert-success">
+        Thank you! Your request has been received. Our team will contact you shortly.
+    </div>
+<?php endif; ?>
+
+<?php if ($quoteFormErrors): ?>
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            <?php foreach ($quoteFormErrors as $err): ?>
+                <li><?= qf_e($err) ?></li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+<?php endif; ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -37,7 +231,8 @@
 <body>
 
     <!-- Navbar -->
-    <div id="navbar"></div>
+    <!-- <div id="navbar"></div> -->
+     <?php include __DIR__ . '/navbar.php'; ?>
     <!-- Navbar End -->
     <!-- test -->
     <!-- Carousel Start -->
@@ -271,7 +466,7 @@
                         </div>
                         <h4 class="mb-3">Transportation & Logistics</h4>
                         <p>Reliable Pan India transportation with 32-ft open-body and multi-axle container trucks, connecting Assam to major industrial hubs.</p>
-                        <a class="btn-slide mt-2" href="transportation.html"><i class="fa fa-arrow-right"></i><span>Read More</span></a>
+                        <a class="btn-slide mt-2" href="transportation.php"><i class="fa fa-arrow-right"></i><span>Read More</span></a>
                     </div>
                 </div>
 
@@ -283,7 +478,7 @@
                         </div>
                         <h4 class="mb-3">Bamboo Trading</h4>
                         <p>Premium raw bamboo, long bamboo poles, bamboo pieces, handicraft materials, and sustainable bamboo products supplied across India.</p>
-                        <a class="btn-slide mt-2" href="bamboo.html"><i class="fa fa-arrow-right"></i><span>Read More</span></a>
+                        <a class="btn-slide mt-2" href="bamboo.php"><i class="fa fa-arrow-right"></i><span>Read More</span></a>
                     </div>
                 </div>
 
@@ -295,7 +490,7 @@
                         </div>
                         <h4 class="mb-3">Legal & Compliance</h4>
                         <p>GST, FSSAI, MSME, Company Registration, IEC, Accounting, Taxation, Documentation, and complete business compliance services.</p>
-                        <a class="btn-slide mt-2" href="legal.html"><i class="fa fa-arrow-right"></i><span>Read More</span></a>
+                        <a class="btn-slide mt-2" href="legal.php"><i class="fa fa-arrow-right"></i><span>Read More</span></a>
                     </div>
                 </div>
 
@@ -307,7 +502,7 @@
                         </div>
                         <h4 class="mb-3">Cab Rental Services</h4>
                         <p>Self-drive cars, chauffeur-driven vehicles, airport transfers, local travel, and corporate rental services across North-East India.</p>
-                        <a class="btn-slide mt-2" href="cab.html"><i class="fa fa-arrow-right"></i><span>Read More</span></a>
+                        <a class="btn-slide mt-2" href="cab.php"><i class="fa fa-arrow-right"></i><span>Read More</span></a>
                     </div>
                 </div>
 
@@ -319,7 +514,7 @@
                         </div>
                         <h4 class="mb-3">Hotels & Homestays</h4><span class="text-warning">(Upcoming)</span>
                         <p>Book trusted hotels, hill-station stays, premium homestays, and business accommodations across all eight North-East states.</p>
-                        <a class="btn-slide mt-2" href="hotel.html"><i class="fa fa-arrow-right"></i><span>Read More</span></a>
+                        <a class="btn-slide mt-2" href="hotel.php"><i class="fa fa-arrow-right"></i><span>Read More</span></a>
                     </div>
                 </div>
 
@@ -331,7 +526,7 @@
                         </div>
                         <h4 class="mb-3">Restaurant & Ethnic Cuisine</h4><span class="text-warning">(Upcoming)</span>
                         <p>Experience authentic North-East cuisine, bamboo shoot delicacies, smoked meats, traditional dishes, and local culinary specialties.</p>
-                        <a class="btn-slide mt-2" href="restaurant.html"><i class="fa fa-arrow-right"></i><span>Read More</span></a>
+                        <a class="btn-slide mt-2" href="restaurant.php"><i class="fa fa-arrow-right"></i><span>Read More</span></a>
                     </div>
                 </div>
 
@@ -412,8 +607,8 @@
 
                 <div class="col-lg-7 pe-lg-0 wow fadeInRight" data-wow-delay="0.1s">
                     <div class="feature-image-wrapper">
-                        <img class="img-fluid lazyload" src="img/feature.png" alt="Biome Enterprises Features">
-                    </div>
+    <img class="img-fluid lazyload" src="img/feature.png" alt="Biome Enterprises Features">
+</div>
                 </div>
             </div>
         </div>
@@ -432,55 +627,70 @@
 
                 <div class="col-lg-7">
                     <div class="quote-card p-5 wow fadeInRight" data-wow-delay="0.5s" data-tilt data-tilt-max="6" data-tilt-speed="500" data-tilt-glare="true" data-tilt-max-glare="0.25">
-                        <form>
+                        <form method="post" action="">
+                            <input type="hidden" name="csrf_token" value="<?= qf_e($quoteCsrfToken) ?>">
+                            <input type="hidden" name="quote_form_submit" value="1">
+
                             <div class="row g-3">
 
                                 <!-- Name -->
                                 <div class="col-md-6">
-                                    <input type="text" class="form-control border-0" placeholder="Full Name *" style="height:55px;">
+                                    <input type="text" name="full_name" class="form-control border-0" placeholder="Full Name *"
+                                        style="height:55px;" maxlength="150" required
+                                        value="<?= qf_e($quoteFormValues['full_name']) ?>">
                                 </div>
 
                                 <!-- Mobile -->
                                 <div class="col-md-6">
-                                    <input type="tel" class="form-control border-0" placeholder="Mobile Number *" style="height:55px;">
+                                    <input type="tel" name="mobile_number" class="form-control border-0" placeholder="Mobile Number *"
+                                        style="height:55px;" maxlength="20" required
+                                        value="<?= qf_e($quoteFormValues['mobile_number']) ?>">
                                 </div>
 
                                 <!-- Email -->
                                 <div class="col-md-6">
-                                    <input type="email" class="form-control border-0" placeholder="Email Address" style="height:55px;">
+                                    <input type="email" name="email" class="form-control border-0" placeholder="Email Address"
+                                        style="height:55px;" maxlength="150"
+                                        value="<?= qf_e($quoteFormValues['email']) ?>">
                                 </div>
 
                                 <!-- Location -->
                                 <div class="col-md-6">
-                                    <input type="text" class="form-control border-0" placeholder="City / State" style="height:55px;">
+                                    <input type="text" name="city_state" class="form-control border-0" placeholder="City / State"
+                                        style="height:55px;" maxlength="150"
+                                        value="<?= qf_e($quoteFormValues['city_state']) ?>">
                                 </div>
 
                                 <!-- Service -->
                                 <div class="col-md-6">
-                                    <select class="form-select border-0" style="height:55px;">
-                                        <option selected>Select Required Service</option>
-                                        <option>Transportation & Logistics</option>
-                                        <option>Bamboo Trading</option>
-                                        <option>Legal & Compliance</option>
-                                        <option>GST Registration</option>
-                                        <option>FSSAI Registration</option>
-                                        <option>MSME Registration</option>
-                                        <option>Company Registration</option>
-                                        <option>Accounting & Taxation</option>
-                                        <option>Cab Rental</option>
-                                        <!-- <option>Hotels & Homestays</option>
-                                        <option>Restaurant Booking</option> -->
+                                    <select name="service_required" class="form-select border-0" style="height:55px;">
+                                        <option value="" <?= $quoteFormValues['service_required'] === '' ? 'selected' : '' ?>>Select Required Service</option>
+                                        <?php
+                                        $services = [
+                                            'Transportation & Logistics', 'Bamboo Trading', 'Legal & Compliance',
+                                            'GST Registration', 'FSSAI Registration', 'MSME Registration',
+                                            'Company Registration', 'Accounting & Taxation', 'Cab Rental',
+                                        ];
+                                        foreach ($services as $service):
+                                        ?>
+                                            <option value="<?= qf_e($service) ?>" <?= $quoteFormValues['service_required'] === $service ? 'selected' : '' ?>>
+                                                <?= qf_e($service) ?>
+                                            </option>
+                                        <?php endforeach; ?>
                                     </select>
                                 </div>
 
                                 <!-- Business -->
                                 <div class="col-md-6">
-                                    <input type="text" class="form-control border-0" placeholder="Company / Business Name" style="height:55px;">
+                                    <input type="text" name="company_name" class="form-control border-0" placeholder="Company / Business Name"
+                                        style="height:55px;" maxlength="150"
+                                        value="<?= qf_e($quoteFormValues['company_name']) ?>">
                                 </div>
 
                                 <!-- Message -->
                                 <div class="col-12">
-                                    <textarea class="form-control border-0" rows="5" placeholder="Describe Your Requirement"></textarea>
+                                    <textarea name="message" class="form-control border-0" rows="5" maxlength="2000"
+                                            placeholder="Describe Your Requirement"><?= qf_e($quoteFormValues['message']) ?></textarea>
                                 </div>
 
                                 <!-- Button -->
@@ -664,7 +874,8 @@
 
 
     <!-- Footer  -->
-    <div id="footer"></div>
+    <!-- <div id="footer"></div> -->
+    <?php include __DIR__ . '/footer.php'; ?>
     <!-- Footer end -->
 
 
@@ -689,19 +900,13 @@
         // Navbar scroll effect
 
         window.addEventListener("scroll", function() {
-
             const nav = document.querySelector(".navbar");
-
+            if (!nav) return;
             if (window.scrollY > 50) {
-
                 nav.classList.add("scrolled");
-
             } else {
-
                 nav.classList.remove("scrolled");
-
             }
-
         });
 
         // Active Menu
@@ -779,28 +984,28 @@
 
 
 
-        fetch("navbar.html")
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById("navbar").innerHTML = data;
+        // fetch("navbar.php")
+        //     .then(response => response.text())
+        //     .then(data => {
+        //         document.getElementById("navbar").innerHTML = data;
 
-                // Reinitialize Bootstrap dropdowns
-                document.querySelectorAll('.dropdown-toggle').forEach(function(el) {
-                    new bootstrap.Dropdown(el);
-                });
-            });
+        //         // Reinitialize Bootstrap dropdowns
+        //         document.querySelectorAll('.dropdown-toggle').forEach(function(el) {
+        //             new bootstrap.Dropdown(el);
+        //         });
+        //     });
 
-        // Footer
+        // // Footer
 
-        fetch("footer.html")
+        // fetch("footer.php")
 
-        .then(response => response.text())
+        // .then(response => response.text())
 
-        .then(data => {
+        // .then(data => {
 
-            document.getElementById("footer").innerHTML = data;
+        //     document.getElementById("footer").innerHTML = data;
 
-        });
+        // });
     </script>
 
 </body>

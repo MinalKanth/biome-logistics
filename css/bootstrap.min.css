@@ -20,7 +20,7 @@
     --bs-gray: #6c757d;
     --bs-gray-dark: #343a40;
     --bs-primary: #2e7d32;
-    --bs-secondary: #51CFED;
+    --bs-secondary: #ffc107;
     --bs-success: #198754;
     --bs-info: #0dcaf0;
     --bs-warning: #ffc107;
@@ -39,7 +39,7 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    :root {
+     :root {
         scroll-behavior: smooth
     }
 }
@@ -2898,8 +2898,8 @@ fieldset:disabled .btn {
 
 .btn-secondary {
     color: #000;
-    background-color: #51CFED;
-    border-color: #51CFED
+    background-color: #ffc107;
+    border-color: #ffc107
 }
 
 .btn-secondary:hover {
@@ -2937,8 +2937,8 @@ fieldset:disabled .btn {
 .btn-secondary:disabled,
 .btn-secondary.disabled {
     color: #000;
-    background-color: #51CFED;
-    border-color: #51CFED
+    background-color: #ffc107;
+    border-color: #ffc107
 }
 
 .btn-success {
@@ -3252,14 +3252,14 @@ fieldset:disabled .btn {
 }
 
 .btn-outline-secondary {
-    color: #51CFED;
-    border-color: #51CFED
+    color: #ffc107;
+    border-color: #ffc107
 }
 
 .btn-outline-secondary:hover {
     color: #000;
-    background-color: #51CFED;
-    border-color: #51CFED
+    background-color: #ffc107;
+    border-color: #ffc107
 }
 
 .btn-check:focus+.btn-outline-secondary,
@@ -3273,8 +3273,8 @@ fieldset:disabled .btn {
 .btn-outline-secondary.active,
 .btn-outline-secondary.dropdown-toggle.show {
     color: #000;
-    background-color: #51CFED;
-    border-color: #51CFED
+    background-color: #ffc107;
+    border-color: #ffc107
 }
 
 .btn-check:checked+.btn-outline-secondary:focus,
@@ -3287,7 +3287,7 @@ fieldset:disabled .btn {
 
 .btn-outline-secondary:disabled,
 .btn-outline-secondary.disabled {
-    color: #51CFED;
+    color: #ffc107;
     background-color: transparent
 }
 
@@ -6528,7 +6528,7 @@ fieldset:disabled .btn {
 }
 
 .link-secondary {
-    color: #51CFED
+    color: #ffc107
 }
 
 .link-secondary:hover,
@@ -6949,7 +6949,7 @@ fieldset:disabled .btn {
 }
 
 .border-secondary {
-    border-color: #51CFED !important
+    border-color: #ffc107 !important
 }
 
 .border-success {
@@ -7926,7 +7926,7 @@ fieldset:disabled .btn {
 }
 
 .text-secondary {
-    color: #51CFED !important
+    color: #ffc107 !important
 }
 
 .text-success {
@@ -7982,7 +7982,7 @@ fieldset:disabled .btn {
 }
 
 .bg-secondary {
-    background-color: #51CFED !important
+    background-color: #ffc107 !important
 }
 
 .bg-success {

@@ -1,3 +1,155 @@
+<?php
+declare(strict_types=1);
+
+require_once __DIR__ . '/admin/config/database.php';
+
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+if (empty($_SESSION['bamboo_csrf_token'])) {
+    $_SESSION['bamboo_csrf_token'] = bin2hex(random_bytes(32));
+}
+$bambooCsrfToken = $_SESSION['bamboo_csrf_token'];
+
+$bambooFormErrors = [];
+$bambooFormSuccess = false;
+if (!empty($_SESSION['bamboo_flash_success'])) {
+    $bambooFormSuccess = true;
+    unset($_SESSION['bamboo_flash_success']);
+}
+
+$bambooFormValues = [
+    'full_name'          => '',
+    'mobile_number'      => '',
+    'email'              => '',
+    'company_name'       => '',
+    'state'              => '',
+    'city'               => '',
+    'products'           => [],
+    'quantity_required'  => '',
+    'delivery_location'  => '',
+    'message'            => '',
+];
+
+$bambooAllowedProducts = [
+    'Raw Long Bamboo', 'Raw Bamboo Pieces', 'Bamboo Poles', 'Bamboo Sticks',
+    'Bamboo Fence', 'Bamboo Mats', 'Bamboo Furniture', 'Bamboo Handicrafts',
+];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bamboo_form_submit'])) {
+
+    $postedToken = $_POST['csrf_token'] ?? '';
+    if (!hash_equals($_SESSION['bamboo_csrf_token'], $postedToken)) {
+        $bambooFormErrors[] = 'Your session expired. Please refresh the page and try again.';
+    } else {
+
+        $fullName  = trim((string) ($_POST['full_name'] ?? ''));
+        $mobile    = trim((string) ($_POST['mobile_number'] ?? ''));
+        $email     = trim((string) ($_POST['email'] ?? ''));
+        $company   = trim((string) ($_POST['company_name'] ?? ''));
+        $state     = trim((string) ($_POST['state'] ?? ''));
+        $city      = trim((string) ($_POST['city'] ?? ''));
+        $products  = is_array($_POST['products'] ?? null) ? $_POST['products'] : [];
+        $quantity  = trim((string) ($_POST['quantity_required'] ?? ''));
+        $delivery  = trim((string) ($_POST['delivery_location'] ?? ''));
+        $message   = trim((string) ($_POST['message'] ?? ''));
+
+        // Only keep products that are actually in our allowed list.
+        $products = array_values(array_intersect($products, $bambooAllowedProducts));
+
+        $bambooFormValues = [
+            'full_name'         => $fullName,
+            'mobile_number'     => $mobile,
+            'email'             => $email,
+            'company_name'      => $company,
+            'state'             => $state,
+            'city'              => $city,
+            'products'          => $products,
+            'quantity_required' => $quantity,
+            'delivery_location' => $delivery,
+            'message'           => $message,
+        ];
+
+        if ($fullName === '' || mb_strlen($fullName) > 150) {
+            $bambooFormErrors[] = 'Full name is required (max 150 characters).';
+        }
+        if ($mobile === '' || !preg_match('/^[0-9+\-\s()]{7,20}$/', $mobile)) {
+            $bambooFormErrors[] = 'Please enter a valid mobile number.';
+        }
+        if ($email !== '' && (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 150)) {
+            $bambooFormErrors[] = 'Please enter a valid email address.';
+        }
+        if (mb_strlen($company) > 150) {
+            $bambooFormErrors[] = 'Company name is too long.';
+        }
+        if (mb_strlen($state) > 100 || mb_strlen($city) > 100) {
+            $bambooFormErrors[] = 'State/City is too long.';
+        }
+        if (empty($products)) {
+            $bambooFormErrors[] = 'Please select at least one product.';
+        }
+        if (mb_strlen($quantity) > 100) {
+            $bambooFormErrors[] = 'Quantity required is too long.';
+        }
+        if (mb_strlen($delivery) > 200) {
+            $bambooFormErrors[] = 'Delivery location is too long.';
+        }
+        if (mb_strlen($message) > 2000) {
+            $bambooFormErrors[] = 'Additional requirements are too long (max 2000 characters).';
+        }
+
+        $now = time();
+        $bucket = $_SESSION['bamboo_rate_limit'] ?? ['count' => 0, 'start' => $now];
+        if ($now - $bucket['start'] > 600) {
+            $bucket = ['count' => 0, 'start' => $now];
+        }
+        $bucket['count']++;
+        $_SESSION['bamboo_rate_limit'] = $bucket;
+        if ($bucket['count'] > 3) {
+            $bambooFormErrors[] = 'Too many submissions. Please wait a few minutes and try again.';
+        }
+
+        if (!$bambooFormErrors) {
+            try {
+                $pdo = get_db();
+                $stmt = $pdo->prepare(
+                    'INSERT INTO bamboo_enquiries
+                        (full_name, mobile_number, email, company_name, state, city, products_selected, quantity_required, delivery_location, additional_requirements, ip_address)
+                     VALUES
+                        (:full_name, :mobile_number, :email, :company_name, :state, :city, :products, :quantity, :delivery, :message, :ip)'
+                );
+                $stmt->execute([
+                    ':full_name'   => $fullName,
+                    ':mobile_number' => $mobile,
+                    ':email'       => $email !== '' ? $email : null,
+                    ':company_name' => $company !== '' ? $company : null,
+                    ':state'       => $state !== '' ? $state : null,
+                    ':city'        => $city !== '' ? $city : null,
+                    ':products'    => implode(', ', $products),
+                    ':quantity'    => $quantity !== '' ? $quantity : null,
+                    ':delivery'    => $delivery !== '' ? $delivery : null,
+                    ':message'     => $message !== '' ? $message : null,
+                    ':ip'          => $_SERVER['REMOTE_ADDR'] ?? null,
+                ]);
+
+                $_SESSION['bamboo_flash_success'] = true;
+                $_SESSION['bamboo_csrf_token'] = bin2hex(random_bytes(32));
+                header('Location: ' . $_SERVER['PHP_SELF'] . '#enquiry');
+                exit;
+
+            } catch (PDOException $e) {
+                error_log('Bamboo enquiry insert failed: ' . $e->getMessage());
+                $bambooFormErrors[] = 'Something went wrong on our end. Please try again later.';
+            }
+        }
+    }
+}
+
+function bf_e(string $value): string
+{
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -39,7 +191,9 @@
 <body>
 
     <!-- Navbar -->
-    <div id="navbar"></div>
+    <!-- <div id="navbar"></div> -->
+    <?php include __DIR__ . '/navbar.php'; ?>
+
     <!-- Navbar End -->
 
     <!-- =========================
@@ -764,150 +918,91 @@
                             Product Enquiry Form
                         </h3>
 
-                        <form>
+                        <?php if ($bambooFormSuccess): ?>
+                            <div class="alert alert-success">Thank you! Your enquiry has been received. Our sales team will contact you shortly.</div>
+                        <?php endif; ?>
+
+                        <?php if ($bambooFormErrors): ?>
+                            <div class="alert alert-danger">
+                                <ul class="mb-0">
+                                    <?php foreach ($bambooFormErrors as $err): ?>
+                                        <li><?= bf_e($err) ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        <?php endif; ?>
+
+                        <form method="post" action="">
+                            <input type="hidden" name="csrf_token" value="<?= bf_e($bambooCsrfToken) ?>">
+                            <input type="hidden" name="bamboo_form_submit" value="1">
 
                             <div class="row g-4">
 
                                 <div class="col-md-6">
-                                    <label class="form-label fw-bold">
-                                    Full Name
-                                </label>
-
-                                    <input type="text" class="form-control py-3" placeholder="Enter your full name" required>
+                                    <label class="form-label fw-bold">Full Name</label>
+                                    <input type="text" name="full_name" class="form-control py-3" placeholder="Enter your full name" maxlength="150" required value="<?= bf_e($bambooFormValues['full_name']) ?>">
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label class="form-label fw-bold">
-                                    Mobile Number
-                                </label>
-
-                                    <input type="tel" class="form-control py-3" placeholder="+91 XXXXX XXXXX" required>
+                                    <label class="form-label fw-bold">Mobile Number</label>
+                                    <input type="tel" name="mobile_number" class="form-control py-3" placeholder="+91 XXXXX XXXXX" maxlength="20" required value="<?= bf_e($bambooFormValues['mobile_number']) ?>">
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label class="form-label fw-bold">
-                                    Email Address
-                                </label>
-
-                                    <input type="email" class="form-control py-3" placeholder="Enter email">
+                                    <label class="form-label fw-bold">Email Address</label>
+                                    <input type="email" name="email" class="form-control py-3" placeholder="Enter email" maxlength="150" value="<?= bf_e($bambooFormValues['email']) ?>">
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label class="form-label fw-bold">
-                                    Company Name
-                                </label>
-
-                                    <input type="text" class="form-control py-3" placeholder="Company / Business">
+                                    <label class="form-label fw-bold">Company Name</label>
+                                    <input type="text" name="company_name" class="form-control py-3" placeholder="Company / Business" maxlength="150" value="<?= bf_e($bambooFormValues['company_name']) ?>">
                                 </div>
 
                                 <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                    State
-                                </label>
-
-                                    <input type="text" class="form-control py-3" placeholder="State">
+                                    <label class="form-label fw-bold">State</label>
+                                    <input type="text" name="state" class="form-control py-3" placeholder="State" maxlength="100" value="<?= bf_e($bambooFormValues['state']) ?>">
                                 </div>
 
                                 <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                    City
-                                </label>
-
-                                    <input type="text" class="form-control py-3" placeholder="City">
+                                    <label class="form-label fw-bold">City</label>
+                                    <input type="text" name="city" class="form-control py-3" placeholder="City" maxlength="100" value="<?= bf_e($bambooFormValues['city']) ?>">
                                 </div>
 
                                 <div class="col-12">
-
-                                    <label class="form-label fw-bold">
-                                    Select Products
-                                </label>
-
-                                    <select class="form-select py-3" multiple size="8">
-
-                                    <option>
-                                        Raw Long Bamboo
-                                    </option>
-
-                                    <option>
-                                        Raw Bamboo Pieces
-                                    </option>
-
-                                    <option>
-                                        Bamboo Poles
-                                    </option>
-
-                                    <option>
-                                        Bamboo Sticks
-                                    </option>
-
-                                    <option>
-                                        Bamboo Fence
-                                    </option>
-
-                                    <option>
-                                        Bamboo Mats
-                                    </option>
-
-                                    <option>
-                                        Bamboo Furniture
-                                    </option>
-
-                                    <option>
-                                        Bamboo Handicrafts
-                                    </option>
-
-                                </select>
-
-                                    <small class="text-muted">
-                                    Hold Ctrl (Windows) or Command (Mac) to select multiple products.
-                                </small>
-
+                                    <label class="form-label fw-bold">Select Products</label>
+                                    <select class="form-select py-3" name="products[]" multiple size="8">
+                                        <?php foreach ($bambooAllowedProducts as $product): ?>
+                                            <option value="<?= bf_e($product) ?>" <?= in_array($product, $bambooFormValues['products'], true) ? 'selected' : '' ?>>
+                                                <?= bf_e($product) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <small class="text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple products.</small>
                                 </div>
 
                                 <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                    Quantity Required
-                                </label>
-
-                                    <input type="text" class="form-control py-3" placeholder="Example: 500 Pieces">
+                                    <label class="form-label fw-bold">Quantity Required</label>
+                                    <input type="text" name="quantity_required" class="form-control py-3" placeholder="Example: 500 Pieces" maxlength="100" value="<?= bf_e($bambooFormValues['quantity_required']) ?>">
                                 </div>
 
                                 <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                    Delivery Location
-                                </label>
-
-                                    <input type="text" class="form-control py-3" placeholder="Delivery Address">
+                                    <label class="form-label fw-bold">Delivery Location</label>
+                                    <input type="text" name="delivery_location" class="form-control py-3" placeholder="Delivery Address" maxlength="200" value="<?= bf_e($bambooFormValues['delivery_location']) ?>">
                                 </div>
 
                                 <div class="col-12">
-
-                                    <label class="form-label fw-bold">
-                                    Additional Requirements
-                                </label>
-
-                                    <textarea class="form-control" rows="5" placeholder="Write your requirement..."></textarea>
-
+                                    <label class="form-label fw-bold">Additional Requirements</label>
+                                    <textarea name="message" class="form-control" rows="5" maxlength="2000" placeholder="Write your requirement..."><?= bf_e($bambooFormValues['message']) ?></textarea>
                                 </div>
 
                                 <div class="col-12">
-
-                                    <button class="btn btn-success btn-lg rounded-pill px-5 py-3 w-100">
-
-                                    <i class="fa fa-paper-plane me-2"></i>
-
-                                    Submit Product Enquiry
-
-                                </button>
-
+                                    <button class="btn btn-success btn-lg rounded-pill px-5 py-3 w-100" type="submit">
+                                        <i class="fa fa-paper-plane me-2"></i>
+                                        Submit Product Enquiry
+                                    </button>
                                 </div>
 
                             </div>
-
                         </form>
 
                     </div>
@@ -967,7 +1062,8 @@
     <!-- ========================================================= -->
 
     <!-- Footer  -->
-    <div id="footer"></div>
+    <!-- <div id="footer"></div> -->
+    <?php include __DIR__ . '/footer.php'; ?>
     <!-- Footer end -->
 
 
@@ -1083,35 +1179,35 @@
 
 
 
-        fetch("navbar.html")
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById("navbar").innerHTML = data;
+        // fetch("navbar.php")
+        //     .then(response => response.text())
+        //     .then(data => {
+        //         document.getElementById("navbar").innerHTML = data;
 
-                // Reinitialize Bootstrap dropdowns
-                document.querySelectorAll('.dropdown-toggle').forEach(function(el) {
-                    new bootstrap.Dropdown(el);
-                });
-            });
+        //         // Reinitialize Bootstrap dropdowns
+        //         document.querySelectorAll('.dropdown-toggle').forEach(function(el) {
+        //             new bootstrap.Dropdown(el);
+        //         });
+        //     });
 
-        // Footer
+        // // Footer
 
-        fetch("footer.html")
+        // fetch("footer.php")
 
-        .then(response => response.text())
+        // .then(response => response.text())
 
-        .then(data => {
+        // .then(data => {
 
-            document.getElementById("footer").innerHTML = data;
+        //     document.getElementById("footer").innerHTML = data;
 
-        });
+        // });
     </script>
 
 
     <script>
         /* ===================================================
-                                                                                   BIOME BAMBOO PAGE INTERACTIONS
-                                                                                =================================================== */
+                                                                                           BIOME BAMBOO PAGE INTERACTIONS
+                                                                                        =================================================== */
 
         document.addEventListener("DOMContentLoaded", function() {
 
@@ -1170,33 +1266,7 @@ rgba(25,135,84,.08),
 
             const form = document.querySelector("#enquiry form");
 
-            if (form) {
-
-                form.addEventListener("submit", function(e) {
-
-                    e.preventDefault();
-
-                    const btn = form.querySelector("button");
-
-                    const old = btn.innerHTML;
-
-                    btn.disabled = true;
-
-                    btn.innerHTML = '<i class="fa fa-spinner fa-spin me-2"></i>Submitting...';
-
-                    setTimeout(() => {
-
-                        btn.innerHTML = '<i class="fa fa-check me-2"></i>Enquiry Submitted';
-
-                        btn.classList.remove("btn-success");
-
-                        btn.classList.add("btn-dark");
-
-                    }, 1800);
-
-                });
-
-            }
+            
 
             /* Counter Animation */
 

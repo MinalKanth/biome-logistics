@@ -1,3 +1,113 @@
+<?php
+declare(strict_types=1);
+
+require_once __DIR__ . '/admin/config/database.php';
+
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+if (empty($_SESSION['legal_csrf_token'])) {
+    $_SESSION['legal_csrf_token'] = bin2hex(random_bytes(32));
+}
+$legalCsrfToken = $_SESSION['legal_csrf_token'];
+
+$legalFormErrors = [];
+$legalFormSuccess = false;
+if (!empty($_SESSION['legal_flash_success'])) {
+    $legalFormSuccess = true;
+    unset($_SESSION['legal_flash_success']);
+}
+
+$legalFormValues = [
+    'name'    => '',
+    'email'   => '',
+    'phone'   => '',
+    'service' => '',
+    'message' => '',
+];
+
+$legalAllowedServices = [
+    'Company Registration', 'GST Registration', 'Accounting', 'Legal Documentation',
+    'MSME Registration', 'FSSAI Registration', 'Import Export Code',
+];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['legal_form_submit'])) {
+
+    $postedToken = $_POST['csrf_token'] ?? '';
+    if (!hash_equals($_SESSION['legal_csrf_token'], $postedToken)) {
+        $legalFormErrors[] = 'Your session expired. Please refresh the page and try again.';
+    } else {
+
+        $name    = trim((string) ($_POST['name'] ?? ''));
+        $email   = trim((string) ($_POST['email'] ?? ''));
+        $phone   = trim((string) ($_POST['phone'] ?? ''));
+        $service = trim((string) ($_POST['service'] ?? ''));
+        $message = trim((string) ($_POST['message'] ?? ''));
+
+        $legalFormValues = compact('name', 'email', 'phone', 'service', 'message');
+
+        if ($name === '' || mb_strlen($name) > 150) {
+            $legalFormErrors[] = 'Name is required (max 150 characters).';
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 150) {
+            $legalFormErrors[] = 'Please enter a valid email address.';
+        }
+        if ($phone === '' || !preg_match('/^[0-9+\-\s()]{7,20}$/', $phone)) {
+            $legalFormErrors[] = 'Please enter a valid phone number.';
+        }
+        if ($service !== '' && !in_array($service, $legalAllowedServices, true)) {
+            $legalFormErrors[] = 'Please select a valid service from the list.';
+        }
+        if (mb_strlen($message) > 2000) {
+            $legalFormErrors[] = 'Message is too long (max 2000 characters).';
+        }
+
+        $now = time();
+        $bucket = $_SESSION['legal_rate_limit'] ?? ['count' => 0, 'start' => $now];
+        if ($now - $bucket['start'] > 600) {
+            $bucket = ['count' => 0, 'start' => $now];
+        }
+        $bucket['count']++;
+        $_SESSION['legal_rate_limit'] = $bucket;
+        if ($bucket['count'] > 3) {
+            $legalFormErrors[] = 'Too many submissions. Please wait a few minutes and try again.';
+        }
+
+        if (!$legalFormErrors) {
+            try {
+                $pdo = get_db();
+                $stmt = $pdo->prepare(
+                    'INSERT INTO legal_consultation_requests (full_name, email, phone, service_required, message, ip_address)
+                     VALUES (:name, :email, :phone, :service, :message, :ip)'
+                );
+                $stmt->execute([
+                    ':name'    => $name,
+                    ':email'   => $email,
+                    ':phone'   => $phone,
+                    ':service' => $service !== '' ? $service : null,
+                    ':message' => $message !== '' ? $message : null,
+                    ':ip'      => $_SERVER['REMOTE_ADDR'] ?? null,
+                ]);
+
+                $_SESSION['legal_flash_success'] = true;
+                $_SESSION['legal_csrf_token'] = bin2hex(random_bytes(32));
+                header('Location: ' . $_SERVER['PHP_SELF'] . '#consultation');
+                exit;
+
+            } catch (PDOException $e) {
+                error_log('Legal consultation insert failed: ' . $e->getMessage());
+                $legalFormErrors[] = 'Something went wrong on our end. Please try again later.';
+            }
+        }
+    }
+}
+
+function lf_e(string $value): string
+{
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -43,7 +153,8 @@
 <body>
 
     <!-- Navbar -->
-    <div id="navbar"></div>
+    <!-- <div id="navbar"></div> -->
+    <?php include __DIR__ . '/navbar.php'; ?>
     <!-- Navbar End -->
 
 
@@ -97,7 +208,7 @@
 
                     <li class="breadcrumb-item">
 
-                        <a class="text-white" href="index.html">
+                        <a class="text-white" href="index.php">
 
                             Home
 
@@ -728,103 +839,50 @@
 
                 </p>
 
-                <form>
+                <?php if ($legalFormSuccess): ?>
+                        <div class="alert alert-success">Thank you! Your consultation request has been received. Our team will contact you shortly.</div>
+                    <?php endif; ?>
 
-                    <div class="row g-3">
-
-                        <div class="col-md-6">
-
-                            <input type="text" class="form-control py-3" placeholder="Your Name">
-
+                    <?php if ($legalFormErrors): ?>
+                        <div class="alert alert-danger">
+                            <ul class="mb-0">
+                                <?php foreach ($legalFormErrors as $err): ?>
+                                    <li><?= lf_e($err) ?></li>
+                                <?php endforeach; ?>
+                            </ul>
                         </div>
+                    <?php endif; ?>
 
-                        <div class="col-md-6">
+                    <form method="post" action="">
+                        <input type="hidden" name="csrf_token" value="<?= lf_e($legalCsrfToken) ?>">
+                        <input type="hidden" name="legal_form_submit" value="1">
 
-                            <input type="email" class="form-control py-3" placeholder="Email Address">
-
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <input type="text" name="name" class="form-control py-3" placeholder="Your Name" maxlength="150" required value="<?= lf_e($legalFormValues['name']) ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <input type="email" name="email" class="form-control py-3" placeholder="Email Address" maxlength="150" required value="<?= lf_e($legalFormValues['email']) ?>">
+                            </div>
+                            <div class="col-12">
+                                <input type="tel" name="phone" class="form-control py-3" placeholder="Phone Number" maxlength="20" required value="<?= lf_e($legalFormValues['phone']) ?>">
+                            </div>
+                            <div class="col-12">
+                                <select class="form-select py-3" name="service">
+                                    <option value="" <?= $legalFormValues['service'] === '' ? 'selected' : '' ?>>Select Service</option>
+                                    <?php foreach ($legalAllowedServices as $service): ?>
+                                        <option value="<?= lf_e($service) ?>" <?= $legalFormValues['service'] === $service ? 'selected' : '' ?>><?= lf_e($service) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <textarea name="message" class="form-control" rows="6" maxlength="2000" placeholder="Describe your requirement"><?= lf_e($legalFormValues['message']) ?></textarea>
+                            </div>
+                            <div class="col-12">
+                                <button class="btn btn-success btn-lg w-100" type="submit">Request Consultation</button>
+                            </div>
                         </div>
-
-                        <div class="col-12">
-
-                            <input type="tel" class="form-control py-3" placeholder="Phone Number">
-
-                        </div>
-
-                        <div class="col-12">
-
-                            <select class="form-select py-3">
-
-                                <option selected>
-
-                                    Select Service
-
-                                </option>
-
-                                <option>
-
-                                    Company Registration
-
-                                </option>
-
-                                <option>
-
-                                    GST Registration
-
-                                </option>
-
-                                <option>
-
-                                    Accounting
-
-                                </option>
-
-                                <option>
-
-                                    Legal Documentation
-
-                                </option>
-
-                                <option>
-
-                                    MSME Registration
-
-                                </option>
-
-                                <option>
-
-                                    FSSAI Registration
-
-                                </option>
-
-                                <option>
-
-                                    Import Export Code
-
-                                </option>
-
-                            </select>
-
-                        </div>
-
-                        <div class="col-12">
-
-                            <textarea class="form-control" rows="6" placeholder="Describe your requirement"></textarea>
-
-                        </div>
-
-                        <div class="col-12">
-
-                            <button class="btn btn-success btn-lg w-100">
-
-                                Request Consultation
-
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                </form>
+                    </form>
 
             </div>
 
@@ -1033,7 +1091,7 @@
 
             </p>
 
-            <a href="contact.html" class="btn btn-light btn-lg rounded-pill px-5">
+            <a href="contact.php" class="btn btn-light btn-lg rounded-pill px-5">
 
                 Contact Us Today
 
@@ -1047,7 +1105,8 @@
 
     <!-- Footer -->
 
-    <div id="footer"></div>
+    <!-- <div id="footer"></div> -->
+    <?php include __DIR__ . '/footer.php'; ?>
 
 
 
@@ -1107,27 +1166,27 @@
 
 
 <script>
-    fetch("navbar.html")
-        .then(response => response.text())
-        .then(data => {
+    // fetch("navbar.php")
+    //     .then(response => response.text())
+    //     .then(data => {
 
-            document.getElementById("navbar").innerHTML = data;
+    //         document.getElementById("navbar").innerHTML = data;
 
-            document.querySelectorAll(".dropdown-toggle").forEach(function(el) {
+    //         document.querySelectorAll(".dropdown-toggle").forEach(function(el) {
 
-                new bootstrap.Dropdown(el);
+    //             new bootstrap.Dropdown(el);
 
-            });
+    //         });
 
-        });
+    //     });
 
-    fetch("footer.html")
-        .then(response => response.text())
-        .then(data => {
+    // fetch("footer.php")
+    //     .then(response => response.text())
+    //     .then(data => {
 
-            document.getElementById("footer").innerHTML = data;
+    //         document.getElementById("footer").innerHTML = data;
 
-        });
+    //     });
 
     window.addEventListener("scroll", function() {
 
@@ -1586,58 +1645,58 @@ opacity:0;
 
         const form = document.querySelector("form");
 
-        if (form) {
+        // if (form) {
 
-            form.addEventListener("submit", function(e) {
+        //     form.addEventListener("submit", function(e) {
 
-                e.preventDefault();
+        //         e.preventDefault();
 
-                const name = form.querySelector("input[type='text']");
-                const email = form.querySelector("input[type='email']");
-                const phone = form.querySelector("input[type='tel']");
-                const btn = form.querySelector("button");
+        //         const name = form.querySelector("input[type='text']");
+        //         const email = form.querySelector("input[type='email']");
+        //         const phone = form.querySelector("input[type='tel']");
+        //         const btn = form.querySelector("button");
 
-                if (!name.value || !email.value || !phone.value) {
+        //         if (!name.value || !email.value || !phone.value) {
 
-                    alert("Please fill all required fields.");
+        //             alert("Please fill all required fields.");
 
-                    return;
+        //             return;
 
-                }
+        //         }
 
-                btn.disabled = true;
+        //         btn.disabled = true;
 
-                const oldText = btn.innerHTML;
+        //         const oldText = btn.innerHTML;
 
-                btn.innerHTML =
-                    '<i class="fa fa-spinner fa-spin me-2"></i>Submitting...';
+        //         btn.innerHTML =
+        //             '<i class="fa fa-spinner fa-spin me-2"></i>Submitting...';
 
-                setTimeout(function() {
+        //         setTimeout(function() {
 
-                    btn.innerHTML =
-                        '<i class="fa fa-check me-2"></i>Request Submitted';
+        //             btn.innerHTML =
+        //                 '<i class="fa fa-check me-2"></i>Request Submitted';
 
-                    btn.classList.remove("btn-success");
-                    btn.classList.add("btn-primary");
+        //             btn.classList.remove("btn-success");
+        //             btn.classList.add("btn-primary");
 
-                    setTimeout(function() {
+        //             setTimeout(function() {
 
-                        btn.innerHTML = oldText;
+        //                 btn.innerHTML = oldText;
 
-                        btn.classList.remove("btn-primary");
-                        btn.classList.add("btn-success");
+        //                 btn.classList.remove("btn-primary");
+        //                 btn.classList.add("btn-success");
 
-                        btn.disabled = false;
+        //                 btn.disabled = false;
 
-                        form.reset();
+        //                 form.reset();
 
-                    }, 2500);
+        //             }, 2500);
 
-                }, 1800);
+        //         }, 1800);
 
-            });
+        //     });
 
-        }
+        // }
 
 
         /*====================================================

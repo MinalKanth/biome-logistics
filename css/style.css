@@ -2,7 +2,7 @@
 
 :root {
     --primary: #2e7d32;
-    --secondary: #51CFED;
+    --secondary: #ffc107;
     --light: #F8F2F0;
     --dark: #060315;
 }
@@ -475,4 +475,11 @@
 
 .footer .copyright a {
     color: var(--light);
+}
+
+
+/* hard coded */
+
+.bg-secondary {
+    background-color: #ffc107 !important;
 }

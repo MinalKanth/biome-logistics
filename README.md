@@ -187,10 +187,10 @@ cd biome-logistics
 #### 2️⃣ Open in Browser
 ```bash
 # Method 1: Direct open
-# Double-click index.html
+# Double-click index.php
 
 # Method 2: With Live Server
-# Right-click index.html → "Open with Live Server"
+# Right-click index.php → "Open with Live Server"
 ```
 
 #### 3️⃣ Customization
@@ -226,16 +226,16 @@ cd biome-logistics
 biome-logistics/
 │
 ├── 📄 HTML Pages
-│   ├── index.html              # Homepage
-│   ├── bamboo.html             # Bamboo marketplace
-│   ├── transport.html          # Freight services
-│   ├── cab-services.html       # Cab rentals
-│   ├── fleet.html              # Fleet inventory
-│   ├── fleet-details.html      # Vehicle details
-│   ├── tracking.html           # Shipment tracking
-│   ├── quote.html              # Quote calculator
-│   ├── about.html              # Company info
-│   └── contact.html            # Contact form
+│   ├── index.php              # Homepage
+│   ├── bamboo.php             # Bamboo marketplace
+│   ├── transport.php          # Freight services
+│   ├── cab-services.php       # Cab rentals
+│   ├── fleet.php              # Fleet inventory
+│   ├── fleet-details.php      # Vehicle details
+│   ├── tracking.php           # Shipment tracking
+│   ├── quote.php              # Quote calculator
+│   ├── about.php              # Company info
+│   └── contact.php            # Contact form
 │
 ├── 🎨 Assets
 │   ├── hero-bg.png             # Hero background image

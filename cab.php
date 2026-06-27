@@ -1,3 +1,154 @@
+<?php
+declare(strict_types=1);
+
+require_once __DIR__ . '/admin/config/database.php';
+
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+if (empty($_SESSION['cab_csrf_token'])) {
+    $_SESSION['cab_csrf_token'] = bin2hex(random_bytes(32));
+}
+$cabCsrfToken = $_SESSION['cab_csrf_token'];
+
+$cabFormErrors = [];
+$cabFormSuccess = false;
+if (!empty($_SESSION['cab_flash_success'])) {
+    $cabFormSuccess = true;
+    unset($_SESSION['cab_flash_success']);
+}
+
+$cabFormValues = [
+    'name'        => '',
+    'mobile'      => '',
+    'email'       => '',
+    'vehicle'     => '',
+    'service'     => '',
+    'pickup'      => '',
+    'destination' => '',
+    'date'        => '',
+    'passengers'  => '',
+    'message'     => '',
+];
+
+$cabAllowedVehicles = ['Hatchback', 'Sedan', 'SUV', 'Innova Crysta', 'Tempo Traveller', 'Luxury Car'];
+$cabAllowedServices = ['Self Drive', 'Car With Driver', 'Rental Car (Daily)', 'Rental Car (Weekly)', 'Rental Car (Monthly)'];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cab_form_submit'])) {
+
+    $postedToken = $_POST['csrf_token'] ?? '';
+    if (!hash_equals($_SESSION['cab_csrf_token'], $postedToken)) {
+        $cabFormErrors[] = 'Your session expired. Please refresh the page and try again.';
+    } else {
+
+        $name        = trim((string) ($_POST['name'] ?? ''));
+        $mobile      = trim((string) ($_POST['mobile'] ?? ''));
+        $email       = trim((string) ($_POST['email'] ?? ''));
+        $vehicle     = trim((string) ($_POST['vehicle'] ?? ''));
+        $service     = trim((string) ($_POST['service'] ?? ''));
+        $pickup      = trim((string) ($_POST['pickup'] ?? ''));
+        $destination = trim((string) ($_POST['destination'] ?? ''));
+        $date        = trim((string) ($_POST['date'] ?? ''));
+        $passengers  = trim((string) ($_POST['passengers'] ?? ''));
+        $message     = trim((string) ($_POST['message'] ?? ''));
+
+        $cabFormValues = compact('name', 'mobile', 'email', 'vehicle', 'service', 'pickup', 'destination', 'date', 'passengers', 'message');
+
+        if ($name === '' || mb_strlen($name) > 150) {
+            $cabFormErrors[] = 'Full name is required (max 150 characters).';
+        }
+        if ($mobile === '' || !preg_match('/^[0-9+\-\s()]{7,20}$/', $mobile)) {
+            $cabFormErrors[] = 'Please enter a valid mobile number.';
+        }
+        if ($email !== '' && (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 150)) {
+            $cabFormErrors[] = 'Please enter a valid email address.';
+        }
+        if ($vehicle !== '' && !in_array($vehicle, $cabAllowedVehicles, true)) {
+            $cabFormErrors[] = 'Please select a valid vehicle type.';
+        }
+        if ($service !== '' && !in_array($service, $cabAllowedServices, true)) {
+            $cabFormErrors[] = 'Please select a valid service type.';
+        }
+        if (mb_strlen($pickup) > 200 || mb_strlen($destination) > 200) {
+            $cabFormErrors[] = 'Pickup/destination location is too long.';
+        }
+
+        $dateValue = null;
+        if ($date !== '') {
+            $d = DateTime::createFromFormat('Y-m-d', $date);
+            if (!$d || $d->format('Y-m-d') !== $date) {
+                $cabFormErrors[] = 'Please enter a valid journey date.';
+            } else {
+                $dateValue = $date;
+            }
+        }
+
+        $passengersValue = null;
+        if ($passengers !== '') {
+            if (!ctype_digit($passengers) || (int) $passengers < 1 || (int) $passengers > 100) {
+                $cabFormErrors[] = 'Please enter a valid number of passengers.';
+            } else {
+                $passengersValue = (int) $passengers;
+            }
+        }
+
+        if (mb_strlen($message) > 2000) {
+            $cabFormErrors[] = 'Additional requirements are too long (max 2000 characters).';
+        }
+
+        $now = time();
+        $bucket = $_SESSION['cab_rate_limit'] ?? ['count' => 0, 'start' => $now];
+        if ($now - $bucket['start'] > 600) {
+            $bucket = ['count' => 0, 'start' => $now];
+        }
+        $bucket['count']++;
+        $_SESSION['cab_rate_limit'] = $bucket;
+        if ($bucket['count'] > 3) {
+            $cabFormErrors[] = 'Too many submissions. Please wait a few minutes and try again.';
+        }
+
+        if (!$cabFormErrors) {
+            try {
+                $pdo = get_db();
+                $stmt = $pdo->prepare(
+                    'INSERT INTO cab_booking_requests
+                        (full_name, mobile_number, email, vehicle_type, service_type, pickup_location, destination, journey_date, passengers, message, ip_address)
+                     VALUES
+                        (:name, :mobile, :email, :vehicle, :service, :pickup, :destination, :date, :passengers, :message, :ip)'
+                );
+                $stmt->execute([
+                    ':name'        => $name,
+                    ':mobile'      => $mobile,
+                    ':email'       => $email !== '' ? $email : null,
+                    ':vehicle'     => $vehicle !== '' ? $vehicle : null,
+                    ':service'     => $service !== '' ? $service : null,
+                    ':pickup'      => $pickup !== '' ? $pickup : null,
+                    ':destination' => $destination !== '' ? $destination : null,
+                    ':date'        => $dateValue,
+                    ':passengers'  => $passengersValue,
+                    ':message'     => $message !== '' ? $message : null,
+                    ':ip'          => $_SERVER['REMOTE_ADDR'] ?? null,
+                ]);
+
+                $_SESSION['cab_flash_success'] = true;
+                $_SESSION['cab_csrf_token'] = bin2hex(random_bytes(32));
+                header('Location: ' . $_SERVER['PHP_SELF'] . '#booking');
+                exit;
+
+            } catch (PDOException $e) {
+                error_log('Cab booking insert failed: ' . $e->getMessage());
+                $cabFormErrors[] = 'Something went wrong on our end. Please try again later.';
+            }
+        }
+    }
+}
+
+function cb_e(string $value): string
+{
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -39,6 +190,7 @@
 
     <!-- Navbar -->
     <div id="navbar"></div>
+    <?php include __DIR__ . '/navbar.php'; ?>
     <!-- Navbar End -->
 
     <!-- =========================================
@@ -1138,140 +1290,83 @@
                             Cab Booking Form
                         </h3>
 
-                        <form>
+                        <?php if ($cabFormSuccess): ?>
+                                <div class="alert alert-success">Thank you! Your booking request has been received. Our team will contact you shortly.</div>
+                            <?php endif; ?>
 
-                            <div class="row g-4">
-
-                                <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                    Full Name
-                                </label>
-
-                                    <input type="text" class="form-control py-3" placeholder="Enter your name">
-
+                            <?php if ($cabFormErrors): ?>
+                                <div class="alert alert-danger">
+                                    <ul class="mb-0">
+                                        <?php foreach ($cabFormErrors as $err): ?>
+                                            <li><?= cb_e($err) ?></li>
+                                        <?php endforeach; ?>
+                                    </ul>
                                 </div>
+                            <?php endif; ?>
 
-                                <div class="col-md-6">
+                            <form method="post" action="">
+                                <input type="hidden" name="csrf_token" value="<?= cb_e($cabCsrfToken) ?>">
+                                <input type="hidden" name="cab_form_submit" value="1">
 
-                                    <label class="form-label fw-bold">
-                                    Mobile Number
-                                </label>
-
-                                    <input type="tel" class="form-control py-3" placeholder="+91 XXXXX XXXXX">
-
+                                <div class="row g-4">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Full Name</label>
+                                        <input type="text" name="name" class="form-control py-3" placeholder="Enter your name" maxlength="150" required value="<?= cb_e($cabFormValues['name']) ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Mobile Number</label>
+                                        <input type="tel" name="mobile" class="form-control py-3" placeholder="+91 XXXXX XXXXX" maxlength="20" required value="<?= cb_e($cabFormValues['mobile']) ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Email Address</label>
+                                        <input type="email" name="email" class="form-control py-3" placeholder="Email" maxlength="150" value="<?= cb_e($cabFormValues['email']) ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Vehicle Type</label>
+                                        <select class="form-select py-3" name="vehicle">
+                                            <option value="" <?= $cabFormValues['vehicle'] === '' ? 'selected' : '' ?>>Select Vehicle</option>
+                                            <?php foreach ($cabAllowedVehicles as $v): ?>
+                                                <option value="<?= cb_e($v) ?>" <?= $cabFormValues['vehicle'] === $v ? 'selected' : '' ?>><?= cb_e($v) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Service Type</label>
+                                        <select class="form-select py-3" name="service">
+                                            <option value="" <?= $cabFormValues['service'] === '' ? 'selected' : '' ?>>Select Service</option>
+                                            <?php foreach ($cabAllowedServices as $s): ?>
+                                                <option value="<?= cb_e($s) ?>" <?= $cabFormValues['service'] === $s ? 'selected' : '' ?>><?= cb_e($s) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Pickup Location</label>
+                                        <input type="text" name="pickup" class="form-control py-3" placeholder="Pickup Address" maxlength="200" value="<?= cb_e($cabFormValues['pickup']) ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Destination</label>
+                                        <input type="text" name="destination" class="form-control py-3" placeholder="Drop Location" maxlength="200" value="<?= cb_e($cabFormValues['destination']) ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Journey Date</label>
+                                        <input type="date" name="date" class="form-control py-3" value="<?= cb_e($cabFormValues['date']) ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Number of Passengers</label>
+                                        <input type="number" name="passengers" class="form-control py-3" placeholder="Passengers" min="1" max="100" value="<?= cb_e($cabFormValues['passengers']) ?>">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label fw-bold">Additional Requirements</label>
+                                        <textarea name="message" class="form-control" rows="5" maxlength="2000" placeholder="Write your travel requirements..."><?= cb_e($cabFormValues['message']) ?></textarea>
+                                    </div>
+                                    <div class="col-12">
+                                        <button class="btn btn-success btn-lg rounded-pill w-100 py-3" type="submit">
+                                            <i class="fa fa-paper-plane me-2"></i>
+                                            Request Vehicle
+                                        </button>
+                                    </div>
                                 </div>
-
-                                <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                    Email Address
-                                </label>
-
-                                    <input type="email" class="form-control py-3" placeholder="Email">
-
-                                </div>
-
-                                <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                        Vehicle Type
-                                    </label>
-
-                                    <select class="form-select py-3">
-                                        <option>Select Vehicle</option>
-                                        <option>Hatchback</option>
-                                        <option>Sedan</option>
-                                        <option>SUV</option>
-                                        <option>Innova Crysta</option>
-                                        <option>Tempo Traveller</option>
-                                        <option>Luxury Car</option>
-                                    </select>
-
-                                </div>
-
-                                <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                        Service Type
-                                    </label>
-
-                                    <select class="form-select py-3">
-                                        <option>Select Service</option>
-                                        <option>Self Drive</option>
-                                        <option>Car With Driver</option>
-                                        <option>Rental Car (Daily)</option>
-                                        <option>Rental Car (Weekly)</option>
-                                        <option>Rental Car (Monthly)</option>
-                                    </select>
-
-                                </div>
-
-                                <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                                Pickup Location
-                                            </label>
-
-                                    <input type="text" class="form-control py-3" placeholder="Pickup Address">
-
-                                </div>
-
-                                <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                                Destination
-                                            </label>
-
-                                    <input type="text" class="form-control py-3" placeholder="Drop Location">
-
-                                </div>
-
-                                <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                                Journey Date
-                                            </label>
-
-                                    <input type="date" class="form-control py-3">
-
-                                </div>
-
-                                <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                                Number of Passengers
-                                            </label>
-
-                                    <input type="number" class="form-control py-3" placeholder="Passengers">
-
-                                </div>
-
-                                <div class="col-12">
-
-                                    <label class="form-label fw-bold">
-                                                Additional Requirements
-                                            </label>
-
-                                    <textarea class="form-control" rows="5" placeholder="Write your travel requirements..."></textarea>
-
-                                </div>
-
-                                <div class="col-12">
-
-                                    <button class="btn btn-success btn-lg rounded-pill w-100 py-3">
-
-                                                <i class="fa fa-paper-plane me-2"></i>
-
-                                                Request Vehicle
-
-                                            </button>
-
-                                </div>
-
-                            </div>
-
-                        </form>
+                            </form>
 
                     </div>
 
@@ -1337,7 +1432,8 @@ Request Your Vehicle
 
 
     <!-- Footer -->
-    <div id="footer"></div>
+    <!-- <div id="footer"></div> -->
+    <?php include __DIR__ . '/footer.php'; ?>
     <!-- Footer End -->
 
 
@@ -1361,8 +1457,8 @@ Request Your Vehicle
 
     <script>
         /*==================================================
-                                                                            CAB PAGE INTERACTIONS
-                                                                        ==================================================*/
+                                                                                    CAB PAGE INTERACTIONS
+                                                                                ==================================================*/
 
         document.addEventListener("DOMContentLoaded", function() {
 
@@ -1453,32 +1549,7 @@ Request Your Vehicle
 
             const form = document.querySelector("form");
 
-            if (form) {
-
-                form.addEventListener("submit", function(e) {
-
-                    e.preventDefault();
-
-                    const btn = form.querySelector("button");
-
-                    btn.disabled = true;
-
-                    btn.innerHTML = '<i class="fa fa-spinner fa-spin me-2"></i>Booking...';
-
-                    setTimeout(() => {
-
-                        btn.innerHTML = '<i class="fa fa-check me-2"></i>Booking Request Sent';
-
-                        btn.classList.remove("btn-success");
-
-                        btn.classList.add("btn-dark");
-
-                    }, 1700);
-
-                });
-
-            }
-
+            
 
 
             /* Header Parallax */
@@ -1510,21 +1581,21 @@ Request Your Vehicle
 
         });
 
-        fetch("navbar.html")
-            .then(res => res.text())
-            .then(data => {
-                document.getElementById("navbar").innerHTML = data;
+        // fetch("navbar.php")
+        //     .then(res => res.text())
+        //     .then(data => {
+        //         document.getElementById("navbar").innerHTML = data;
 
-                document.querySelectorAll('.dropdown-toggle').forEach(function(el) {
-                    new bootstrap.Dropdown(el);
-                });
-            });
+        //         document.querySelectorAll('.dropdown-toggle').forEach(function(el) {
+        //             new bootstrap.Dropdown(el);
+        //         });
+        //     });
 
-        fetch("footer.html")
-            .then(res => res.text())
-            .then(data => {
-                document.getElementById("footer").innerHTML = data;
-            });
+        // fetch("footer.php")
+        //     .then(res => res.text())
+        //     .then(data => {
+        //         document.getElementById("footer").innerHTML = data;
+        //     });
 
         window.addEventListener("scroll", function() {
 

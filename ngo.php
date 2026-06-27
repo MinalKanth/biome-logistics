@@ -183,7 +183,8 @@
             NAVBAR
     ============================ -->
 
-    <div id="navbar"></div>
+    <!-- <div id="navbar"></div> -->
+     <?php include __DIR__ . '/navbar.php'; ?>
 
     <!-- Navbar End -->
 
@@ -229,7 +230,7 @@
 
                         </a>
 
-                        <a href="contact.html" class="btn btn-outline-light rounded-pill px-4 py-3">
+                        <a href="contact.php" class="btn btn-outline-light rounded-pill px-4 py-3">
 
                             Become a Volunteer
 
@@ -270,7 +271,7 @@
 
                     <li class="breadcrumb-item">
 
-                        <a class="text-white" href="index.html">
+                        <a class="text-white" href="index.php">
 
                             Home
 
@@ -1755,13 +1756,13 @@
 
             <div class="d-flex justify-content-center flex-wrap gap-3">
 
-                <a href="contact.html" class="btn btn-light btn-lg rounded-pill px-5">
+                <a href="contact.php" class="btn btn-light btn-lg rounded-pill px-5">
 
                 Become A Volunteer
 
             </a>
 
-                <a href="contact.html" class="btn btn-outline-light btn-lg rounded-pill px-5">
+                <a href="contact.php" class="btn btn-outline-light btn-lg rounded-pill px-5">
 
                 Partner With Us
 
@@ -1779,7 +1780,8 @@
         FOOTER
 =========================== -->
 
-    <div id="footer"></div>
+    <!-- <div id="footer"></div> -->
+     <?php include __DIR__ . '/footer.php'; ?>
 
 
 
@@ -1816,24 +1818,24 @@
     <script>
         new WOW().init();
 
-        fetch("navbar.html")
-            .then(res => res.text())
-            .then(data => {
-                document.getElementById("navbar").innerHTML = data;
+        // fetch("navbar.php")
+        //     .then(res => res.text())
+        //     .then(data => {
+        //         document.getElementById("navbar").innerHTML = data;
 
-                document.querySelectorAll(".dropdown-toggle").forEach(function(el) {
-                    new bootstrap.Dropdown(el);
-                });
+        //         document.querySelectorAll(".dropdown-toggle").forEach(function(el) {
+        //             new bootstrap.Dropdown(el);
+        //         });
 
-            });
+        //     });
 
-        fetch("footer.html")
-            .then(res => res.text())
-            .then(data => {
+        // fetch("footer.php")
+        //     .then(res => res.text())
+        //     .then(data => {
 
-                document.getElementById("footer").innerHTML = data;
+        //         document.getElementById("footer").innerHTML = data;
 
-            });
+        //     });
 
         window.addEventListener("scroll", function() {
 

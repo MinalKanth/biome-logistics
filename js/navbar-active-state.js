@@ -35,7 +35,7 @@
         getCurrentPage() {
             // Get current URL path
             const pathname = window.location.pathname;
-            const filename = pathname.substring(pathname.lastIndexOf('/') + 1) || 'index.html';
+            const filename = pathname.substring(pathname.lastIndexOf('/') + 1) || 'index.php';
 
             return filename;
         }
@@ -46,8 +46,8 @@
                 const href = link.getAttribute('href');
 
                 if (href === currentPage ||
-                    (currentPage === '' && href === 'index.html') ||
-                    (currentPage === '/' && href === 'index.html')) {
+                    (currentPage === '' && href === 'index.php') ||
+                    (currentPage === '/' && href === 'index.php')) {
                     link.classList.add('active');
                     return;
                 }

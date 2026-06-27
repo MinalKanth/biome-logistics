@@ -29,7 +29,7 @@
 
     <!-- Template Stylesheet -->
     <link href="css/style.css" rel="stylesheet">
-    <link href="css/style-about.css" rel="stylesheet">
+    <!-- <link href="css/style-about.css" rel="stylesheet"> -->
     <link href="css/navbar-active-state.css" rel="stylesheet">
 
 </head>
@@ -39,7 +39,9 @@
 
 
     <!-- Navbar -->
-    <div id="navbar"></div>
+    <!-- <div id="navbar"></div> -->
+    <?php include __DIR__ . '/navbar.php'; ?>
+
     <!-- Navbar End -->
 
 
@@ -68,7 +70,7 @@
             <nav>
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item">
-                        <a class="text-white" href="index.html">Home</a>
+                        <a class="text-white" href="index.php">Home</a>
                     </li>
 
                     <li class="breadcrumb-item text-white active">
@@ -243,13 +245,19 @@
                         <i class="fa fa-headphones fa-2x flex-shrink-0 bg-primary p-3 text-white"></i>
 
                         <div class="ps-4">
-
                             <h6>Need Assistance?</h6>
 
-                            <h3 class="text-primary m-0">
-                                +91 96784 31656
+                            <!-- Direct Call -->
+                            <h3 class="m-0">
+                                <a href="tel:+919678431656" class="text-primary text-decoration-none">
+                                    <i class="fa fa-phone-alt me-2"></i>+91 96784 31656
+                                </a>
                             </h3>
 
+                            <!-- WhatsApp -->
+                            <a href="https://wa.me/919678431656" target="_blank" class="btn btn-success btn-sm mt-3">
+                                <i class="fab fa-whatsapp me-2"></i>Chat on WhatsApp
+                            </a>
                         </div>
 
                     </div>
@@ -346,7 +354,8 @@
 
 
     <!-- Footer -->
-    <div id="footer"></div>
+    <!-- <div id="footer"></div> -->
+     <?php include __DIR__ . '/footer.php'; ?>
     <!-- Footer End -->
 
 
@@ -370,8 +379,8 @@
 
     <script>
         /*===================================
-                                                                                                                      ABOUT PAGE INTERACTIONS
-                                                                                                                ====================================*/
+                                                                                                                                                                                                                                                      ABOUT PAGE INTERACTIONS
+                                                                                                                                                                                                                                                ====================================*/
 
         document.addEventListener("DOMContentLoaded", () => {
 
@@ -649,31 +658,23 @@
 
         /* Auto Parallax */
 
-        window.addEventListener("scroll", () => {
 
-            document.querySelectorAll("img").forEach(img => {
 
-                img.style.transform += ` translateY(${window.scrollY*.02}px)`;
+        // fetch("navbar.php")
+        //     .then(res => res.text())
+        //     .then(data => {
+        //         document.getElementById("navbar").innerHTML = data;
 
-            });
+        //         document.querySelectorAll('.dropdown-toggle').forEach(function(el) {
+        //             new bootstrap.Dropdown(el);
+        //         });
+        //     });
 
-        });
-
-        fetch("navbar.html")
-            .then(res => res.text())
-            .then(data => {
-                document.getElementById("navbar").innerHTML = data;
-
-                document.querySelectorAll('.dropdown-toggle').forEach(function(el) {
-                    new bootstrap.Dropdown(el);
-                });
-            });
-
-        fetch("footer.html")
-            .then(res => res.text())
-            .then(data => {
-                document.getElementById("footer").innerHTML = data;
-            });
+        // fetch("footer.php")
+        //     .then(res => res.text())
+        //     .then(data => {
+        //         document.getElementById("footer").innerHTML = data;
+        //     });
 
         window.addEventListener("scroll", function() {
 

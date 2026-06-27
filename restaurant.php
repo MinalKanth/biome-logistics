@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Biome Enterprises | Hotel</title>
+    <title>Biome Enterprises | Restaurant</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta content="" name="keywords">
     <meta content="" name="description">
@@ -29,8 +29,8 @@
 
     <!-- Template Stylesheet -->
     <link href="css/style.css" rel="stylesheet">
-    <link href="css/style-hotel.css" rel="stylesheet">
-    <link href="css/navbar-active-state.css" rel="stylesheet">Contact
+    <link href="css/style-restaurant.css" rel="stylesheet">
+    <link href="css/navbar-active-state.css" rel="stylesheet">
 </head>
 <style>
     .min-vh-100 {
@@ -84,7 +84,8 @@
 
 
     <!-- Navbar -->
-    <div id="navbar"></div>
+    <!-- <div id="navbar"></div> -->
+     <?php include __DIR__ . '/navbar.php'; ?>
     <!-- Navbar End -->
 
 
@@ -94,28 +95,28 @@
         <div class="container py-5">
 
             <h6 class="text-uppercase text-warning fw-bold mb-3 animated slideInDown">
-                Get In Touch
+                Coming Soon
             </h6>
 
             <h1 class="display-3 text-white fw-bold mb-4 animated slideInDown">
-                Hotel
+                Restaurant
                 <span class="text-success">
-                Biome Enterprises
-            </span>
+        Services
+    </span>
             </h1>
 
             <p class="text-light fs-5 mb-4">
-                Transportation • Bamboo Trading • Legal Services • Cab Rentals • Business Registration
+                Delicious Food • Fine Dining • Catering • Family Restaurant • Event Dining
             </p>
 
             <nav>
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item">
-                        <a class="text-white" href="index.html">Home</a>
+                        <a class="text-white" href="index.php">Home</a>
                     </li>
 
                     <li class="breadcrumb-item text-white active">
-                        Hotel
+                        Restaurant
                     </li>
                 </ol>
             </nav>
@@ -125,50 +126,34 @@
     </div>
     <!-- Page Header End -->
 
-    <div class="row g-4 mb-5">
+    <div class="container py-5">
+        <div class="row g-4">
 
-        <div class="col-md-4">
+            <div class="col-md-4">
+                <div class="bg-white rounded-4 shadow p-4 text-center h-100">
+                    <i class="fas fa-utensils fa-3x text-success mb-3"></i>
+                    <h5>Delicious Cuisine</h5>
+                    <p>Freshly prepared meals made with premium ingredients and authentic flavors.</p>
+                </div>
+            </div>
 
-            <div class="bg-white rounded-4 shadow p-4 text-center h-100">
+            <div class="col-md-4">
+                <div class="bg-white rounded-4 shadow p-4 text-center h-100">
+                    <i class="fas fa-concierge-bell fa-3x text-success mb-3"></i>
+                    <h5>Premium Dining</h5>
+                    <p>Enjoy a comfortable dining experience with excellent hospitality and ambience.</p>
+                </div>
+            </div>
 
-                <i class="fa fa-phone fa-3x text-success mb-3"></i>
-
-                <h5>Call</h5>
-
-                <p>+91 96784 31656</p>
-
+            <div class="col-md-4">
+                <div class="bg-white rounded-4 shadow p-4 text-center h-100">
+                    <i class="fas fa-motorcycle fa-3x text-success mb-3"></i>
+                    <h5>Takeaway & Delivery</h5>
+                    <p>Quick takeaway and doorstep food delivery services launching soon.</p>
+                </div>
             </div>
 
         </div>
-
-        <div class="col-md-4">
-
-            <div class="bg-white rounded-4 shadow p-4 text-center h-100">
-
-                <i class="fa fa-envelope fa-3x text-success mb-3"></i>
-
-                <h5>Email</h5>
-
-                <p>info@biomeenterprises.com</p>
-
-            </div>
-
-        </div>
-
-        <div class="col-md-4">
-
-            <div class="bg-white rounded-4 shadow p-4 text-center h-100">
-
-                <i class="fa fa-map-marker-alt fa-3x text-success mb-3"></i>
-
-                <h5>Location</h5>
-
-                <p>Assam, India</p>
-
-            </div>
-
-        </div>
-
     </div>
 
     <!-- Coming Soon Start -->
@@ -183,27 +168,46 @@
                     <div class="bg-white rounded-4 shadow-lg p-5 text-center">
 
                         <div class="mb-4">
-
-                            <i class="fas fa-hotel fa-5x text-primary floating"></i>
-
+                            <i class="fas fa-utensils fa-5x text-danger floating"></i>
                         </div>
 
-                        <h6 class="text-uppercase text-primary fw-bold mb-3">
-                            New Service
+                        <h6 class="text-uppercase text-danger fw-bold mb-3">
+                            Launching Soon
                         </h6>
 
                         <h1 class="display-4 fw-bold mb-4">
-                            Hotel Booking
-                            <span class="text-success">Coming Soon</span>
+                            Restaurant Services
+                            <span class="text-success">
+            Coming Soon
+        </span>
                         </h1>
 
                         <p class="text-muted fs-5 mb-4">
-                            We are working on a seamless hotel booking platform to provide comfortable stays at the best prices across India. Stay tuned for exciting updates.
+                            We are preparing an exciting restaurant experience featuring delicious cuisine, family dining, takeaway, catering and food delivery services. Stay connected as we bring exceptional food and hospitality to you.
                         </p>
 
-                        <a href="contact.html" class="btn btn-success px-5 py-3 rounded-pill">
-                        Contact Us
-                    </a>
+                        <div class="row text-center mb-4">
+
+                            <div class="col-4">
+                                <i class="fas fa-hamburger fa-2x text-success mb-2"></i>
+                                <h6>Fresh Food</h6>
+                            </div>
+
+                            <div class="col-4">
+                                <i class="fas fa-coffee fa-2x text-success mb-2"></i>
+                                <h6>Fine Dining</h6>
+                            </div>
+
+                            <div class="col-4">
+                                <i class="fas fa-shipping-fast fa-2x text-success mb-2"></i>
+                                <h6>Fast Delivery</h6>
+                            </div>
+
+                        </div>
+
+                        <a href="contact.php" class="btn btn-success px-5 py-3 rounded-pill">
+        Notify Me
+    </a>
 
                     </div>
 
@@ -219,7 +223,8 @@
 
 
     <!-- Footer -->
-    <div id="footer"></div>
+    <!-- <div id="footer"></div> -->
+     <?php include __DIR__ . '/footer.php'; ?>
     <!-- Footer End -->
 
 
@@ -244,17 +249,17 @@
     <script>
         document.addEventListener("DOMContentLoaded", function() {
 
-            fetch("navbar.html")
-                .then(res => res.text())
-                .then(data => {
-                    document.getElementById("navbar").innerHTML = data;
-                });
+            // fetch("navbar.php")
+            //     .then(res => res.text())
+            //     .then(data => {
+            //         document.getElementById("navbar").innerHTML = data;
+            //     });
 
-            fetch("footer.html")
-                .then(res => res.text())
-                .then(data => {
-                    document.getElementById("footer").innerHTML = data;
-                });
+            // fetch("footer.php")
+            //     .then(res => res.text())
+            //     .then(data => {
+            //         document.getElementById("footer").innerHTML = data;
+            //     });
 
         });
     </script>
