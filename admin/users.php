@@ -63,63 +63,277 @@ if ($search !== '') {
 $users = $stmt->fetchAll();
 $totalPages = max(1, (int) ceil($totalRows / $perPage));
 
+// Best-effort total user count for the sidebar pill (kept consistent with dashboard.php)
+function safe_scalar_users(PDO $pdo, string $sql, $default = 0)
+{
+    try {
+        $val = $pdo->query($sql)->fetchColumn();
+        return $val === false ? $default : $val;
+    } catch (Throwable $e) {
+        return $default;
+    }
+}
+$sidebarUserCount = (int) safe_scalar_users($pdo, 'SELECT COUNT(*) FROM users');
+
 $pageTitle = 'Manage Users';
 require __DIR__ . '/includes/header.php';
 ?>
-<div class="page-header">
-  <h1>Manage Users</h1>
-  <a href="user_form.php" class="btn btn-primary">+ Add New User</a>
+
+<link rel="stylesheet" href="assets/css/dashboard.css">
+
+<div class="app-shell">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="mark">A</div>
+      <div class="name">Atlas<br><small>Control Panel</small></div>
+    </div>
+
+    <div class="sidebar-section-label">Overview</div>
+    <nav class="sidebar-nav">
+      <ul>
+        <li><a href="dashboard.php" class="nav-item"><i class="fa-solid fa-grid-2"></i> Dashboard</a></li>
+        <li><a href="analytics.php" class="nav-item"><i class="fa-solid fa-chart-line"></i> Analytics</a></li>
+        <li><a href="reports.php" class="nav-item"><i class="fa-solid fa-file-lines"></i> Reports</a></li>
+      </ul>
+
+      <div class="sidebar-section-label">Manage</div>
+      <ul>
+        <li><a href="users.php" class="nav-item active"><i class="fa-solid fa-users"></i> Users <span class="pill"><?= e((string) $sidebarUserCount) ?></span></a></li>
+        <li><a href="admins.php" class="nav-item"><i class="fa-solid fa-user-shield"></i> Admins</a></li>
+        <li><a href="bamboo-enquiries.php" class="nav-item"><i class="fa-solid fa-user-shield"></i> Bamboo Trading</a></li>
+        <li><a href="roles.php" class="nav-item"><i class="fa-solid fa-key"></i> Roles &amp; Permissions</a></li>
+        <li><a href="content.php" class="nav-item"><i class="fa-solid fa-layer-group"></i> Content</a></li>
+        <li><a href="billing.php" class="nav-item"><i class="fa-solid fa-credit-card"></i> Billing</a></li>
+      </ul>
+
+      <div class="sidebar-section-label">System</div>
+      <ul>
+        <li><a href="logs.php" class="nav-item"><i class="fa-solid fa-clock-rotate-left"></i> Activity Logs</a></li>
+        <li><a href="notifications.php" class="nav-item"><i class="fa-solid fa-bell"></i> Notifications</a></li>
+        <li><a href="security.php" class="nav-item"><i class="fa-solid fa-shield-halved"></i> Security</a></li>
+        <li><a href="settings.php" class="nav-item"><i class="fa-solid fa-gear"></i> Settings</a></li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="sidebar-upgrade">
+        <div class="label">System status</div>
+        <p>All services operational. Last checked just now.</p>
+        <a href="security.php" class="btn btn-outline-accent" style="width:100%;justify-content:center;">
+          <i class="fa-solid fa-circle-check"></i> View status page
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN COLUMN ===================== -->
+  <div class="main-col">
+
+    <!-- ---------- Topbar ---------- -->
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="menu-toggle" id="menuToggle"><i class="fa-solid fa-bars"></i></div>
+        <div class="topbar-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search users, logs, settings…">
+          <kbd>⌘K</kbd>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <div class="icon-btn" title="Notifications">
+          <i class="fa-regular fa-bell"></i>
+          <span class="dot"></span>
+        </div>
+        <div class="icon-btn" title="Help &amp; documentation">
+          <i class="fa-regular fa-circle-question"></i>
+        </div>
+        <div class="topbar-divider"></div>
+        <div class="profile-chip">
+          <div class="avatar"><?= e(strtoupper(substr($_SESSION['admin_name'] ?? $_SESSION['admin_username'] ?? 'A', 0, 1))) ?></div>
+          <div class="who">
+            <strong><?= e($_SESSION['admin_name'] ?? $_SESSION['admin_username'] ?? 'Administrator') ?></strong>
+            <span><?= e($_SESSION['admin_role'] ?? 'Super Admin') ?></span>
+          </div>
+          <i class="fa-solid fa-chevron-down" style="font-size:10px;color:var(--text-muted);"></i>
+        </div>
+      </div>
+    </header>
+
+    <!-- ---------- Content ---------- -->
+    <main class="content">
+
+      <div class="page-head">
+        <div>
+          <div class="breadcrumb">Atlas <span class="sep">/</span> <span class="current">Users</span></div>
+          <h1>Manage users</h1>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div class="datetime btn-ghost btn" style="cursor:default;">
+            <i class="fa-solid fa-users"></i>
+            <?= e(number_format($totalRows)) ?> total
+          </div>
+          <a href="user_form.php" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add new user</a>
+        </div>
+      </div>
+
+      <!-- Signature element: live activity pulse -->
+      <svg class="pulse-divider" viewBox="0 0 1200 34" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,17 L1200,17"></path>
+        <path class="live" d="M0,17 L120,17 L132,4 L144,30 L156,17 L300,17 L312,9 L324,25 L336,17 L520,17 L532,2 L544,32 L556,17 L760,17 L772,7 L784,27 L796,17 L1000,17 L1012,4 L1024,30 L1036,17 L1200,17"></path>
+      </svg>
+
+      <!-- ---------- Toolbar: search + filters ---------- -->
+      <div class="toolbar">
+        <form method="get" action="users.php" class="search-form">
+          <div class="search-field">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" name="q" placeholder="Search by name or email"
+                   value="<?= e($search) ?>" maxlength="150">
+          </div>
+          <button type="submit" class="btn btn-ghost"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+          <?php if ($search !== ''): ?>
+            <a href="users.php" class="btn btn-secondary"><svg class="icon"><use href="#icon-name"/></svg> Clear</a>
+          <?php endif; ?>
+        </form>
+
+        <div class="filter-pills">
+          <span class="filter-pill active">All users</span>
+          <span class="filter-pill">Active</span>
+          <span class="filter-pill">Inactive</span>
+        </div>
+      </div>
+
+      <!-- ---------- Users table ---------- -->
+      <div class="table-panel">
+        <div class="table-caption">
+          <span>
+            <?php if ($search !== ''): ?>
+              Showing results for <strong>&ldquo;<?= e($search) ?>&rdquo;</strong>
+            <?php else: ?>
+              Showing <strong><?= e((string) count($users)) ?></strong> of <strong><?= e(number_format($totalRows)) ?></strong> users
+            <?php endif; ?>
+          </span>
+          <span>Page <?= e((string) $page) ?> of <?= e((string) $totalPages) ?></span>
+        </div>
+
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (!$users): ?>
+                <tr>
+                  <td colspan="7">
+                    <div class="empty-state">
+                      <i class="fa-solid fa-user-slash"></i>
+                      <p>No users found<?= $search !== '' ? ' for that search' : '' ?>.</p>
+                      <span><?= $search !== '' ? 'Try a different name or email.' : 'New users will appear here once added.' ?></span>
+                    </div>
+                  </td>
+                </tr>
+              <?php endif; ?>
+              <?php foreach ($users as $u): ?>
+                <tr>
+                  <td><span class="row-id">#<?= (int) $u['id'] ?></span></td>
+                  <td>
+                    <div class="user-cell">
+                      <div class="av"><?= e(strtoupper(substr($u['full_name'] ?? 'U', 0, 1))) ?></div>
+                      <div class="meta"><strong><?= e($u['full_name']) ?></strong></div>
+                    </div>
+                  </td>
+                  <td style="color:var(--text-secondary);"><?= e($u['email']) ?></td>
+                  <td>
+                    <?php if (!empty($u['phone'])): ?>
+                      <span class="phone-cell"><?= e($u['phone']) ?></span>
+                    <?php else: ?>
+                      <span class="phone-cell empty">Not provided</span>
+                    <?php endif; ?>
+                  </td>
+                  <td>
+                    <span class="badge badge-<?= $u['status'] === 'active' ? 'success' : 'muted' ?>">
+                      <?= e($u['status']) ?>
+                    </span>
+                  </td>
+                  <td><span class="mono-time"><?= e($u['created_at']) ?></span></td>
+                  <td class="actions">
+                    <a href="user_form.php?id=<?= (int) $u['id'] ?>" class="btn btn-small btn-secondary">
+                      <i class="fa-solid fa-pen"></i> Edit
+                    </a>
+                    <form method="post" action="users.php" class="inline-form"
+                          onsubmit="return confirm('Delete this user? This cannot be undone.');">
+                      <?= csrf_field() ?>
+                      <input type="hidden" name="action" value="delete">
+                      <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
+                      <button type="submit" class="btn btn-small btn-danger">
+                        <i class="fa-solid fa-trash"></i> Delete
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ---------- Pagination ---------- -->
+      <?php if ($totalPages > 1): ?>
+        <div class="pagination">
+          <?php if ($page > 1): ?>
+            <a href="users.php?page=<?= $page - 1 ?><?= $search !== '' ? '&q=' . urlencode($search) : '' ?>" aria-label="Previous page">
+              <i class="fa-solid fa-chevron-left" style="font-size:11px;"></i>
+            </a>
+          <?php endif; ?>
+
+          <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+            <a href="users.php?page=<?= $p ?><?= $search !== '' ? '&q=' . urlencode($search) : '' ?>"
+               class="<?= $p === $page ? 'active' : '' ?>"><?= $p ?></a>
+          <?php endfor; ?>
+
+          <?php if ($page < $totalPages): ?>
+            <a href="users.php?page=<?= $page + 1 ?><?= $search !== '' ? '&q=' . urlencode($search) : '' ?>" aria-label="Next page">
+              <i class="fa-solid fa-chevron-right" style="font-size:11px;"></i>
+            </a>
+          <?php endif; ?>
+        </div>
+      <?php endif; ?>
+
+      <!-- ---------- Footer ---------- -->
+      <div class="dash-footer">
+        <span>&copy; <?= date('Y') ?> Atlas Control Panel. All rights reserved.</span>
+        <span>
+          <a href="settings.php">Settings</a> &nbsp;·&nbsp;
+          <a href="security.php">Security</a> &nbsp;·&nbsp;
+          <a href="logs.php">Activity logs</a>
+        </span>
+      </div>
+
+    </main>
+  </div>
 </div>
 
-<form method="get" action="users.php" class="search-form">
-  <input type="text" name="q" placeholder="Search by name or email"
-         value="<?= e($search) ?>" maxlength="150">
-  <button type="submit" class="btn">Search</button>
-  <?php if ($search !== ''): ?>
-    <a href="users.php" class="btn btn-secondary">Clear</a>
-  <?php endif; ?>
-</form>
-
-<table class="data-table">
-  <thead>
-    <tr>
-      <th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Status</th><th>Created</th><th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    <?php if (!$users): ?>
-      <tr><td colspan="7">No users found.</td></tr>
-    <?php endif; ?>
-    <?php foreach ($users as $u): ?>
-      <tr>
-        <td><?= (int) $u['id'] ?></td>
-        <td><?= e($u['full_name']) ?></td>
-        <td><?= e($u['email']) ?></td>
-        <td><?= e($u['phone'] ?? '') ?></td>
-        <td><span class="badge badge-<?= $u['status'] === 'active' ? 'success' : 'muted' ?>"><?= e($u['status']) ?></span></td>
-        <td><?= e($u['created_at']) ?></td>
-        <td class="actions">
-          <a href="user_form.php?id=<?= (int) $u['id'] ?>" class="btn btn-small">Edit</a>
-          <form method="post" action="users.php" class="inline-form"
-                onsubmit="return confirm('Delete this user? This cannot be undone.');">
-            <?= csrf_field() ?>
-            <input type="hidden" name="action" value="delete">
-            <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
-            <button type="submit" class="btn btn-small btn-danger">Delete</button>
-          </form>
-        </td>
-      </tr>
-    <?php endforeach; ?>
-  </tbody>
-</table>
-
-<?php if ($totalPages > 1): ?>
-<div class="pagination">
-  <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-    <a href="users.php?page=<?= $p ?><?= $search !== '' ? '&q=' . urlencode($search) : '' ?>"
-       class="<?= $p === $page ? 'active' : '' ?>"><?= $p ?></a>
-  <?php endfor; ?>
-</div>
-<?php endif; ?>
+<script>
+(function () {
+  const toggle = document.getElementById('menuToggle');
+  const sidebar = document.getElementById('sidebar');
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      sidebar.classList.toggle('open');
+    });
+  }
+})();
+</script>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>
