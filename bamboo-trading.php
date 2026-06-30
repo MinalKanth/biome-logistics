@@ -174,15 +174,426 @@ function bf_e(string $value): string
 
     <!-- Libraries Stylesheet -->
     <link href="lib/animate/animate.min.css" rel="stylesheet">
-    <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
+    <!-- <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet"> -->
 
     <!-- Customized Bootstrap Stylesheet -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Template Stylesheet -->
     <link href="css/style.css" rel="stylesheet">
-    <link href="css/style-bamboo-trading.css" rel="stylesheet">
-    <link href="css/navbar-active-state.css" rel="stylesheet">
+    <!-- <link href="css/style-bamboo-trading.css" rel="stylesheet">
+    <link href="css/navbar-active-state.css" rel="stylesheet"> -->
+
+    <!-- ===================================================
+         ENHANCED INTERACTIVE / RESPONSIVE STYLES (NEW)
+         Matches existing green/warning/dark theme.
+         Does not alter the original template files —
+         these rules are additive and override only where
+         needed for responsiveness & interactivity.
+    ==================================================== -->
+    <style>
+        :root {
+            --bamboo-green: #198754;
+            --bamboo-green-dark: #14532d;
+            --bamboo-gold: #ffc107;
+            --bamboo-dark: #1c1f1d;
+            --bamboo-transition: all .35s cubic-bezier(.25, .8, .25, 1);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Fluid typography so headings never force horizontal scroll
+           on small screens, scaling smoothly between breakpoints */
+        .display-3 { font-size: clamp(1.7rem, 5vw + 1rem, 4rem); }
+        .display-5 { font-size: clamp(1.4rem, 3vw + 1rem, 2.5rem); }
+        h1 { font-size: clamp(1.5rem, 3vw + 1rem, 2.5rem); }
+        h2 { font-size: clamp(1.3rem, 2.5vw + .8rem, 2.1rem); }
+        h3 { font-size: clamp(1.15rem, 2vw + .7rem, 1.75rem); }
+        h4 { font-size: clamp(1.05rem, 1.5vw + .6rem, 1.5rem); }
+        .fs-5 { font-size: clamp(.95rem, 1vw + .7rem, 1.25rem) !important; }
+
+        /* ---------- General interactivity ---------- */
+        a, .btn {
+            transition: var(--bamboo-transition);
+        }
+
+        .btn-success {
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .btn-success::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(255,255,255,.25), transparent 60%);
+            transform: translateX(-120%);
+            transition: transform .6s ease;
+            z-index: -1;
+        }
+
+        .btn-success:hover::after {
+            transform: translateX(0);
+        }
+
+        .btn-success:hover,
+        .btn-outline-light:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 24px rgba(25, 135, 84, .25);
+        }
+
+        /* ---------- Page header ---------- */
+        .bamboo-header {
+            background-size: cover;
+            background-position: center;
+        }
+
+        .bamboo-header::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(20, 83, 45, .92), rgba(28, 31, 29, .85));
+            z-index: 0;
+        }
+
+        .bamboo-header .container {
+            z-index: 1;
+        }
+
+        /* ---------- Product / feature cards ---------- */
+        .service-item,
+        .product-feature,
+        .bg-white.rounded-4 {
+            transition: var(--bamboo-transition);
+            border: 1px solid rgba(25, 135, 84, .08);
+        }
+
+        .service-item:hover,
+        .product-feature:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 35px rgba(0, 0, 0, .12) !important;
+        }
+
+        .service-item img {
+            transition: transform .5s ease;
+        }
+
+        .service-item:hover img {
+            transform: scale(1.06);
+        }
+
+        .badge {
+            letter-spacing: .03em;
+        }
+
+        /* Industry / application icon tiles */
+        .container-xxl .text-center.p-4.rounded-4 {
+            transition: var(--bamboo-transition);
+            cursor: default;
+        }
+
+        .container-xxl .text-center.p-4.rounded-4:hover {
+            transform: translateY(-8px) scale(1.03);
+            background: var(--bamboo-green) !important;
+        }
+
+        .container-xxl .text-center.p-4.rounded-4:hover i,
+        .container-xxl .text-center.p-4.rounded-4:hover h6 {
+            color: #fff !important;
+        }
+
+        /* ---------- Enquiry form ---------- */
+        #enquiry .bg-white.rounded-4 {
+            border: none;
+        }
+
+        #enquiry .form-control,
+        #enquiry .form-select {
+            border-radius: .75rem;
+            border: 1px solid #dee2e6;
+            transition: var(--bamboo-transition);
+        }
+
+        #enquiry .form-control:focus,
+        #enquiry .form-select:focus {
+            border-color: var(--bamboo-green);
+            box-shadow: 0 0 0 .2rem rgba(25, 135, 84, .15);
+        }
+
+        #enquiry .form-label {
+            color: var(--bamboo-dark);
+            font-size: .92rem;
+        }
+
+        /* Floating-style multi-select look */
+        #enquiry select[multiple] option {
+            padding: .35rem .5rem;
+        }
+
+        #enquiry select[multiple] option:checked {
+            background: var(--bamboo-green) linear-gradient(0deg, var(--bamboo-green) 0%, var(--bamboo-green) 100%);
+            color: #fff;
+        }
+
+        /* Inline live char counter */
+        .char-counter {
+            font-size: .78rem;
+            color: #6c757d;
+            display: block;
+            text-align: right;
+            margin-top: .25rem;
+        }
+
+        /* Submit button loading state */
+        #enquiry button[type="submit"].is-loading {
+            pointer-events: none;
+            opacity: .8;
+        }
+
+        #enquiry button[type="submit"] .spinner-border {
+            width: 1rem;
+            height: 1rem;
+            margin-right: .5rem;
+            display: none;
+        }
+
+        #enquiry button[type="submit"].is-loading .spinner-border {
+            display: inline-block;
+        }
+
+        /* Field-level invalid state */
+        .form-control.is-invalid-bamboo,
+        .form-select.is-invalid-bamboo {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 .2rem rgba(220, 53, 69, .15) !important;
+        }
+
+        /* ---------- Counter badge ---------- */
+        .position-absolute.bottom-0.start-0 {
+            box-shadow: 0 12px 25px rgba(0, 0, 0, .2);
+        }
+
+        /* ---------- Sticky mobile CTA bar ---------- */
+        .bamboo-mobile-cta {
+            display: none;
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1040;
+            background: var(--bamboo-dark);
+            padding: .65rem 1rem;
+            box-shadow: 0 -6px 18px rgba(0, 0, 0, .25);
+        }
+
+        .bamboo-mobile-cta .btn {
+            border-radius: 50px;
+            font-weight: 600;
+        }
+
+        /* ---------- Back to top repositioned on mobile ---------- */
+        @media (max-width: 575.98px) {
+            .back-to-top {
+                bottom: 70px !important;
+            }
+        }
+
+        /* ===================================================
+           RESPONSIVE BREAKPOINTS (mobile-first overrides)
+        ==================================================== */
+
+        /* ----- Tablet & below (≤991.98px) ----- */
+        @media (max-width: 991.98px) {
+            .bamboo-mobile-cta {
+                display: flex;
+                gap: .6rem;
+            }
+
+            body {
+                padding-bottom: 70px;
+            }
+
+            .bamboo-header {
+                margin-bottom: 2.5rem !important;
+                padding-top: 2.5rem;
+                padding-bottom: 2.5rem;
+            }
+
+            .bamboo-header .py-5 {
+                padding-top: 1.5rem !important;
+                padding-bottom: 1.5rem !important;
+            }
+
+            /* Stack any 2-column row into a single column */
+            .row.align-items-center.g-5 > [class*="col-lg-6"] {
+                margin-bottom: 2rem;
+            }
+
+            .row.align-items-center.g-5 > [class*="col-lg-6"]:last-child {
+                margin-bottom: 0;
+            }
+
+            .container-xxl.py-5,
+            .container-fluid.py-5 {
+                padding-top: 2.5rem !important;
+                padding-bottom: 2.5rem !important;
+            }
+        }
+
+        /* ----- Phones & small tablets (≤767.98px) ----- */
+        @media (max-width: 767.98px) {
+
+            body {
+                font-size: .95rem;
+            }
+
+            .bamboo-header .d-flex.flex-wrap.gap-3 {
+                flex-direction: column;
+                gap: .75rem !important;
+            }
+
+            .bamboo-header .btn-lg {
+                width: 100%;
+                text-align: center;
+                padding-top: .9rem !important;
+                padding-bottom: .9rem !important;
+                font-size: 1rem;
+            }
+
+            .position-absolute.bottom-0.start-0.translate-middle-y {
+                position: static !important;
+                transform: none !important;
+                margin-top: -1.5rem;
+                width: fit-content;
+                padding: .9rem 1.25rem !important;
+            }
+
+            /* Generic section padding tightening */
+            .p-5 {
+                padding: 1.5rem !important;
+            }
+
+            #enquiry .bg-white.rounded-4 {
+                padding: 1.5rem !important;
+            }
+
+            .container-fluid.py-5 .bg-dark.rounded-4 {
+                padding: 1.75rem !important;
+            }
+
+            .container-fluid.py-5 .bg-dark.rounded-4 .btn {
+                display: block;
+                width: 100%;
+                margin: .5rem 0 !important;
+            }
+
+            /* Icon + text rows in "Why Choose Us" stack cleanly */
+            .d-flex.mb-4 i.fa-3x,
+            .d-flex.mb-4 i.fa-2x {
+                font-size: 1.6rem !important;
+            }
+
+            .d-flex.mb-4 {
+                align-items: flex-start;
+            }
+
+            /* Form gets touch-friendly spacing */
+            #enquiry .form-control,
+            #enquiry .form-select {
+                font-size: 1rem;
+                padding-top: .65rem !important;
+                padding-bottom: .65rem !important;
+            }
+
+            #enquiry select[multiple] {
+                min-height: 180px;
+            }
+
+            .back-to-top {
+                bottom: 78px !important;
+                right: 12px !important;
+            }
+        }
+
+        /* ----- Small phones (≤575.98px) ----- */
+        @media (max-width: 575.98px) {
+            .container, .container-fluid, .container-xxl {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+
+            .service-item .p-4,
+            .product-feature,
+            .container-xxl .text-center.p-4.rounded-4 {
+                padding: 1.1rem !important;
+            }
+
+            .service-item h4,
+            .service-item h5 {
+                font-size: 1.05rem;
+            }
+
+            #enquiry select[multiple] {
+                min-height: 160px;
+            }
+
+            .bamboo-mobile-cta {
+                padding: .55rem .75rem;
+            }
+
+            .bamboo-mobile-cta .btn {
+                font-size: .85rem;
+                padding: .55rem .75rem;
+            }
+
+            .navbar-brand img {
+                max-width: 140px;
+                height: auto;
+            }
+
+            /* Industry tiles 2-per-row already via col-6, just tighten gap */
+            .row.g-4 {
+                --bs-gutter-x: .75rem;
+                --bs-gutter-y: .75rem;
+            }
+        }
+
+        /* ----- Very small phones (≤400px) ----- */
+        @media (max-width: 400px) {
+            .display-3 { font-size: 1.5rem; }
+            .display-5 { font-size: 1.25rem; }
+
+            .btn-lg {
+                font-size: .95rem;
+                padding: .75rem 1.25rem !important;
+            }
+        }
+
+        /* Reduce motion for accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: .001ms !important;
+                transition-duration: .001ms !important;
+            }
+        }
+    </style>
 
 </head>
 
@@ -932,7 +1343,7 @@ function bf_e(string $value): string
                             </div>
                         <?php endif; ?>
 
-                        <form method="post" action="">
+                        <form method="post" action="" id="bambooEnquiryForm" novalidate>
                             <input type="hidden" name="csrf_token" value="<?= bf_e($bambooCsrfToken) ?>">
                             <input type="hidden" name="bamboo_form_submit" value="1">
 
@@ -970,14 +1381,14 @@ function bf_e(string $value): string
 
                                 <div class="col-12">
                                     <label class="form-label fw-bold">Select Products</label>
-                                    <select class="form-select py-3" name="products[]" multiple size="8">
+                                    <select class="form-select py-3" name="products[]" multiple size="8" required>
                                         <?php foreach ($bambooAllowedProducts as $product): ?>
                                             <option value="<?= bf_e($product) ?>" <?= in_array($product, $bambooFormValues['products'], true) ? 'selected' : '' ?>>
                                                 <?= bf_e($product) ?>
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
-                                    <small class="text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple products.</small>
+                                    <small class="text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple products. Tap on mobile to select one or more.</small>
                                 </div>
 
                                 <div class="col-md-6">
@@ -992,11 +1403,13 @@ function bf_e(string $value): string
 
                                 <div class="col-12">
                                     <label class="form-label fw-bold">Additional Requirements</label>
-                                    <textarea name="message" class="form-control" rows="5" maxlength="2000" placeholder="Write your requirement..."><?= bf_e($bambooFormValues['message']) ?></textarea>
+                                    <textarea name="message" id="bambooMessage" class="form-control" rows="5" maxlength="2000" placeholder="Write your requirement..."><?= bf_e($bambooFormValues['message']) ?></textarea>
+                                    <span class="char-counter"><span id="bambooMessageCount">0</span>/2000</span>
                                 </div>
 
                                 <div class="col-12">
-                                    <button class="btn btn-success btn-lg rounded-pill px-5 py-3 w-100" type="submit">
+                                    <button class="btn btn-success btn-lg rounded-pill px-5 py-3 w-100" type="submit" id="bambooSubmitBtn">
+                                        <span class="spinner-border" role="status" aria-hidden="true"></span>
                                         <i class="fa fa-paper-plane me-2"></i>
                                         Submit Product Enquiry
                                     </button>
@@ -1066,6 +1479,15 @@ function bf_e(string $value): string
     <?php include __DIR__ . '/footer.php'; ?>
     <!-- Footer end -->
 
+    <!-- Sticky mobile call-to-action bar (NEW, hidden on desktop) -->
+    <div class="bamboo-mobile-cta">
+        <a href="tel:+919678431656" class="btn btn-outline-light flex-fill">
+            <i class="fa fa-phone me-1"></i> Call
+        </a>
+        <a href="#enquiry" class="btn btn-success flex-fill">
+            <i class="fa fa-paper-plane me-1"></i> Get Quote
+        </a>
+    </div>
 
     <!-- Back to Top -->
     <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded-0 back-to-top"><i class="bi bi-arrow-up"></i></a>
@@ -1211,32 +1633,36 @@ function bf_e(string $value): string
 
         document.addEventListener("DOMContentLoaded", function() {
 
-            /* Spotlight hover */
+            /* Spotlight hover (desktop/mouse only — skip on touch devices) */
 
-            document.querySelectorAll(".service-item,.product-feature,.bg-white.rounded-4").forEach(card => {
+            const isTouchDevice = window.matchMedia("(hover: none), (pointer: coarse)").matches;
 
-                card.addEventListener("mousemove", function(e) {
+            if (!isTouchDevice) {
+                document.querySelectorAll(".service-item,.product-feature,.bg-white.rounded-4").forEach(card => {
 
-                    const rect = this.getBoundingClientRect();
+                    card.addEventListener("mousemove", function(e) {
 
-                    const x = e.clientX - rect.left;
+                        const rect = this.getBoundingClientRect();
 
-                    const y = e.clientY - rect.top;
+                        const x = e.clientX - rect.left;
 
-                    this.style.background =
-                        `radial-gradient(circle at ${x}px ${y}px,
+                        const y = e.clientY - rect.top;
+
+                        this.style.background =
+                            `radial-gradient(circle at ${x}px ${y}px,
 rgba(25,135,84,.08),
 #ffffff 65%)`;
 
+                    });
+
+                    card.addEventListener("mouseleave", function() {
+
+                        this.style.background = "#fff";
+
+                    });
+
                 });
-
-                card.addEventListener("mouseleave", function() {
-
-                    this.style.background = "#fff";
-
-                });
-
-            });
+            }
 
             /* Smooth scroll */
 
@@ -1266,7 +1692,7 @@ rgba(25,135,84,.08),
 
             const form = document.querySelector("#enquiry form");
 
-            
+
 
             /* Counter Animation */
 
@@ -1340,6 +1766,127 @@ rgba(25,135,84,.08),
 
             });
 
+        });
+    </script>
+
+    <!-- ===================================================
+         NEW: Enquiry form interactivity (live counter,
+         basic client-side validation feedback, submit
+         loading state). Purely additive — server-side
+         validation/logic in PHP above is unchanged.
+    ==================================================== -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+
+            const bambooForm = document.getElementById("bambooEnquiryForm");
+            if (!bambooForm) return;
+
+            /* Live character counter for the message textarea */
+            const msgField = document.getElementById("bambooMessage");
+            const msgCount = document.getElementById("bambooMessageCount");
+
+            function updateMsgCount() {
+                if (msgField && msgCount) {
+                    msgCount.textContent = msgField.value.length;
+                }
+            }
+            if (msgField) {
+                updateMsgCount();
+                msgField.addEventListener("input", updateMsgCount);
+            }
+
+            /* Simple inline validation highlighting */
+            function markField(field, valid) {
+                field.classList.toggle("is-invalid-bamboo", !valid);
+            }
+
+            const requiredText = bambooForm.querySelectorAll('input[required]');
+            requiredText.forEach(field => {
+                field.addEventListener("blur", function() {
+                    markField(field, field.value.trim().length > 0);
+                });
+                field.addEventListener("input", function() {
+                    if (field.value.trim().length > 0) {
+                        markField(field, true);
+                    }
+                });
+            });
+
+            const mobileField = bambooForm.querySelector('input[name="mobile_number"]');
+            if (mobileField) {
+                mobileField.addEventListener("blur", function() {
+                    const pattern = /^[0-9+\-\s()]{7,20}$/;
+                    markField(mobileField, pattern.test(mobileField.value.trim()));
+                });
+            }
+
+            const emailField = bambooForm.querySelector('input[name="email"]');
+            if (emailField) {
+                emailField.addEventListener("blur", function() {
+                    if (emailField.value.trim() === "") {
+                        markField(emailField, true);
+                        return;
+                    }
+                    const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    markField(emailField, pattern.test(emailField.value.trim()));
+                });
+            }
+
+            const productsSelect = bambooForm.querySelector('select[name="products[]"]');
+            if (productsSelect) {
+                function resizeProductSelect() {
+                    productsSelect.setAttribute('size', window.innerWidth < 576 ? '6' : '8');
+                }
+                resizeProductSelect();
+                window.addEventListener('resize', resizeProductSelect);
+
+                productsSelect.addEventListener("change", function() {
+                    markField(productsSelect, productsSelect.selectedOptions.length > 0);
+                });
+            }
+
+            /* Submit button loading state (server still drives the real submit/redirect) */
+            const submitBtn = document.getElementById("bambooSubmitBtn");
+            bambooForm.addEventListener("submit", function(e) {
+                let valid = true;
+
+                requiredText.forEach(field => {
+                    const ok = field.value.trim().length > 0;
+                    markField(field, ok);
+                    if (!ok) valid = false;
+                });
+
+                if (productsSelect && productsSelect.selectedOptions.length === 0) {
+                    markField(productsSelect, false);
+                    valid = false;
+                }
+
+                if (mobileField) {
+                    const pattern = /^[0-9+\-\s()]{7,20}$/;
+                    const ok = pattern.test(mobileField.value.trim());
+                    markField(mobileField, ok);
+                    if (!ok) valid = false;
+                }
+
+                if (!valid) {
+                    e.preventDefault();
+                    const firstInvalid = bambooForm.querySelector(".is-invalid-bamboo");
+                    if (firstInvalid) {
+                        firstInvalid.scrollIntoView({
+                            behavior: "smooth",
+                            block: "center"
+                        });
+                        firstInvalid.focus({
+                            preventScroll: true
+                        });
+                    }
+                    return;
+                }
+
+                if (submitBtn) {
+                    submitBtn.classList.add("is-loading");
+                }
+            });
         });
     </script>
 

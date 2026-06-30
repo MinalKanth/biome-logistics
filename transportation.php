@@ -123,17 +123,633 @@ function cf_e(string $value): string
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
 
-    <!-- Libraries Stylesheet -->
-    <link href="lib/animate/animate.min.css" rel="stylesheet">
-    <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
-
     <!-- Customized Bootstrap Stylesheet -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- Template Stylesheet -->
-    <link href="css/style.css" rel="stylesheet">
-    <link href="css/style-transport.css" rel="stylesheet">
-    <link href="css/navbar-active-state.css" rel="stylesheet">
+    <!-- NOTE: the page-specific theme stylesheet (css/style-transport.css) is
+         intentionally NOT loaded here. This page is now self-contained and
+         styled with Bootstrap utilities + the embedded CSS below. -->
+    <!-- <link href="css/navbar-active-state.css" rel="stylesheet"> -->
+
+    <!-- ===================================================
+         SELF-CONTAINED PAGE STYLES (Bootstrap-first)
+         Green / gold / dark palette to match the brand,
+         built mobile-first with fluid type and a handful
+         of small custom components Bootstrap doesn't ship.
+    ==================================================== -->
+    <style>
+        :root {
+            --bio-green: #198754;
+            --bio-green-dark: #0f4c2d;
+            --bio-gold: #f0a500;
+            --bio-dark: #14181a;
+            --bio-soft: #f4f8f6;
+            --bio-radius: 1rem;
+            --bio-transition: all .3s cubic-bezier(.25,.8,.25,1);
+        }
+
+        * { box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        html, body { max-width: 100%; overflow-x: hidden; }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            color: #2c3232;
+        }
+
+        img { max-width: 100%; height: auto; }
+
+        /* Fluid type scale — mobile-first, grows with viewport */
+        h1 { font-size: clamp(1.6rem, 4vw + 1rem, 3.25rem); }
+        h2 { font-size: clamp(1.4rem, 2.6vw + .9rem, 2.25rem); }
+        h3 { font-size: clamp(1.2rem, 2vw + .8rem, 1.85rem); }
+        h4 { font-size: clamp(1.05rem, 1.4vw + .7rem, 1.4rem); }
+        .fs-5 { font-size: clamp(.95rem, .8vw + .75rem, 1.2rem) !important; }
+
+        a { text-decoration: none; }
+
+        /* ---------- Reusable section bits ---------- */
+        .section-eyebrow {
+            display: inline-block;
+            color: var(--bio-green);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: .08em;
+            font-size: .8rem;
+        }
+
+        .section-divider {
+            width: 64px;
+            height: 4px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, var(--bio-green), var(--bio-gold));
+            margin-top: .85rem;
+        }
+
+        .reveal-up {
+            opacity: 0;
+            transform: translateY(36px);
+            transition: opacity .7s ease, transform .7s ease;
+        }
+
+        .reveal-up.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ---------- Buttons ---------- */
+        .btn {
+            border-radius: 50px;
+            font-weight: 600;
+            transition: var(--bio-transition);
+        }
+
+        .btn-success {
+            background: var(--bio-green);
+            border-color: var(--bio-green);
+        }
+
+        .btn-success:hover {
+            background: var(--bio-green-dark);
+            border-color: var(--bio-green-dark);
+            transform: translateY(-3px);
+            box-shadow: 0 14px 26px rgba(25,135,84,.28);
+        }
+
+        .btn-outline-success {
+            color: var(--bio-green);
+            border-color: var(--bio-green);
+        }
+
+        .btn-outline-success:hover {
+            background: var(--bio-green);
+            transform: translateY(-2px);
+        }
+
+        .btn-outline-light:hover {
+            transform: translateY(-3px);
+        }
+
+        .btn-primary {
+            background: var(--bio-green) !important;
+            border-color: var(--bio-green) !important;
+        }
+
+        .btn-primary:hover {
+            background: var(--bio-green-dark) !important;
+            border-color: var(--bio-green-dark) !important;
+        }
+
+        /* ===================================================
+           HERO
+        ==================================================== */
+        .transport-header {
+            background: radial-gradient(circle at 15% 20%, rgba(25,135,84,.55), transparent 55%),
+                        linear-gradient(135deg, var(--bio-dark) 0%, #1d2b22 60%, var(--bio-green-dark) 130%);
+            padding-top: 2.5rem;
+            padding-bottom: 2.5rem;
+        }
+
+        .transport-header::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.025) 0 2px, transparent 2px 26px);
+            pointer-events: none;
+        }
+
+        .hero-stat-rail {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: .9rem;
+            margin-top: 2rem;
+            max-width: 560px;
+        }
+
+        .hero-stat-rail > div {
+            background: rgba(255,255,255,.07);
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: .85rem;
+            padding: 1rem .75rem;
+            text-align: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .stat-value {
+            font-family: 'Roboto Mono', monospace;
+            font-weight: 700;
+            font-size: clamp(1.3rem, 1.6vw + 1rem, 2rem);
+            color: var(--bio-gold);
+            line-height: 1.1;
+        }
+
+        .stat-label {
+            color: #d7e8df;
+            font-size: .75rem;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            margin-top: .25rem;
+        }
+
+        .route-strip {
+            position: relative;
+            height: 28px;
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .route-strip__line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: repeating-linear-gradient(90deg, var(--bio-gold) 0 12px, transparent 12px 22px);
+            transform: translateY(-50%);
+        }
+
+        .route-strip__truck {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--bio-gold);
+            font-size: 1.1rem;
+            animation: bio-drive 7s linear infinite;
+        }
+
+        @keyframes bio-drive {
+            0% { left: 0%; }
+            100% { left: 96%; }
+        }
+
+        .breadcrumb {
+            margin-top: 1.75rem;
+        }
+
+        .breadcrumb a:hover { color: var(--bio-gold) !important; }
+
+        /* ===================================================
+           FLEET CARDS
+        ==================================================== */
+        .manifest-card {
+            background: #fff;
+            border-radius: var(--bio-radius);
+            overflow: hidden;
+            box-shadow: 0 10px 28px rgba(20,30,25,.1);
+            border: 1px solid rgba(25,135,84,.12);
+            transition: var(--bio-transition);
+            cursor: pointer;
+            height: 100%;
+        }
+
+        .manifest-card:hover {
+            box-shadow: 0 20px 40px rgba(20,30,25,.14);
+        }
+
+        .manifest-card__art {
+            position: relative;
+            background: linear-gradient(135deg, var(--bio-soft), #e7f3ec);
+            padding: 1.5rem;
+            text-align: center;
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .manifest-card__art img {
+            max-height: 130px;
+            max-width: 90%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            margin: 0 auto;
+            transition: transform .4s ease;
+        }
+
+        .manifest-card:hover .manifest-card__art img {
+            transform: scale(1.07) rotate(1deg);
+        }
+
+        .manifest-card__tag {
+            position: absolute;
+            top: .85rem;
+            left: .85rem;
+            background: var(--bio-dark);
+            color: var(--bio-gold);
+            font-family: 'Roboto Mono', monospace;
+            font-size: .68rem;
+            letter-spacing: .06em;
+            padding: .25rem .6rem;
+            border-radius: 50px;
+        }
+
+        .manifest-card__body {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            height: calc(100% - 180px);
+        }
+
+        .manifest-card__body .card-cta {
+            margin-top: auto;
+        }
+
+        .manifest-card__specs {
+            list-style: none;
+            margin: 0 0 1.25rem;
+            padding: 0;
+            border-top: 1px dashed #dbe5e0;
+        }
+
+        .manifest-card__specs li {
+            display: flex;
+            justify-content: space-between;
+            padding: .5rem 0;
+            border-bottom: 1px dashed #dbe5e0;
+            font-size: .88rem;
+        }
+
+        .manifest-card__specs li span:first-child {
+            color: #6c7a73;
+        }
+
+        .manifest-card__specs li span:last-child {
+            font-weight: 600;
+            color: var(--bio-dark);
+        }
+
+        @keyframes bio-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.04); }
+        }
+
+        /* ===================================================
+           WHY CHOOSE US
+        ==================================================== */
+        .why-strip {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        .why-item--large {
+            background: #fff;
+            border: 1px solid rgba(25,135,84,.08);
+            border-radius: var(--bio-radius);
+            padding: 1.75rem;
+            box-shadow: 0 8px 22px rgba(20,30,25,.06);
+            transition: var(--bio-transition);
+        }
+
+        .why-item--large:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 18px 34px rgba(20,30,25,.12);
+        }
+
+        .why-item__icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--bio-green), var(--bio-green-dark));
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+        }
+
+        .why-item--large h5 {
+            font-weight: 700;
+            margin-bottom: .65rem;
+        }
+
+        .why-item--large p {
+            color: #5b6661;
+            font-size: .92rem;
+        }
+
+        .why-item__features {
+            list-style: none;
+            padding: 0;
+            margin: 1rem 0 0;
+            display: grid;
+            gap: .4rem;
+        }
+
+        .why-item__features li {
+            font-size: .85rem;
+            color: #3a4541;
+        }
+
+        .why-item__features i {
+            color: var(--bio-green);
+            margin-right: .4rem;
+        }
+
+        @keyframes bio-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        /* ===================================================
+           PROCESS / BOOKING STEPS
+        ==================================================== */
+        .process-rail {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            align-items: stretch;
+        }
+
+        .process-step {
+            background: #fff;
+            border: 1px solid rgba(25,135,84,.1);
+            border-radius: var(--bio-radius);
+            padding: 1.5rem;
+            text-align: center;
+            transition: var(--bio-transition);
+        }
+
+        .process-step:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 16px 30px rgba(20,30,25,.1);
+            border-color: var(--bio-green);
+        }
+
+        .process-step__code {
+            display: inline-block;
+            font-family: 'Roboto Mono', monospace;
+            font-size: .72rem;
+            font-weight: 700;
+            color: #fff;
+            background: var(--bio-green);
+            padding: .25rem .7rem;
+            border-radius: 50px;
+            margin-bottom: .85rem;
+        }
+
+        .process-step h6 { font-weight: 700; margin-bottom: .4rem; }
+        .process-step p { color: #6c7a73; font-size: .85rem; margin: 0; }
+
+        .process-arrow {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: var(--bio-green);
+            font-size: 1.2rem;
+        }
+
+        /* ===================================================
+           COVERAGE + TRUST
+        ==================================================== */
+        .coverage-card {
+            background: linear-gradient(150deg, var(--bio-green-dark), var(--bio-green));
+            color: #fff;
+            border-radius: var(--bio-radius);
+            padding: 2rem;
+            height: 100%;
+        }
+
+        .coverage-list {
+            list-style: none;
+            padding: 0;
+            margin: 1.5rem 0 0;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: .6rem .5rem;
+        }
+
+        .coverage-list li {
+            font-size: .9rem;
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+        }
+
+        .coverage-list i { color: var(--bio-gold); }
+
+        .trust-card {
+            background: #fff;
+            border: 1px solid rgba(25,135,84,.08);
+            border-radius: var(--bio-radius);
+            padding: 1.5rem;
+            height: 100%;
+            box-shadow: 0 8px 20px rgba(20,30,25,.06);
+            transition: var(--bio-transition);
+        }
+
+        .trust-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 18px 30px rgba(20,30,25,.12);
+        }
+
+        .stars { color: var(--bio-gold); margin-bottom: .6rem; font-size: .9rem; }
+
+        .trust-card p {
+            font-size: .92rem;
+            color: #45504b;
+            font-style: italic;
+        }
+
+        .trust-card__name {
+            font-weight: 700;
+            color: var(--bio-dark);
+            margin-top: .75rem;
+        }
+
+        .trust-card__role {
+            font-size: .8rem;
+            color: #6c7a73;
+        }
+
+        @keyframes bio-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes bio-star {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        /* ===================================================
+           QUOTE FORM
+        ==================================================== */
+        .quote-panel {
+            background: #fff;
+            border-radius: var(--bio-radius);
+            padding: 1.75rem;
+            box-shadow: 0 12px 30px rgba(20,30,25,.08);
+            border: 1px solid rgba(25,135,84,.08);
+        }
+
+        .form-floating > .form-control,
+        .form-floating > .form-select {
+            border-radius: .75rem;
+            border: 1px solid #dbe5e0;
+        }
+
+        .form-floating > .form-control:focus,
+        .form-floating > .form-select:focus {
+            border-color: var(--bio-green);
+            box-shadow: 0 0 0 .2rem rgba(25,135,84,.15);
+        }
+
+        .is-invalid-bio {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 .2rem rgba(220,53,69,.15) !important;
+        }
+
+        .char-counter-bio {
+            font-size: .76rem;
+            color: #6c7a73;
+            display: block;
+            text-align: right;
+            margin-top: .25rem;
+        }
+
+        /* ===================================================
+           MOBILE STICKY CTA + BACK TO TOP
+        ==================================================== */
+        .bio-mobile-cta {
+            display: none;
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            z-index: 1040;
+            background: var(--bio-dark);
+            padding: .6rem .9rem;
+            gap: .6rem;
+            box-shadow: 0 -8px 18px rgba(0,0,0,.25);
+        }
+
+        .bio-mobile-cta .btn { flex: 1; font-size: .85rem; }
+
+        .back-to-top {
+            position: fixed;
+            right: 20px;
+            bottom: 30px;
+            z-index: 1045;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50% !important;
+            background: var(--bio-green) !important;
+            border-color: var(--bio-green) !important;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .3s ease, transform .3s ease;
+        }
+
+        .back-to-top:hover {
+            background: var(--bio-green-dark) !important;
+            transform: translateY(-3px);
+        }
+
+        /* ===================================================
+           RESPONSIVE — mobile first, scaling up
+        ==================================================== */
+
+        /* Small tablets and up (≥576px) */
+        @media (min-width: 576px) {
+            .hero-stat-rail { grid-template-columns: repeat(4, 1fr); max-width: 100%; }
+        }
+
+        /* Tablets and up (≥768px) */
+        @media (min-width: 768px) {
+            .why-strip { grid-template-columns: repeat(2, 1fr); }
+            .process-rail { grid-template-columns: repeat(4, 1fr); }
+        }
+
+        /* Desktop (≥992px) */
+        @media (min-width: 992px) {
+            .process-rail { grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr; }
+            .process-arrow { display: flex; }
+            .route-strip { display: block; }
+        }
+
+        /* Phones (≤575.98px) — tighten everything up */
+        @media (max-width: 575.98px) {
+            .container, .container-fluid, .container-lg {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+
+            .transport-header { padding-top: 2rem; padding-bottom: 1.5rem; }
+
+            .hero-stat-rail > div { padding: .75rem .5rem; }
+
+            .stat-value { font-size: 1.15rem; }
+
+            .manifest-card__body,
+            .why-item--large,
+            .quote-panel,
+            .coverage-card { padding: 1.25rem; }
+
+            .process-step { padding: 1.1rem; }
+
+            .coverage-list { grid-template-columns: 1fr 1fr; gap: .5rem .4rem; }
+
+            .bio-mobile-cta { display: flex; }
+
+            body { padding-bottom: 66px; }
+
+            .back-to-top { bottom: 78px !important; right: 12px !important; }
+        }
+
+        /* Respect reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: .001ms !important;
+                transition-duration: .001ms !important;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -145,15 +761,15 @@ function cf_e(string $value): string
 
 
     <!-- ============ HERO ============ -->
-    <div class="container-fluid page-header transport-header position-relative overflow-hidden py-5">
+    <div class="container-fluid page-header transport-header position-relative overflow-hidden">
 
-        <div class="container py-5 position-relative">
+        <div class="container py-4 py-md-5 position-relative">
 
             <h6 class="text-uppercase text-warning fw-bold mb-3 animated slideInDown">
                 Logistics & Freight
             </h6>
 
-            <h1 class="display-3 text-white fw-bold mb-4 animated slideInDown">
+            <h1 class="text-white fw-bold mb-4 animated slideInDown">
                 Transport <span class="text-success">Services</span>
             </h1>
 
@@ -185,7 +801,16 @@ function cf_e(string $value): string
                 <i class="fa fa-truck route-strip__truck"></i>
             </div>
 
-            <nav>
+            <div class="d-flex flex-wrap gap-2 mt-4">
+                <a href="#quote-form" class="btn btn-success btn-lg px-4">
+                    <i class="fa fa-paper-plane me-2"></i> Get A Quote
+                </a>
+                <a href="tel:+919678431656" class="btn btn-outline-light btn-lg px-4">
+                    <i class="fa fa-phone me-2"></i> Call Dispatch
+                </a>
+            </div>
+
+            <nav class="mt-4">
                 <ol class="breadcrumb mb-0">
                     <li class="breadcrumb-item"><a class="text-white" href="index.php">Home</a></li>
                     <li class="breadcrumb-item text-white active">Transport Services</li>
@@ -207,10 +832,11 @@ function cf_e(string $value): string
             <div class="section-divider mx-auto"></div>
         </div>
 
-        <div class="fleet-grid">
+        <div class="row g-4">
 
             <!-- Single Axle -->
-            <div class="manifest-card reveal-up">
+            <div class="col-12 col-md-6 col-lg-4 reveal-up">
+                <div class="manifest-card">
                 <div class="manifest-card__art">
                     <span class="manifest-card__tag">UNIT 01</span>
                     <img src="img/truck-single-axle.png" alt="32 ft Single Axle Container Truck" class="truck-image">
@@ -228,10 +854,12 @@ function cf_e(string $value): string
                         <a href="#quote-form" class="btn btn-outline-success btn-sm">Request This Truck</a>
                     </div>
                 </div>
+                </div>
             </div>
 
             <!-- Multi Axle -->
-            <div class="manifest-card reveal-up" style="transition-delay: .08s;">
+            <div class="col-12 col-md-6 col-lg-4 reveal-up" style="transition-delay: .08s;">
+                <div class="manifest-card">
                 <div class="manifest-card__art">
                     <span class="manifest-card__tag">UNIT 02</span>
                     <img src="img/truck-multi-axle.png" alt="32 ft Multi Axle Container Truck" class="truck-image">
@@ -249,10 +877,12 @@ function cf_e(string $value): string
                         <a href="#quote-form" class="btn btn-outline-success btn-sm">Request This Truck</a>
                     </div>
                 </div>
+                </div>
             </div>
 
             <!-- Open Body -->
-            <div class="manifest-card reveal-up" style="transition-delay: .16s;">
+            <div class="col-12 col-md-6 col-lg-4 reveal-up" style="transition-delay: .16s;">
+                <div class="manifest-card">
                 <div class="manifest-card__art">
                     <span class="manifest-card__tag">UNIT 03</span>
                     <img src="img/truck-open-body.png" alt="32 ft Open Body Truck" class="truck-image">
@@ -270,6 +900,7 @@ function cf_e(string $value): string
                         <a href="#quote-form" class="btn btn-outline-success btn-sm">Request This Truck</a>
                     </div>
                 </div>
+                </div>
             </div>
 
         </div>
@@ -277,7 +908,7 @@ function cf_e(string $value): string
     <!-- Fleet End -->
 
 
-    <!-- ============ WHY CHOOSE US - ENHANCED LARGE SECTION ============ -->
+    <!-- ============ WHY CHOOSE US ============ -->
     <div class="container-lg py-5">
         <div class="text-center mb-5 reveal-up">
             <div class="section-eyebrow">Why Choose Biome Enterprises</div>
@@ -437,7 +1068,7 @@ function cf_e(string $value): string
 
             <div class="col-lg-7 reveal-up" style="transition-delay:.1s;">
                 <div class="row g-4 h-100">
-                    <div class="col-md-6">
+                    <div class="col-sm-6">
                         <div class="trust-card">
                             <div class="stars"><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i></div>
                             <p>"Booked a multi axle container on short notice and the truck reached right on time. Smooth experience."</p>
@@ -445,7 +1076,7 @@ function cf_e(string $value): string
                             <span class="trust-card__role">Paper Mill Supplier</span>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-sm-6">
                         <div class="trust-card">
                             <div class="stars"><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i></div>
                             <p>"Needed an open body truck for oversized machinery — loading and unloading was quick and hassle-free."</p>
@@ -453,7 +1084,7 @@ function cf_e(string $value): string
                             <span class="trust-card__role">Construction Contractor</span>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-sm-6">
                         <div class="trust-card">
                             <div class="stars"><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i></div>
                             <p>"Transparent pricing, no surprise charges. Our go-to vendor for inter-state freight now."</p>
@@ -461,7 +1092,7 @@ function cf_e(string $value): string
                             <span class="trust-card__role">Wholesale Trader</span>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-sm-6">
                         <div class="trust-card">
                             <div class="stars"><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star"></i><i class="fa fa-star-half-alt"></i></div>
                             <p>"Dispatch desk picked up at 11pm and rerouted our truck the same night. Real 24x7 support."</p>
@@ -478,7 +1109,7 @@ function cf_e(string $value): string
 
 
     <!-- ============ REQUEST A QUOTE ============ -->
-    <div class="container-fluid bg-light py-5">
+    <div id="quote-form" class="container-fluid bg-light py-5">
         <div class="container-lg py-4">
 
             <div class="row g-5 align-items-start">
@@ -524,7 +1155,7 @@ function cf_e(string $value): string
                             </div>
                         <?php endif; ?>
 
-                        <form method="post" action="">
+                        <form method="post" action="" id="bioQuoteForm" novalidate>
                             <input type="hidden" name="csrf_token" value="<?= cf_e($contactCsrfToken) ?>">
                             <input type="hidden" name="contact_form_submit" value="1">
 
@@ -560,9 +1191,13 @@ function cf_e(string $value): string
                                         <textarea class="form-control" placeholder="Describe your requirements..." id="message" name="message" maxlength="2000" style="height: 100px"><?= cf_e($contactFormValues['message']) ?></textarea>
                                         <label for="message">Message</label>
                                     </div>
+                                    <span class="char-counter-bio"><span id="bioMsgCount">0</span>/2000</span>
                                 </div>
                                 <div class="col-12">
-                                    <button class="btn btn-primary w-100 py-3" type="submit">Request Consultation</button>
+                                    <button class="btn btn-primary w-100 py-3" type="submit" id="bioSubmitBtn">
+                                        <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true" id="bioSubmitSpinner"></span>
+                                        <span id="bioSubmitLabel">Request Consultation</span>
+                                    </button>
                                 </div>
                             </div>
                         </form>
@@ -580,6 +1215,15 @@ function cf_e(string $value): string
      <?php include __DIR__ . '/footer.php'; ?>
     <!-- Footer End -->
 
+    <!-- Sticky mobile call-to-action bar (hidden on larger screens) -->
+    <div class="bio-mobile-cta">
+        <a href="tel:+919678431656" class="btn btn-outline-light">
+            <i class="fa fa-phone me-1"></i> Call
+        </a>
+        <a href="#quote-form" class="btn btn-success">
+            <i class="fa fa-paper-plane me-1"></i> Get Quote
+        </a>
+    </div>
 
     <!-- Back to Top -->
     <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded-0 back-to-top"><i class="bi bi-arrow-up"></i></a>
@@ -590,492 +1234,257 @@ function cf_e(string $value): string
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="lib/wow/wow.min.js"></script>
     <script src="lib/easing/easing.min.js"></script>
-    <script src="lib/waypoints/waypoints.min.js"></script>
-    <script src="lib/counterup/counterup.min.js"></script>
-    <script src="lib/owlcarousel/owl.carousel.min.js"></script>
     <script src="js/main.js"></script>
-
     <script src="js/navbar-active-state.js"></script>
 
-    <!-- Page Script -->
+    <!-- ===================================================
+         PAGE SCRIPT — interactivity for the redesigned,
+         self-contained transport page. The contact form
+         submits normally to PHP (no preventDefault), with
+         a lightweight loading state and inline validation
+         layered on top.
+    ==================================================== -->
     <script>
-        // fetch("navbar.php")
-        //     .then(response => response.text())
-        //     .then(data => {
-
-        //         document.getElementById("navbar").innerHTML = data;
-
-        //         document.querySelectorAll(".dropdown-toggle").forEach(function(el) {
-
-        //             new bootstrap.Dropdown(el);
-
-        //         });
-
-        //     });
-
-        // fetch("footer.php")
-        //     .then(response => response.text())
-        //     .then(data => {
-
-        //         document.getElementById("footer").innerHTML = data;
-
-        //     });
-        <?php include __DIR__ . '/footer.php'; ?>
-
         window.addEventListener("scroll", function() {
-
             const nav = document.querySelector(".navbar");
-
             if (nav) {
-
-                if (window.scrollY > 50) {
-
-                    nav.classList.add("scrolled");
-
-                } else {
-
-                    nav.classList.remove("scrolled");
-
-                }
-
+                nav.classList.toggle("scrolled", window.scrollY > 50);
             }
-
         });
-
-        new WOW().init();
-
-        /* ============================================
-                                           TRANSPORT SERVICES PAGE - INTERACTIVE JS
-                                           ============================================ */
 
         (function() {
             'use strict';
 
-            // ============ COUNTER ANIMATION ============
-            class Counter {
-                constructor() {
-                    this.counters = document.querySelectorAll('[data-count]');
-                    this.init();
-                }
+            /* ---------- Counter animation ---------- */
+            function initCounters() {
+                const counters = document.querySelectorAll('[data-count]');
+                if (!counters.length) return;
 
-                init() {
-                    const observer = new IntersectionObserver((entries) => {
-                        entries.forEach(entry => {
-                            if (entry.isIntersecting) {
-                                this.startCount(entry.target);
-                                observer.unobserve(entry.target);
-                            }
-                        });
-                    }, {
-                        threshold: 0.5
-                    });
-
-                    this.counters.forEach(counter => observer.observe(counter));
-                }
-
-                startCount(element) {
-                    const target = parseInt(element.getAttribute('data-count'));
-                    const suffix = element.getAttribute('data-suffix') || '';
-                    const duration = 2000;
-                    const start = Date.now();
-
-                    const animate = () => {
-                        const now = Date.now();
-                        const progress = (now - start) / duration;
-
-                        if (progress < 1) {
-                            const current = Math.floor(target * progress);
-                            element.textContent = current + suffix;
-                            requestAnimationFrame(animate);
-                        } else {
-                            element.textContent = target + suffix;
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            animateCounter(entry.target);
+                            observer.unobserve(entry.target);
                         }
-                    };
+                    });
+                }, { threshold: 0.5 });
 
-                    animate();
-                }
+                counters.forEach(c => observer.observe(c));
             }
 
-            // ============ MANIFEST CARD INTERACTIONS ============
-            class ManifestCard {
-                constructor() {
-                    this.cards = document.querySelectorAll('.manifest-card');
-                    this.init();
+            function animateCounter(el) {
+                const target = parseInt(el.getAttribute('data-count'), 10);
+                const suffix = el.getAttribute('data-suffix') || '';
+                const duration = 1400;
+                const start = performance.now();
+
+                function step(now) {
+                    const progress = Math.min((now - start) / duration, 1);
+                    const current = Math.floor(target * progress);
+                    el.textContent = current + suffix;
+                    if (progress < 1) requestAnimationFrame(step);
+                    else el.textContent = target + suffix;
                 }
-
-                init() {
-                    this.cards.forEach((card, index) => {
-                        // Hover effect
-                        card.addEventListener('mouseenter', () => this.onHover(card));
-                        card.addEventListener('mouseleave', () => this.onLeave(card));
-
-                        // Click to expand specs
-                        card.addEventListener('click', () => this.toggleSpecs(card));
-
-                        // Stagger animation on load
-                        card.style.setProperty('--delay', `${index * 0.1}s`);
-                    });
-                }
-
-                onHover(card) {
-                    card.style.transform = 'translateY(-15px)';
-                    const svg = card.querySelector('svg');
-                    if (svg) {
-                        svg.style.transform = 'scale(1.08) rotate(3deg)';
-                    }
-                }
-
-                onLeave(card) {
-                    card.style.transform = 'translateY(0)';
-                    const svg = card.querySelector('svg');
-                    if (svg) {
-                        svg.style.transform = 'scale(1) rotate(0)';
-                    }
-                }
-
-                toggleSpecs(card) {
-                    const specs = card.querySelector('.manifest-card__specs');
-                    if (specs) {
-                        specs.style.animation = specs.style.animation ? 'none' : 'pulse 0.6s ease';
-                        specs.style.animation = 'pulse 0.6s ease';
-                    }
-                }
+                requestAnimationFrame(step);
             }
 
-            // ============ WHY ITEM INTERACTIONS ============
-            class WhyItem {
-                constructor() {
-                    this.items = document.querySelectorAll('.why-item');
-                    this.init();
-                }
+            /* ---------- Scroll reveal ---------- */
+            function initReveal() {
+                const elements = document.querySelectorAll('.reveal-up');
+                if (!elements.length) return;
 
-                init() {
-                    this.items.forEach((item, index) => {
-                        item.addEventListener('mouseenter', () => this.onHover(item));
-                        item.addEventListener('mouseleave', () => this.onLeave(item));
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('is-visible');
+                        }
                     });
-                }
+                }, { threshold: 0.1 });
 
-                onHover(item) {
-                    const icon = item.querySelector('.why-item__icon');
-                    if (icon) {
-                        icon.style.animation = 'bounce 0.6s ease';
-                    }
-                }
+                elements.forEach(el => observer.observe(el));
+            }
 
-                onLeave(item) {
-                    const icon = item.querySelector('.why-item__icon');
-                    if (icon) {
+            /* ---------- Manifest card click pulse (touch + click friendly) ---------- */
+            function initManifestCards() {
+                document.querySelectorAll('.manifest-card').forEach(card => {
+                    card.addEventListener('click', (e) => {
+                        if (e.target.closest('a')) return; // don't fight the CTA link
+                        const specs = card.querySelector('.manifest-card__specs');
+                        if (specs) {
+                            specs.style.animation = 'none';
+                            requestAnimationFrame(() => {
+                                specs.style.animation = 'bio-pulse .5s ease';
+                            });
+                        }
+                    });
+                });
+            }
+
+            /* ---------- Why item icon bounce ---------- */
+            function initWhyItems() {
+                document.querySelectorAll('.why-item__icon').forEach(icon => {
+                    const item = icon.closest('.why-item--large');
+                    if (!item) return;
+                    item.addEventListener('mouseenter', () => {
+                        icon.style.animation = 'bio-bounce .6s ease';
+                    });
+                    item.addEventListener('mouseleave', () => {
                         icon.style.animation = 'none';
-                    }
-                }
+                    });
+                });
             }
 
-            // ============ PROCESS STEPS INTERACTIONS ============
-            class ProcessStep {
-                constructor() {
-                    this.steps = document.querySelectorAll('.process-step');
-                    this.init();
-                }
-
-                init() {
-                    this.steps.forEach((step, index) => {
-                        step.setAttribute('data-step', index + 1);
-                        step.addEventListener('mouseenter', () => this.onHover(step));
-                        step.addEventListener('mouseleave', () => this.onLeave(step));
-                        step.addEventListener('click', () => this.showDetail(step));
-                    });
-                }
-
-                onHover(step) {
-                    step.style.transform = 'translateY(-12px) scale(1.02)';
-                    const code = step.querySelector('.process-step__code');
-                    if (code) {
-                        code.style.animation = 'pulse 0.6s ease';
-                    }
-                }
-
-                onLeave(step) {
-                    step.style.transform = 'translateY(0) scale(1)';
-                }
-
-                showDetail(step) {
-                    const code = step.querySelector('.process-step__code');
-                    if (code) {
-                        code.style.transform = 'scale(1.1)';
-                        setTimeout(() => {
-                            code.style.transform = 'scale(1)';
-                        }, 200);
-                    }
-                }
+            /* ---------- Coverage list icon spin ---------- */
+            function initCoverageList() {
+                document.querySelectorAll('.coverage-list li').forEach(li => {
+                    const icon = li.querySelector('i');
+                    if (!icon) return;
+                    li.addEventListener('mouseenter', () => icon.style.animation = 'bio-spin .6s ease');
+                    li.addEventListener('mouseleave', () => icon.style.animation = 'none');
+                });
             }
 
-            // ============ COVERAGE STATES ANIMATION ============
-            class CoverageList {
-                constructor() {
-                    this.items = document.querySelectorAll('.coverage-list li');
-                    this.init();
-                }
-
-                init() {
-                    this.items.forEach((item, index) => {
-                        item.style.setProperty('--delay', `${index * 0.08}s`);
-                        item.addEventListener('mouseenter', () => this.onHover(item));
-                        item.addEventListener('mouseleave', () => this.onLeave(item));
-                    });
-                }
-
-                onHover(item) {
-                    const icon = item.querySelector('i');
-                    if (icon) {
-                        icon.style.animation = 'spin 0.6s ease';
-                        icon.style.color = '#f0a500';
-                    }
-                }
-
-                onLeave(item) {
-                    const icon = item.querySelector('i');
-                    if (icon) {
-                        icon.style.animation = 'none';
-                        icon.style.color = '#f0a500';
-                    }
-                }
-            }
-
-            // ============ TRUST CARD INTERACTIONS ============
-            class TrustCard {
-                constructor() {
-                    this.cards = document.querySelectorAll('.trust-card');
-                    this.init();
-                }
-
-                init() {
-                    this.cards.forEach((card, index) => {
-                        card.addEventListener('mouseenter', () => this.onHover(card));
-                        card.addEventListener('mouseleave', () => this.onLeave(card));
-                    });
-                }
-
-                onHover(card) {
+            /* ---------- Trust card star pulse ---------- */
+            function initTrustCards() {
+                document.querySelectorAll('.trust-card').forEach(card => {
                     const stars = card.querySelector('.stars');
-                    if (stars) {
-                        stars.style.animation = 'starAnimation 0.6s ease';
+                    if (!stars) return;
+                    card.addEventListener('mouseenter', () => stars.style.animation = 'bio-star .6s ease');
+                    card.addEventListener('mouseleave', () => stars.style.animation = 'none');
+                });
+            }
+
+            /* ---------- Quote form: live char counter + validation + loading state ---------- */
+            function initQuoteForm() {
+                const form = document.getElementById('bioQuoteForm');
+                if (!form) return;
+
+                const msgField = document.getElementById('message');
+                const msgCount = document.getElementById('bioMsgCount');
+
+                function updateCount() {
+                    if (msgField && msgCount) msgCount.textContent = msgField.value.length;
+                }
+                if (msgField) {
+                    updateCount();
+                    msgField.addEventListener('input', updateCount);
+                }
+
+                function markField(field, valid) {
+                    field.classList.toggle('is-invalid-bio', !valid);
+                }
+
+                const nameField = document.getElementById('name');
+                const emailField = document.getElementById('email');
+
+                if (nameField) {
+                    nameField.addEventListener('blur', () => markField(nameField, nameField.value.trim().length > 0));
+                    nameField.addEventListener('input', () => {
+                        if (nameField.value.trim().length > 0) markField(nameField, true);
+                    });
+                }
+
+                if (emailField) {
+                    const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    emailField.addEventListener('blur', () => markField(emailField, pattern.test(emailField.value.trim())));
+                }
+
+                const submitBtn = document.getElementById('bioSubmitBtn');
+                const spinner = document.getElementById('bioSubmitSpinner');
+                const label = document.getElementById('bioSubmitLabel');
+
+                form.addEventListener('submit', function(e) {
+                    let valid = true;
+
+                    if (nameField) {
+                        const ok = nameField.value.trim().length > 0;
+                        markField(nameField, ok);
+                        if (!ok) valid = false;
                     }
-                }
-
-                onLeave(card) {
-                    const stars = card.querySelector('.stars');
-                    if (stars) {
-                        stars.style.animation = 'none';
+                    if (emailField) {
+                        const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        const ok = pattern.test(emailField.value.trim());
+                        markField(emailField, ok);
+                        if (!ok) valid = false;
                     }
-                }
-            }
 
-            // ============ FORM INTERACTIONS ============
-            class QuoteForm {
-                constructor() {
-                    this.form = document.getElementById('quote-form');
-                    this.init();
-                }
-
-                init() {
-                    if (!this.form) return;
-
-                    const inputs = this.form.querySelectorAll('.form-control, .form-select, textarea');
-                    inputs.forEach(input => {
-                        input.addEventListener('focus', (e) => this.onFocus(e.target));
-                        input.addEventListener('blur', (e) => this.onBlur(e.target));
-                    });
-
-                    this.form.addEventListener('submit', (e) => this.onSubmit(e));
-                }
-
-                onFocus(input) {
-                    input.style.borderColor = '#198754';
-                    input.style.boxShadow = '0 0 0 0.2rem rgba(25, 135, 84, 0.25)';
-                }
-
-                onBlur(input) {
-                    input.style.borderColor = 'rgba(25, 135, 84, 0.2)';
-                    input.style.boxShadow = 'none';
-                }
-
-                onSubmit(e) {
-                    e.preventDefault();
-                    const btn = this.form.querySelector('.btn-primary');
-
-                    // Button animation
-                    btn.style.position = 'relative';
-                    btn.textContent = 'Sending...';
-                    btn.disabled = true;
-
-                    // Simulate sending
-                    setTimeout(() => {
-                        btn.style.background = 'linear-gradient(135deg, #198754 0%, #0f4c2d 100%)';
-                        btn.textContent = '✓ Request Sent!';
-                        btn.style.transform = 'scale(1)';
-
-                        setTimeout(() => {
-                            btn.textContent = 'Request Quotation';
-                            btn.disabled = false;
-                            this.form.reset();
-                        }, 2000);
-                    }, 1500);
-                }
-            }
-
-            // ============ SCROLL REVEAL ANIMATIONS ============
-            class ScrollReveal {
-                constructor() {
-                    this.elements = document.querySelectorAll('.reveal-up');
-                    this.init();
-                }
-
-                init() {
-                    const observer = new IntersectionObserver((entries) => {
-                        entries.forEach(entry => {
-                            if (entry.isIntersecting) {
-                                entry.target.style.opacity = '1';
-                                entry.target.style.transform = 'translateY(0)';
-                            }
-                        });
-                    }, {
-                        threshold: 0.1
-                    });
-
-                    this.elements.forEach(el => observer.observe(el));
-                }
-            }
-
-            // ============ SMOOTH SCROLL ============
-            class SmoothScroll {
-                constructor() {
-                    this.links = document.querySelectorAll('a[href^="#"]');
-                    this.init();
-                }
-
-                init() {
-                    this.links.forEach(link => {
-                        link.addEventListener('click', (e) => this.onClick(e));
-                    });
-                }
-
-                onClick(e) {
-                    const href = e.currentTarget.getAttribute('href');
-                    if (href === '#') return;
-
-                    const target = document.querySelector(href);
-                    if (target) {
+                    if (!valid) {
                         e.preventDefault();
-                        target.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
+                        const firstInvalid = form.querySelector('.is-invalid-bio');
+                        if (firstInvalid) {
+                            firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            firstInvalid.focus({ preventScroll: true });
+                        }
+                        return;
                     }
-                }
-            }
 
-            // ============ BACK TO TOP BUTTON ============
-            class BackToTop {
-                constructor() {
-                    this.btn = document.querySelector('.back-to-top');
-                    this.init();
-                }
-
-                init() {
-                    if (!this.btn) return;
-
-                    window.addEventListener('scroll', () => this.toggle());
-                    this.btn.addEventListener('click', () => this.scrollTop());
-                }
-
-                toggle() {
-                    if (window.scrollY > 300) {
-                        this.btn.style.opacity = '1';
-                        this.btn.style.pointerEvents = 'auto';
-                    } else {
-                        this.btn.style.opacity = '0';
-                        this.btn.style.pointerEvents = 'none';
-                    }
-                }
-
-                scrollTop() {
-                    window.scrollTo({
-                        top: 0,
-                        behavior: 'smooth'
-                    });
-                }
-            }
-
-            // ============ ANIMATIONS CSS ============
-            const addAnimations = () => {
-                const style = document.createElement('style');
-                style.textContent = `
-            @keyframes pulse {
-                0%, 100% { transform: scale(1); }
-                50% { transform: scale(1.1); }
-            }
-
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-
-            @keyframes bounce {
-                0%, 100% { transform: translateY(0); }
-                50% { transform: translateY(-8px); }
-            }
-
-            @keyframes starAnimation {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.1); }
-                100% { transform: scale(1); }
-            }
-
-            .back-to-top {
-                opacity: 0;
-                pointer-events: none;
-                transition: all 0.3s ease;
-            }
-        `;
-                document.head.appendChild(style);
-            };
-
-            // ============ INITIALIZE ALL ============
-            const init = () => {
-                addAnimations();
-                new Counter();
-                new ManifestCard();
-                new WhyItem();
-                new ProcessStep();
-                new CoverageList();
-                new TrustCard();
-                new QuoteForm();
-                new ScrollReveal();
-                new SmoothScroll();
-                new BackToTop();
-
-                // Add active state to current nav item
-                updateActiveNav();
-                window.addEventListener('scroll', updateActiveNav);
-            };
-
-            const updateActiveNav = () => {
-                const navLinks = document.querySelectorAll('.nav-link');
-                navLinks.forEach(link => {
-                    if (link.href.includes('transport')) {
-                        link.classList.add('active');
-                    } else {
-                        link.classList.remove('active');
+                    // Valid — let the form submit to PHP normally, just show a loading state.
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        if (spinner) spinner.classList.remove('d-none');
+                        if (label) label.textContent = 'Sending…';
                     }
                 });
-            };
+            }
 
-            // ============ STARTUP ============
+            /* ---------- Smooth scroll for in-page anchors ---------- */
+            function initSmoothScroll() {
+                document.querySelectorAll('a[href^="#"]').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        const href = link.getAttribute('href');
+                        if (!href || href === '#') return;
+                        const target = document.querySelector(href);
+                        if (target) {
+                            e.preventDefault();
+                            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    });
+                });
+            }
+
+            /* ---------- Back to top ---------- */
+            function initBackToTop() {
+                const btn = document.querySelector('.back-to-top');
+                if (!btn) return;
+                window.addEventListener('scroll', () => {
+                    const visible = window.scrollY > 300;
+                    btn.style.opacity = visible ? '1' : '0';
+                    btn.style.pointerEvents = visible ? 'auto' : 'none';
+                });
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+            }
+
+            /* ---------- Active nav highlight ---------- */
+            function updateActiveNav() {
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.toggle('active', link.href && link.href.includes('transport'));
+                });
+            }
+
+            function init() {
+                initCounters();
+                initReveal();
+                initManifestCards();
+                initWhyItems();
+                initCoverageList();
+                initTrustCards();
+                initQuoteForm();
+                initSmoothScroll();
+                initBackToTop();
+                updateActiveNav();
+            }
+
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', init);
             } else {
                 init();
+            }
+
+            if (typeof WOW !== 'undefined') {
+                new WOW().init();
             }
         })();
     </script>

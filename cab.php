@@ -180,16 +180,265 @@ function cb_e(string $value): string
 
     <!-- Template Stylesheet -->
     <link href="css/style.css" rel="stylesheet">
-    <link href="css/style-cab.css" rel="stylesheet">
-    <link href="css/navbar-active-state.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --be-primary: #ffc107;
+            --be-primary-dark: #bf9107;
+            --be-success: #198754;
+            --be-dark: #271e01;
+            --be-radius: 1rem;
+            --be-shadow-soft: 0 10px 30px rgba(57, 51, 10, 0.08);
+            --be-shadow-strong: 0 20px 50px #c29d082e;
+            --be-transition: all .35s cubic-bezier(.25,.8,.25,1);
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f9fc;
+            overflow-x: hidden;
+        }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Roboto', sans-serif; }
+
+        /* ---- Scroll progress bar ---- */
+        #scrollProgress {
+            position: fixed;
+            top: 0; left: 0;
+            height: 4px;
+            width: 0%;
+            background: linear-gradient(90deg, var(--be-primary), var(--be-success));
+            z-index: 2000;
+            transition: width .1s ease-out;
+        }
+
+        /* ---- Reveal-on-scroll (added on top of WOW/animate.css used by page JS) ---- */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity .7s ease, transform .7s ease;
+        }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+
+        /* ---- Navbar glass on scroll ---- */
+        .navbar {
+            transition: background .4s ease, box-shadow .4s ease, padding .4s ease;
+        }
+        .navbar.be-scrolled, .navbar.scrolled {
+            background: rgba(255,255,255,.78) !important;
+            backdrop-filter: blur(14px) saturate(160%);
+            -webkit-backdrop-filter: blur(14px) saturate(160%);
+            padding-top: .4rem !important;
+            padding-bottom: .4rem !important;
+            box-shadow: 0 6px 20px rgba(0,0,0,.08) !important;
+        }
+
+        /* ---- Hero / Page header ---- */
+        .cab-header {
+            position: relative;
+            background: linear-gradient(135deg, #1c1602 0%, #3a2e05 55%, #16210f 100%);
+            background-size: cover;
+            background-position: center;
+            overflow: hidden;
+        }
+        .cab-header::before {
+            content: "";
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 15% 20%, rgba(255,193,7,.25), transparent 55%),
+                        radial-gradient(circle at 85% 80%, rgba(25,135,84,.3), transparent 55%);
+            pointer-events: none;
+        }
+        .cab-header h6.text-warning {
+            color: var(--be-primary) !important;
+            letter-spacing: 3px;
+            display: inline-block;
+            padding: .35rem 1rem;
+            border: 1px solid rgba(255,255,255,.35);
+            border-radius: 50px;
+            backdrop-filter: blur(6px);
+            background: rgba(255,255,255,.08);
+        }
+        .cab-header .text-success { color: var(--be-primary) !important; }
+
+        /* ---- Fluid type ---- */
+        h1, .display-3 { font-size: clamp(1.8rem, 4.5vw + .5rem, 3.2rem) !important; }
+        .display-5 { font-size: clamp(1.5rem, 3vw + .5rem, 2.4rem) !important; }
+        p { font-size: clamp(.92rem, .4vw + .8rem, 1.05rem); }
+
+        /* ---- Buttons ---- */
+        .btn {
+            position: relative;
+            overflow: hidden;
+            border-radius: 50px;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, var(--be-success), #115d3a);
+            border: none;
+            transition: var(--be-transition);
+        }
+        .btn-success:hover {
+            transform: translateY(-4px) !important;
+            box-shadow: 0 12px 24px rgba(25, 135, 84, 0.35);
+        }
+        .btn-outline-light:hover {
+            background: var(--be-primary);
+            border-color: var(--be-primary);
+            color: var(--be-dark) !important;
+        }
+        .btn-success.glow {
+            box-shadow: 0 0 18px rgba(25,135,84,.55);
+        }
+        /* Ripple from page JS */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255,255,255,.45);
+            transform: scale(0);
+            animation: be-ripple .65s ease-out;
+            pointer-events: none;
+        }
+        @keyframes be-ripple {
+            to { transform: scale(2.4); opacity: 0; }
+        }
+
+        /* ---- Cards / service items ---- */
+        .service-item, .service-feature, .bg-white {
+            transition: var(--be-transition);
+        }
+        .service-item:hover, .service-feature:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 45px rgba(191, 145, 7, 0.22) !important;
+        }
+        .service-item i.text-success, .service-feature i.text-success {
+            transition: var(--be-transition);
+        }
+        .service-item:hover i.text-success, .service-feature:hover i.text-success {
+            transform: scale(1.1) rotate(-4deg);
+            filter: drop-shadow(0 4px 14px rgba(25,135,84,.45));
+        }
+        .rounded-4 { border-radius: var(--be-radius) !important; }
+
+        .bg-success, .bg-success.bg-gradient {
+            background: linear-gradient(135deg, var(--be-success), #0d4429) !important;
+        }
+
+        .bg-dark {
+            background: linear-gradient(135deg, #1c1602, #16210f) !important;
+        }
+
+        /* Step numbers */
+        .rounded-circle.bg-success {
+            background: linear-gradient(135deg, var(--be-success), #115d3a) !important;
+            transition: var(--be-transition);
+        }
+        .rounded-circle.bg-success:hover { transform: scale(1.08); }
+
+        /* ---- Booking form ---- */
+        #booking .form-control, #booking .form-select {
+            border-radius: .65rem;
+            border: 1px solid #e3e8f0;
+            transition: var(--be-transition);
+        }
+        #booking .form-control:focus, #booking .form-select:focus {
+            border-color: var(--be-primary);
+            box-shadow: 0 0 0 .25rem rgba(255, 193, 7, 0.18);
+            transform: translateY(-2px);
+        }
+
+        /* ---- WhatsApp floating pulse ---- */
+        .whatsapp-float {
+            position: fixed;
+            bottom: 90px; right: 24px;
+            z-index: 1500;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            background: var(--be-success);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 1.6rem;
+            box-shadow: 0 8px 24px rgba(25,135,84,.4);
+            animation: be-pulse 2.4s infinite;
+        }
+        @keyframes be-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(25,135,84,.45); }
+            70% { box-shadow: 0 0 0 16px rgba(25,135,84,0); }
+            100% { box-shadow: 0 0 0 0 rgba(25,135,84,0); }
+        }
+
+        /* ---- Sticky mobile call bar ---- */
+        #mobileCallBar {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            z-index: 1600;
+            display: none;
+            background: rgba(255,255,255,.92);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 -8px 24px rgba(0,0,0,.12);
+            padding: .6rem 1rem;
+        }
+        @media (max-width: 576px) {
+            #mobileCallBar { display: flex; gap: .6rem; }
+            body { padding-bottom: 64px; }
+        }
+
+        /* ---- Back to top ---- */
+        .back-to-top {
+            border-radius: 50% !important;
+            width: 50px; height: 50px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: var(--be-shadow-strong);
+            background: linear-gradient(135deg, var(--be-primary), var(--be-primary-dark)) !important;
+            border: none;
+        }
+        .back-to-top:hover {
+            background: var(--be-success) !important;
+            box-shadow: 0 14px 32px rgba(25,135,84,.4);
+        }
+
+        ::selection { background: var(--be-primary); color: var(--be-dark); }
+
+        /* ===================== FULL MOBILE RESPONSIVENESS ===================== */
+
+        @media (max-width: 991px) {
+            .position-absolute.bottom-0.start-0.translate-middle-y {
+                position: static !important;
+                transform: none !important;
+                margin-top: -2.5rem;
+                display: inline-block;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .py-5 { padding-top: 2.5rem !important; padding-bottom: 2.5rem !important; }
+            .row.g-4, .row.g-5 { row-gap: 1.5rem; }
+            .service-item.p-5, .service-feature.p-4, .bg-white.p-5 { padding: 1.75rem !important; }
+            .cab-header .d-flex.flex-wrap.gap-3 { flex-direction: column; }
+            .cab-header .d-flex.flex-wrap.gap-3 .btn { width: 100%; text-align: center; }
+            .fa-4x { font-size: 2.3rem !important; }
+        }
+
+        @media (max-width: 576px) {
+            .container { padding-left: 1rem; padding-right: 1rem; }
+            .fa-3x { font-size: 1.9rem !important; }
+            .fa-2x { font-size: 1.4rem !important; }
+            #booking .bg-white.rounded-4.p-5 { padding: 1.5rem !important; }
+            .bg-dark.rounded-4.p-5 { padding: 1.75rem !important; }
+            .bg-dark .btn { display: block; width: 100%; margin: 0 0 .75rem 0 !important; }
+            .whatsapp-float { width: 50px; height: 50px; font-size: 1.3rem; bottom: 76px; right: 16px; }
+            .rounded-circle.bg-success { width: 70px !important; height: 70px !important; }
+        }
+
+        @media (max-width: 400px) {
+            .display-3, h1 { font-size: 1.6rem !important; }
+        }
+    </style>
 </head>
 
 <body>
 
-
+    <div id="scrollProgress"></div>
 
     <!-- Navbar -->
-    <div id="navbar"></div>
     <?php include __DIR__ . '/navbar.php'; ?>
     <!-- Navbar End -->
 
@@ -203,25 +452,25 @@ function cb_e(string $value): string
 
             <div class="row align-items-center">
 
-                <div class="col-lg-8">
+                <div class="col-lg-8 reveal">
 
-                    <h6 class="text-uppercase text-warning fw-bold mb-3 animated slideInDown">
+                    <h6 class="text-uppercase text-warning fw-bold mb-3">
                         Self Drive • Driver-Assisted Travel • Rental Cars
                     </h6>
 
-                    <h1 class="display-3 text-white fw-bold mb-4 animated slideInDown">
+                    <h1 class="display-3 text-white fw-bold mb-4">
                         Self Drive,
 
                         <span class="text-success">    Driver-Assisted Travel</span> & Rental Cars
                     </h1>
 
-                    <p class="text-light fs-5 mb-4 animated fadeInUp">
+                    <p class="text-light fs-5 mb-4">
 
                         Choose from self-drive cars, driver services vehicles and flexible daily, weekly or monthly rentals across Assam and North-East India.
 
                     </p>
 
-                    <div class="d-flex flex-wrap gap-3 animated fadeInUp">
+                    <div class="d-flex flex-wrap gap-3">
 
                         <a href="#booking" class="btn btn-success btn-lg rounded-pill px-5 py-3 shadow">
                             <i class="fa fa-car me-2"></i> Book Now
@@ -260,11 +509,11 @@ function cb_e(string $value): string
 
                 <!-- Image -->
 
-                <div class="col-lg-6 wow fadeInLeft" data-wow-delay=".2s">
+                <div class="col-lg-6 reveal" data-wow-delay=".2s">
 
                     <div class="position-relative">
 
-                        <img src="img/cab-main.png" class="img-fluid rounded-4 shadow-lg" alt="Cab Service">
+                        <img src="img/cab-main.png" class="img-fluid rounded-4 shadow-lg w-100" alt="Cab Service">
 
                         <div class="position-absolute bottom-0 start-0 translate-middle-y bg-success rounded-4 shadow-lg p-4">
 
@@ -284,7 +533,7 @@ function cb_e(string $value): string
 
                 <!-- Content -->
 
-                <div class="col-lg-6 wow fadeInRight" data-wow-delay=".3s">
+                <div class="col-lg-6 reveal mt-5 mt-lg-0" data-wow-delay=".3s">
 
                     <h6 class="text-success text-uppercase fw-bold mb-3">
                         About Our Car Rental Services
@@ -565,7 +814,7 @@ function cb_e(string $value): string
 
         <div class="container">
 
-            <div class="text-center mb-5 wow fadeInUp">
+            <div class="text-center mb-5 reveal">
 
                 <h1 class="display-5 fw-bold">
 
@@ -588,7 +837,7 @@ function cb_e(string $value): string
 
                 <!-- Card -->
 
-                <div class="col-lg-4 col-md-6 wow fadeInUp">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="service-item rounded-4 shadow-lg h-100 p-5 text-center">
 
@@ -612,7 +861,7 @@ function cb_e(string $value): string
 
                 <!-- Card -->
 
-                <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay=".2s">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="service-item rounded-4 shadow-lg h-100 p-5 text-center">
 
@@ -636,7 +885,7 @@ function cb_e(string $value): string
 
                 <!-- Card -->
 
-                <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay=".4s">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="service-item rounded-4 shadow-lg h-100 p-5 text-center">
 
@@ -660,7 +909,7 @@ function cb_e(string $value): string
 
                 <!-- Card -->
 
-                <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay=".6s">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="service-item rounded-4 shadow-lg h-100 p-5 text-center">
 
@@ -684,7 +933,7 @@ function cb_e(string $value): string
 
                 <!-- Card -->
 
-                <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay=".8s">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="service-item rounded-4 shadow-lg h-100 p-5 text-center">
 
@@ -708,7 +957,7 @@ function cb_e(string $value): string
 
                 <!-- Card -->
 
-                <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay="1s">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="service-item rounded-4 shadow-lg h-100 p-5 text-center">
 
@@ -748,7 +997,7 @@ function cb_e(string $value): string
 
         <div class="container">
 
-            <div class="text-center mb-5 wow fadeInUp">
+            <div class="text-center mb-5 reveal">
 
                 <h6 class="text-success text-uppercase">
                     Our Fleet
@@ -769,7 +1018,7 @@ function cb_e(string $value): string
             <div class="row g-4">
 
                 <!-- Hatchback -->
-                <div class="col-lg-4 col-md-6 wow fadeInUp">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="service-item rounded-4 shadow-lg overflow-hidden h-100">
 
@@ -803,7 +1052,7 @@ function cb_e(string $value): string
 
                 <!-- Sedan -->
 
-                <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay=".2s">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="service-item rounded-4 shadow-lg overflow-hidden h-100">
 
@@ -837,7 +1086,7 @@ function cb_e(string $value): string
 
                 <!-- SUV -->
 
-                <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay=".4s">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="service-item rounded-4 shadow-lg overflow-hidden h-100">
 
@@ -871,7 +1120,7 @@ function cb_e(string $value): string
 
                 <!-- Innova -->
 
-                <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay=".6s">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="service-item rounded-4 shadow-lg overflow-hidden h-100">
 
@@ -905,7 +1154,7 @@ function cb_e(string $value): string
 
                 <!-- Traveller -->
 
-                <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay=".8s">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="service-item rounded-4 shadow-lg overflow-hidden h-100">
 
@@ -939,7 +1188,7 @@ function cb_e(string $value): string
 
                 <!-- Luxury -->
 
-                <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay="1s">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="service-item rounded-4 shadow-lg overflow-hidden h-100">
 
@@ -992,7 +1241,7 @@ function cb_e(string $value): string
 
         <div class="container">
 
-            <div class="text-center mb-5 wow fadeInUp">
+            <div class="text-center mb-5 reveal">
 
                 <h6 class="text-success text-uppercase">
                     Our Rental Solutions
@@ -1006,7 +1255,7 @@ function cb_e(string $value): string
 
             <div class="row g-4">
 
-                <div class="col-lg-3 col-md-6 wow fadeInUp">
+                <div class="col-lg-3 col-md-6">
 
                     <div class="service-item p-4 rounded-4 shadow text-center h-100">
 
@@ -1022,7 +1271,7 @@ function cb_e(string $value): string
 
                 </div>
 
-                <div class="col-lg-3 col-md-6 wow fadeInUp" data-wow-delay=".2s">
+                <div class="col-lg-3 col-md-6">
 
                     <div class="service-item p-4 rounded-4 shadow text-center h-100">
 
@@ -1038,7 +1287,7 @@ function cb_e(string $value): string
 
                 </div>
 
-                <div class="col-lg-3 col-md-6 wow fadeInUp" data-wow-delay=".4s">
+                <div class="col-lg-3 col-md-6">
 
                     <div class="service-item p-4 rounded-4 shadow text-center h-100">
 
@@ -1054,7 +1303,7 @@ function cb_e(string $value): string
 
                 </div>
 
-                <div class="col-lg-3 col-md-6 wow fadeInUp" data-wow-delay=".6s">
+                <div class="col-lg-3 col-md-6">
 
                     <div class="service-item p-4 rounded-4 shadow text-center h-100">
 
@@ -1092,7 +1341,7 @@ function cb_e(string $value): string
 
         <div class="container">
 
-            <div class="text-center wow fadeInUp">
+            <div class="text-center reveal">
 
                 <h6 class="text-success text-uppercase">
                     Booking Process
@@ -1106,7 +1355,7 @@ function cb_e(string $value): string
 
             <div class="row g-4 mt-4">
 
-                <div class="col-lg-3 col-md-6 wow fadeInUp">
+                <div class="col-lg-3 col-md-6">
 
                     <div class="text-center p-4">
 
@@ -1126,7 +1375,7 @@ function cb_e(string $value): string
 
                 </div>
 
-                <div class="col-lg-3 col-md-6 wow fadeInUp" data-wow-delay=".2s">
+                <div class="col-lg-3 col-md-6">
 
                     <div class="text-center p-4">
 
@@ -1146,7 +1395,7 @@ function cb_e(string $value): string
 
                 </div>
 
-                <div class="col-lg-3 col-md-6 wow fadeInUp" data-wow-delay=".4s">
+                <div class="col-lg-3 col-md-6">
 
                     <div class="text-center p-4">
 
@@ -1166,7 +1415,7 @@ function cb_e(string $value): string
 
                 </div>
 
-                <div class="col-lg-3 col-md-6 wow fadeInUp" data-wow-delay=".6s">
+                <div class="col-lg-3 col-md-6">
 
                     <div class="text-center p-4">
 
@@ -1208,7 +1457,7 @@ function cb_e(string $value): string
 
                 <!-- Left Side -->
 
-                <div class="col-lg-5 wow fadeInLeft">
+                <div class="col-lg-5 reveal">
 
                     <h6 class="text-uppercase text-warning fw-bold">
                         Book Your Ride
@@ -1282,7 +1531,7 @@ function cb_e(string $value): string
 
                 <!-- Booking Form -->
 
-                <div class="col-lg-7 wow fadeInRight">
+                <div class="col-lg-7 reveal">
 
                     <div class="bg-white rounded-4 shadow-lg p-5">
 
@@ -1394,7 +1643,7 @@ function cb_e(string $value): string
 
         <div class="container">
 
-            <div class="bg-dark rounded-4 shadow-lg p-5 text-center wow zoomIn">
+            <div class="bg-dark rounded-4 shadow-lg p-5 text-center reveal">
 
                 <h2 class="text-white mb-3">
 
@@ -1432,13 +1681,23 @@ Request Your Vehicle
 
 
     <!-- Footer -->
-    <!-- <div id="footer"></div> -->
     <?php include __DIR__ . '/footer.php'; ?>
     <!-- Footer End -->
 
 
+    <!-- Floating WhatsApp Button -->
+    <a href="https://wa.me/919678431656" target="_blank" class="whatsapp-float" aria-label="Chat on WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+
+    <!-- Sticky Mobile Call Bar -->
+    <div id="mobileCallBar">
+        <a href="tel:+919678431656" class="btn btn-success flex-fill"><i class="fa fa-phone me-2"></i>Call Now</a>
+        <a href="https://wa.me/919678431656" target="_blank" class="btn btn-light flex-fill"><i class="fab fa-whatsapp me-2"></i>WhatsApp</a>
+    </div>
+
     <!-- Back to Top -->
-    <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded-0 back-to-top"><i class="bi bi-arrow-up"></i></a>
+    <a href="#" class="btn btn-lg btn-lg-square rounded-0 back-to-top"><i class="bi bi-arrow-up"></i></a>
 
 
     <!-- JavaScript Libraries -->
@@ -1447,13 +1706,38 @@ Request Your Vehicle
     <script src="lib/wow/wow.min.js"></script>
     <script src="lib/easing/easing.min.js"></script>
     <script src="lib/waypoints/waypoints.min.js"></script>
-    <script src="lib/counterup/counterup.min.js"></script>
     <script src="lib/owlcarousel/owl.carousel.min.js"></script>
 
     <!-- Template Javascript -->
     <script src="js/main.js"></script>
 
-    <script src="js/navbar-active-state.js"></script>
+    <!-- ===================== Premium Interactivity (scroll progress, reveal, navbar) ===================== -->
+    <script>
+    (function () {
+        // Scroll progress bar
+        const progressBar = document.getElementById('scrollProgress');
+        function updateProgress() {
+            const h = document.documentElement;
+            const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+            if (progressBar) progressBar.style.width = scrolled + '%';
+        }
+        window.addEventListener('scroll', updateProgress, { passive: true });
+        updateProgress();
+
+        // Navbar glass effect on scroll
+        const nav = document.querySelector('nav.navbar, .navbar');
+        function updateNav() {
+            if (!nav) return;
+            if (window.scrollY > 40) {
+                nav.classList.add('be-scrolled');
+            } else {
+                nav.classList.remove('be-scrolled');
+            }
+        }
+        window.addEventListener('scroll', updateNav, { passive: true });
+        updateNav();
+    })();
+    </script>
 
     <script>
         /*==================================================
@@ -1462,9 +1746,11 @@ Request Your Vehicle
 
         document.addEventListener("DOMContentLoaded", function() {
 
+            const isTouch = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+
             /* Reveal Animation */
 
-            const reveal = document.querySelectorAll(".wow,.service-item,.shadow-sm,.shadow-lg,.bg-white");
+            const reveal = document.querySelectorAll(".reveal,.service-item,.shadow-sm,.shadow-lg,.bg-white");
 
             const observer = new IntersectionObserver(entries => {
 
@@ -1491,33 +1777,31 @@ Request Your Vehicle
 
             });
 
-            /* Mouse Tilt */
+            /* Magnetic Buttons (desktop only — disabled on touch to avoid mobile jank) */
 
+            if (!isTouch) {
+                document.querySelectorAll(".btn").forEach(btn => {
 
+                    btn.addEventListener("mousemove", e => {
 
-            /* Magnetic Buttons */
+                        const rect = btn.getBoundingClientRect();
 
-            document.querySelectorAll(".btn").forEach(btn => {
+                        const x = e.clientX - rect.left - rect.width / 2;
+                        const y = e.clientY - rect.top - rect.height / 2;
 
-                btn.addEventListener("mousemove", e => {
+                        btn.style.transform =
+                            `translate(${x*.15}px,${y*.15}px)`;
 
-                    const rect = btn.getBoundingClientRect();
+                    });
 
-                    const x = e.clientX - rect.left - rect.width / 2;
-                    const y = e.clientY - rect.top - rect.height / 2;
+                    btn.addEventListener("mouseleave", () => {
 
-                    btn.style.transform =
-                        `translate(${x*.15}px,${y*.15}px)`;
+                        btn.style.transform = "";
+
+                    });
 
                 });
-
-                btn.addEventListener("mouseleave", () => {
-
-                    btn.style.transform = "";
-
-                });
-
-            });
+            }
 
             /* Ripple */
 
@@ -1534,8 +1818,12 @@ Request Your Vehicle
                     circle.style.width = d + "px";
                     circle.style.height = d + "px";
 
-                    circle.style.left = e.offsetX - d / 2 + "px";
-                    circle.style.top = e.offsetY - d / 2 + "px";
+                    const rect = btn.getBoundingClientRect();
+                    const offsetX = (e.clientX || rect.left + rect.width / 2) - rect.left;
+                    const offsetY = (e.clientY || rect.top + rect.height / 2) - rect.top;
+
+                    circle.style.left = offsetX - d / 2 + "px";
+                    circle.style.top = offsetY - d / 2 + "px";
 
                     btn.appendChild(circle);
 
@@ -1545,27 +1833,22 @@ Request Your Vehicle
 
             });
 
-            /* Form */
+            /* Header Parallax (disabled on touch — fixed backgrounds are not used here, kept simple) */
 
-            const form = document.querySelector("form");
+            const header = document.querySelector(".cab-header");
 
-            
+            if (!isTouch) {
+                window.addEventListener("scroll", () => {
 
+                    if (header) {
 
-            /* Header Parallax */
+                        header.style.backgroundPositionY =
+                            window.scrollY * .25 + "px";
 
-            const header = document.querySelector(".page-header");
+                    }
 
-            window.addEventListener("scroll", () => {
-
-                if (header) {
-
-                    header.style.backgroundPositionY =
-                        window.scrollY * .45 + "px";
-
-                }
-
-            });
+                }, { passive: true });
+            }
 
             /* Auto Glow */
 
@@ -1580,22 +1863,6 @@ Request Your Vehicle
             }, 2500);
 
         });
-
-        // fetch("navbar.php")
-        //     .then(res => res.text())
-        //     .then(data => {
-        //         document.getElementById("navbar").innerHTML = data;
-
-        //         document.querySelectorAll('.dropdown-toggle').forEach(function(el) {
-        //             new bootstrap.Dropdown(el);
-        //         });
-        //     });
-
-        // fetch("footer.php")
-        //     .then(res => res.text())
-        //     .then(data => {
-        //         document.getElementById("footer").innerHTML = data;
-        //     });
 
         window.addEventListener("scroll", function() {
 

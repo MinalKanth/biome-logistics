@@ -132,23 +132,267 @@ function cf_e(string $value): string
 
     <!-- Template Stylesheet -->
     <link href="css/style.css" rel="stylesheet">
-    <link href="css/style-contact.css" rel="stylesheet">
-    <link href="css/navbar-active-state.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --be-primary: #ffc107;
+            --be-primary-dark: #bf9107;
+            --be-success: #198754;
+            --be-dark: #271e01;
+            --be-radius: 1rem;
+            --be-shadow-soft: 0 10px 30px rgba(57, 51, 10, 0.08);
+            --be-shadow-strong: 0 20px 50px #c29d082e;
+            --be-transition: all .35s cubic-bezier(.25,.8,.25,1);
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f9fc;
+            overflow-x: hidden;
+        }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Roboto', sans-serif; }
+
+        /* ---- Scroll progress bar ---- */
+        #scrollProgress {
+            position: fixed;
+            top: 0; left: 0;
+            height: 4px;
+            width: 0%;
+            background: linear-gradient(90deg, var(--be-primary), var(--be-success));
+            z-index: 2000;
+            transition: width .1s ease-out;
+        }
+
+        /* ---- Reveal-on-scroll ---- */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity .8s ease, transform .8s ease;
+        }
+        .reveal.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .reveal-stagger > * {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity .7s ease, transform .7s ease;
+        }
+        .reveal-stagger.is-visible > * { opacity: 1; transform: translateY(0); }
+        .reveal-stagger.is-visible > *:nth-child(1) { transition-delay: .05s; }
+        .reveal-stagger.is-visible > *:nth-child(2) { transition-delay: .15s; }
+        .reveal-stagger.is-visible > *:nth-child(3) { transition-delay: .25s; }
+
+        /* ---- Page Header (replaces template's page-header bg) ---- */
+        .page-header {
+            position: relative;
+            background: linear-gradient(135deg, #1c1602 0%, #3a2e05 55%, #16210f 100%);
+            overflow: hidden;
+        }
+        .page-header::before {
+            content: "";
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 15% 20%, rgba(255,193,7,.25), transparent 55%),
+                        radial-gradient(circle at 85% 80%, rgba(25,135,84,.3), transparent 55%);
+            pointer-events: none;
+        }
+        .page-header h6.text-warning {
+            letter-spacing: 3px;
+            display: inline-block;
+            padding: .35rem 1rem;
+            border: 1px solid rgba(255,255,255,.35);
+            border-radius: 50px;
+            backdrop-filter: blur(6px);
+            background: rgba(255,255,255,.08);
+        }
+        .page-header .text-success { color: #ffc107 !important; }
+        .breadcrumb { background: transparent; margin: 0; }
+        .breadcrumb-item + .breadcrumb-item::before { color: rgba(255,255,255,.6); }
+
+        /* ---- Glass / premium cards ---- */
+        .card {
+            border-radius: var(--be-radius) !important;
+            transition: var(--be-transition);
+        }
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 45px rgba(191, 145, 7, 0.22) !important;
+        }
+
+        /* Quick-info cards (call / email / location) */
+        .info-card {
+            position: relative;
+            overflow: hidden;
+        }
+        .info-card::before {
+            content: "";
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at top right, rgba(255,193,7,.12), transparent 60%);
+        }
+        .info-card i { transition: var(--be-transition); }
+        .info-card:hover i { transform: scale(1.12) rotate(-4deg); filter: drop-shadow(0 4px 14px rgba(25,135,84,.45)); }
+
+        /* Buttons with premium hover */
+        .btn {
+            border-radius: 50px;
+            position: relative;
+            overflow: hidden;
+            transition: var(--be-transition);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--be-primary), var(--be-primary-dark));
+            border: none;
+            color: #271e01;
+        }
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 24px rgba(255, 193, 7, 0.35);
+            color: #271e01;
+        }
+        .btn::after {
+            content: "";
+            position: absolute; top: 50%; left: 50%;
+            width: 0; height: 0;
+            background: rgba(255,255,255,.25);
+            border-radius: 50%;
+            transform: translate(-50%,-50%);
+            transition: width .5s ease, height .5s ease;
+        }
+        .btn:active::after { width: 300px; height: 300px; }
+
+        /* ---- Section headings ---- */
+        h6.text-secondary.text-uppercase {
+            letter-spacing: 3px;
+            font-weight: 700;
+            font-size: .8rem;
+            display: inline-block;
+            position: relative;
+            padding-bottom: .5rem;
+        }
+        h6.text-secondary.text-uppercase::after {
+            content: "";
+            position: absolute; left: 0; bottom: 0;
+            width: 50px; height: 3px;
+            background: linear-gradient(90deg, var(--be-primary), var(--be-success));
+            border-radius: 2px;
+        }
+
+        /* ---- Form ---- */
+        .bg-light.p-4 {
+            border-radius: var(--be-radius);
+            box-shadow: var(--be-shadow-soft);
+        }
+        form .form-control, form .form-select {
+            border-radius: .65rem;
+            border: 1px solid #e3e8f0;
+            transition: var(--be-transition);
+        }
+        form .form-control:focus, form .form-select:focus {
+            border-color: var(--be-primary);
+            box-shadow: 0 0 0 .25rem rgba(255, 193, 7, 0.18);
+        }
+        .form-floating > .form-control:focus ~ label,
+        .form-floating > .form-control:not(:placeholder-shown) ~ label,
+        .form-floating > .form-select ~ label {
+            color: var(--be-primary-dark);
+        }
+
+        /* Map frame premium border */
+        .contact-form ~ .pe-lg-0 .position-relative {
+            border-radius: var(--be-radius);
+            overflow: hidden;
+            box-shadow: var(--be-shadow-strong);
+        }
+
+        /* ---- WhatsApp floating pulse ---- */
+        .whatsapp-float {
+            position: fixed;
+            bottom: 90px; right: 24px;
+            z-index: 1500;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            background: var(--be-success);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 1.6rem;
+            box-shadow: 0 8px 24px rgba(25,135,84,.4);
+            animation: be-pulse 2.4s infinite;
+        }
+        @keyframes be-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(25,135,84,.45); }
+            70% { box-shadow: 0 0 0 16px rgba(25,135,84,0); }
+            100% { box-shadow: 0 0 0 0 rgba(25,135,84,0); }
+        }
+
+        /* ---- Sticky mobile call bar ---- */
+        #mobileCallBar {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            z-index: 1600;
+            display: none;
+            background: rgba(255,255,255,.92);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 -8px 24px rgba(0,0,0,.12);
+            padding: .6rem 1rem;
+        }
+        @media (max-width: 576px) {
+            #mobileCallBar { display: flex; gap: .6rem; }
+            body { padding-bottom: 64px; }
+        }
+
+        /* ---- Back to top ---- */
+        .back-to-top {
+            border-radius: 50% !important;
+            width: 50px; height: 50px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: var(--be-shadow-strong);
+        }
+        .back-to-top:hover {
+            background: var(--be-success) !important;
+            box-shadow: 0 14px 32px rgba(25,135,84,.4);
+        }
+
+        /* ---- Navbar glass on scroll ---- */
+        .navbar {
+            transition: background .4s ease, box-shadow .4s ease, padding .4s ease;
+        }
+        .navbar.be-scrolled {
+            background: rgba(255,255,255,.78) !important;
+            backdrop-filter: blur(14px) saturate(160%);
+            -webkit-backdrop-filter: blur(14px) saturate(160%);
+            padding-top: .4rem !important;
+            padding-bottom: .4rem !important;
+            box-shadow: 0 6px 20px rgba(0,0,0,.08) !important;
+        }
+
+        /* Selection color branding */
+        ::selection { background: var(--be-primary); color: #271e01; }
+
+        /* ---- Mobile polish ---- */
+        @media (max-width: 768px) {
+            .py-5 { padding-top: 2.5rem !important; padding-bottom: 2.5rem !important; }
+            .row.g-5 { --bs-gutter-y: 2rem; }
+            .card { border-radius: .85rem !important; }
+        }
+        @media (max-width: 576px) {
+            .whatsapp-float { width: 50px; height: 50px; font-size: 1.3rem; bottom: 76px; right: 16px; }
+            .display-3 { font-size: 2rem !important; }
+        }
+    </style>
 </head>
 
 <body>
 
-
+    <div id="scrollProgress"></div>
 
     <!-- Navbar -->
-    <div id="navbar"></div>
     <?php include __DIR__ . '/navbar.php'; ?>
     <!-- Navbar End -->
 
 
     <!-- Page Header Start -->
-    <div class="container-fluid page-header bamboo-header position-relative overflow-hidden py-5">
-
+    <div class="container-fluid page-header py-5">
         <div class="container py-5">
 
             <h6 class="text-uppercase text-warning fw-bold mb-3 animated slideInDown">
@@ -156,10 +400,7 @@ function cf_e(string $value): string
             </h6>
 
             <h1 class="display-3 text-white fw-bold mb-4 animated slideInDown">
-                Contact
-                <span class="text-success">
-                Biome Enterprises
-            </span>
+                Contact <span class="text-success">Biome Enterprises</span>
             </h1>
 
             <p class="text-light fs-5 mb-4">
@@ -171,7 +412,6 @@ function cf_e(string $value): string
                     <li class="breadcrumb-item">
                         <a class="text-white" href="index.php">Home</a>
                     </li>
-
                     <li class="breadcrumb-item text-white active">
                         Contact
                     </li>
@@ -179,71 +419,65 @@ function cf_e(string $value): string
             </nav>
 
         </div>
-
     </div>
     <!-- Page Header End -->
 
-    <div class="row g-4 mb-5">
 
-        <div class="col-md-4">
+    <!-- Quick Info Cards Start -->
+    <div class="container">
+        <div class="row g-4 mb-5 reveal reveal-stagger" style="margin-top:-3rem;">
 
-            <div class="bg-white rounded-4 shadow p-4 text-center h-100">
+            <div class="col-md-4">
+                <div class="card info-card border-0 shadow text-center p-4 h-100">
+                    <i class="fa fa-phone fa-3x text-primary mb-3"></i>
+                    <h5>Call</h5>
+                    <p class="mb-0">
+                        <a href="tel:+919678431656" class="text-dark text-decoration-none fw-semibold">
+                            +91 96784 31656
+                        </a>
+                    </p>
+                </div>
+            </div>
 
-                <i class="fa fa-phone fa-3x text-success mb-3"></i>
+            <div class="col-md-4">
+                <div class="card info-card border-0 shadow text-center p-4 h-100">
+                    <i class="fa fa-envelope fa-3x text-primary mb-3"></i>
+                    <h5>Email</h5>
+                    <p class="mb-0">
+                        <a href="mailto:info@biomeenterprises.com" class="text-dark text-decoration-none">
+                            info@biomeenterprises.com
+                        </a>
+                    </p>
+                </div>
+            </div>
 
-                <h5>Call</h5>
-
-                <p class="mb-0">
-                    <a href="tel:+919678431656" class="text-dark text-decoration-none fw-semibold">
-            +91 96784 31656
-        </a>
-                </p>
-
+            <div class="col-md-4">
+                <div class="card info-card border-0 shadow text-center p-4 h-100">
+                    <i class="fa fa-map-marker-alt fa-3x text-primary mb-3"></i>
+                    <h5>Location</h5>
+                    <p class="mb-0">Assam, India</p>
+                </div>
             </div>
 
         </div>
-
-        <div class="col-md-4">
-
-    <div class="bg-white rounded-4 shadow p-4 text-center h-100">
-
-        <i class="fa fa-envelope fa-3x text-success mb-3"></i>
-
-        <h5>Email</h5>
-
-        <p class="mb-0">
-            <a href="mailto:info@biomeenterprises.com" class="text-dark text-decoration-none">
-                info@biomeenterprises.com
-            </a>
-        </p>
-
     </div>
+    <!-- Quick Info Cards End -->
 
-</div>
 
-        <div class="col-md-4">
-
-            <div class="bg-white rounded-4 shadow p-4 text-center h-100">
-
-                <i class="fa fa-map-marker-alt fa-3x text-success mb-3"></i>
-
-                <h5>Location</h5>
-
-                <p>Assam, India</p>
-
-            </div>
-
-        </div>
-
-    </div>
     <!-- Contact Start -->
     <div class="container-fluid overflow-hidden py-5 px-lg-0">
         <div class="container contact-page py-5 px-lg-0">
-            <div class="row g-5 mx-lg-0">
-                <div class="col-md-6 contact-form wow fadeIn" data-wow-delay="0.1s">
+            <div class="row g-5 mx-lg-0 align-items-stretch">
+
+                <div class="col-md-6 contact-form reveal">
                     <h6 class="text-secondary text-uppercase">Let's Build Your Business Together</h6>
                     <h1 class="mb-4">Need Transportation, Bamboo or Business Services?</h1>
-                    <p class="mb-4">Whether you're looking for logistics, premium bamboo products, GST registration, MSME registration, company incorporation, accounting services or cab rentals, our team is ready to assist you with reliable and professional solutions..</p>
+                    <p class="mb-4">
+                        Whether you're looking for logistics, premium bamboo products, GST registration, MSME registration,
+                        company incorporation, accounting services or cab rentals, our team is ready to assist you with
+                        reliable and professional solutions.
+                    </p>
+
                     <div class="bg-light p-4">
                         <?php if ($contactFormSuccess): ?>
                             <div class="alert alert-success">Thank you! Your message has been received. We'll get back to you shortly.</div>
@@ -297,15 +531,16 @@ function cf_e(string $value): string
                                     </div>
                                 </div>
                                 <div class="col-12">
-                                    <button class="btn btn-primary w-100 py-3" type="submit">Request Consultation</button>
+                                    <button class="btn btn-primary btn-lg w-100 py-3" type="submit">Request Consultation</button>
                                 </div>
                             </div>
                         </form>
                     </div>
                 </div>
-                <div class="col-md-6 pe-lg-0 wow fadeInRight" data-wow-delay="0.1s">
-                    <div class="position-relative h-100">
-                        <iframe class="position-absolute w-100 h-100" style="object-fit: cover;" src="https://www.google.com/maps?q=Assam,India&output=embed" frameborder="0" allowfullscreen="" aria-hidden="false" tabindex="0"></iframe>
+
+                <div class="col-md-6 pe-lg-0 reveal">
+                    <div class="position-relative h-100" style="min-height:420px;">
+                        <iframe class="position-absolute w-100 h-100" style="object-fit: cover; border:0;" src="https://www.google.com/maps?q=Assam,India&output=embed" allowfullscreen="" aria-hidden="false" tabindex="0"></iframe>
                     </div>
                 </div>
             </div>
@@ -314,9 +549,19 @@ function cf_e(string $value): string
     <!-- Contact End -->
 
 
+    <!-- Floating WhatsApp Button -->
+    <a href="https://wa.me/919678431656" target="_blank" class="whatsapp-float" aria-label="Chat on WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+
+    <!-- Sticky Mobile Call Bar -->
+    <div id="mobileCallBar">
+        <a href="tel:+919678431656" class="btn btn-primary flex-fill"><i class="fa fa-phone me-2"></i>Call Now</a>
+        <a href="https://wa.me/919678431656" target="_blank" class="btn btn-success flex-fill"><i class="fab fa-whatsapp me-2"></i>WhatsApp</a>
+    </div>
+
     <!-- Footer -->
-    <!-- <div id="footer"></div> -->
-     <?php include __DIR__ . '/footer.php'; ?>
+    <?php include __DIR__ . '/footer.php'; ?>
     <!-- Footer End -->
 
 
@@ -336,141 +581,80 @@ function cf_e(string $value): string
     <!-- Template Javascript -->
     <script src="js/main.js"></script>
 
-    <script src="js/navbar-active-state.js"></script>
-
+    <!-- ===================== Premium Interactivity (scroll progress, reveal, navbar) ===================== -->
     <script>
-        /*==============================
-                                                                                        CONTACT PAGE INTERACTIONS
-                                                                                        ==============================*/
+    (function () {
+        // Scroll progress bar
+        const progressBar = document.getElementById('scrollProgress');
+        function updateProgress() {
+            const h = document.documentElement;
+            const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+            if (progressBar) progressBar.style.width = scrolled + '%';
+        }
+        window.addEventListener('scroll', updateProgress, { passive: true });
+        updateProgress();
 
-        document.addEventListener("DOMContentLoaded", function() {
-
-            /* Hover animation on cards */
-
-            document.querySelectorAll(".row.mb-5 .bg-white").forEach(card => {
-
-                card.addEventListener("mousemove", function(e) {
-
-                    const rect = this.getBoundingClientRect();
-
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-
-                    this.style.background =
-                        `radial-gradient(circle at ${x}px ${y}px,
-            rgba(25,135,84,.08),
-            #fff 65%)`;
-
-                });
-
-                card.addEventListener("mouseleave", function() {
-
-                    this.style.background = "#fff";
-
-                });
-
-            });
-
-            /* Smooth scroll */
-
-            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-
-                anchor.addEventListener("click", function(e) {
-
-                    const target = document.querySelector(this.getAttribute("href"));
-
-                    if (target) {
-
-                        e.preventDefault();
-
-                        target.scrollIntoView({
-
-                            behavior: "smooth"
-
-                        });
-
+        // Reveal-on-scroll sections
+        const reveals = document.querySelectorAll('.reveal');
+        if ('IntersectionObserver' in window) {
+            const revealObserver = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        revealObserver.unobserve(entry.target);
                     }
-
                 });
+            }, { threshold: 0.12 });
+            reveals.forEach(function (el) { revealObserver.observe(el); });
+        } else {
+            reveals.forEach(function (el) { el.classList.add('is-visible'); });
+        }
 
-            });
-
-            /* Form validation */
-
-            const form = document.querySelector("form");
-
-            
-
-            /* Floating labels */
-
-            document.querySelectorAll(".form-control,.form-select").forEach(input => {
-
-                input.addEventListener("focus", () => {
-
-                    input.parentElement.style.transform = "translateY(-3px)";
-
-                });
-
-                input.addEventListener("blur", () => {
-
-                    input.parentElement.style.transform = "translateY(0)";
-
-                });
-
-            });
-
-            /* Parallax banner */
-
-            const banner = document.querySelector(".page-header");
-
-            window.addEventListener("scroll", () => {
-
-                if (banner) {
-
-                    banner.style.backgroundPositionY = window.scrollY * 0.35 + "px";
-
-                }
-
-            });
-
-        });
-
-        // fetch("navbar.php")
-        //     .then(res => res.text())
-        //     .then(data => {
-        //         document.getElementById("navbar").innerHTML = data;
-
-        //         document.querySelectorAll('.dropdown-toggle').forEach(function(el) {
-        //             new bootstrap.Dropdown(el);
-        //         });
-        //     });
-
-        // fetch("footer.php")
-        //     .then(res => res.text())
-        //     .then(data => {
-        //         document.getElementById("footer").innerHTML = data;
-        //     });
-
-        window.addEventListener("scroll", function() {
-
-            const nav = document.querySelector(".navbar");
-
-            if (nav) {
-
-                if (window.scrollY > 50) {
-
-                    nav.classList.add("scrolled");
-
-                } else {
-
-                    nav.classList.remove("scrolled");
-
-                }
-
+        // Navbar glass effect on scroll
+        const nav = document.querySelector('nav.navbar, .navbar');
+        function updateNav() {
+            if (!nav) return;
+            if (window.scrollY > 40) {
+                nav.classList.add('be-scrolled');
+            } else {
+                nav.classList.remove('be-scrolled');
             }
+        }
+        window.addEventListener('scroll', updateNav, { passive: true });
+        updateNav();
 
+        // Info-card mouse-follow glow (keeps interactivity, no template styling)
+        document.querySelectorAll('.info-card').forEach(function (card) {
+            card.addEventListener('mousemove', function (e) {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                card.style.background = 'radial-gradient(circle at ' + x + 'px ' + y + 'px, rgba(255,193,7,.10), #fff 65%)';
+            });
+            card.addEventListener('mouseleave', function () {
+                card.style.background = '#fff';
+            });
         });
+
+        // Floating label lift
+        document.querySelectorAll('.form-control, .form-select').forEach(function (input) {
+            input.addEventListener('focus', function () { input.parentElement.style.transform = 'translateY(-3px)'; });
+            input.addEventListener('blur', function () { input.parentElement.style.transform = 'translateY(0)'; });
+        });
+
+        // Smooth scroll for in-page anchors
+        document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
+            anchor.addEventListener('click', function (e) {
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    })();
     </script>
+
 </body>
 
 </html>

@@ -145,15 +145,262 @@ function lf_e(string $value): string
     <!-- Main CSS -->
     <link href="css/style.css" rel="stylesheet">
 
-    <link href="css/style-accounting.css" rel="stylesheet">
-    <link href="css/navbar-active-state.css" rel="stylesheet">
+    <style>
+        :root {
+            --be-primary: #ffc107;
+            --be-primary-dark: #bf9107;
+            --be-success: #198754;
+            --be-dark: #271e01;
+            --be-radius: 1rem;
+            --be-shadow-soft: 0 10px 30px rgba(57, 51, 10, 0.08);
+            --be-shadow-strong: 0 20px 50px #c29d082e;
+            --be-transition: all .35s cubic-bezier(.25,.8,.25,1);
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f9fc;
+            overflow-x: hidden;
+        }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Roboto', sans-serif; }
+
+        /* ---- Scroll progress bar ---- */
+        #scrollProgress {
+            position: fixed;
+            top: 0; left: 0;
+            height: 4px;
+            width: 0%;
+            background: linear-gradient(90deg, var(--be-primary), var(--be-success));
+            z-index: 2000;
+            transition: width .1s ease-out;
+        }
+
+        /* ---- Reveal-on-scroll ---- */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity .7s ease, transform .7s ease;
+        }
+        .reveal.is-visible { opacity: 1; transform: translateY(0); }
+
+        /* ---- Navbar glass on scroll ---- */
+        .navbar {
+            transition: background .4s ease, box-shadow .4s ease, padding .4s ease;
+        }
+        .navbar.be-scrolled {
+            background: rgba(255,255,255,.78) !important;
+            backdrop-filter: blur(14px) saturate(160%);
+            -webkit-backdrop-filter: blur(14px) saturate(160%);
+            padding-top: .4rem !important;
+            padding-bottom: .4rem !important;
+            box-shadow: 0 6px 20px rgba(0,0,0,.08) !important;
+        }
+
+        /* ---- Page header ---- */
+        .page-header {
+            position: relative;
+            background: linear-gradient(135deg, #1c1602 0%, #3a2e05 55%, #16210f 100%);
+            overflow: hidden;
+        }
+        .page-header::before {
+            content: "";
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 15% 20%, rgba(255,193,7,.25), transparent 55%),
+                        radial-gradient(circle at 85% 80%, rgba(25,135,84,.3), transparent 55%);
+            pointer-events: none;
+        }
+        .page-header h6.text-success { color: var(--be-primary) !important; }
+        .page-header .text-success { color: var(--be-primary) !important; }
+        .breadcrumb { background: transparent; margin: 0; }
+        .breadcrumb-item + .breadcrumb-item::before { color: rgba(255,255,255,.6); }
+
+        /* ---- Fluid type ---- */
+        h1, .display-3 { font-size: clamp(1.8rem, 4.5vw + .5rem, 3.2rem) !important; }
+        h2, .display-5 { font-size: clamp(1.5rem, 3vw + .5rem, 2.3rem) !important; }
+        p { font-size: clamp(.92rem, .4vw + .8rem, 1.05rem); }
+
+        /* ---- Cards ---- */
+        .rounded-4 { border-radius: var(--be-radius) !important; }
+        .bg-white.rounded-4, .bg-light.rounded-4, .border.rounded-4 {
+            transition: var(--be-transition);
+        }
+        .bg-white.rounded-4:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 45px rgba(191, 145, 7, 0.22) !important;
+        }
+        .bg-white.rounded-4 i.text-success {
+            transition: var(--be-transition);
+        }
+        .bg-white.rounded-4:hover i.text-success {
+            transform: scale(1.1) rotate(-4deg);
+            filter: drop-shadow(0 4px 14px rgba(25,135,84,.45));
+        }
+
+        /* ---- Buttons ---- */
+        .btn {
+            position: relative;
+            overflow: hidden;
+            border-radius: 50px;
+            transition: var(--be-transition);
+        }
+        .btn::after {
+            content: "";
+            position: absolute; top: 50%; left: 50%;
+            width: 0; height: 0;
+            background: rgba(255,255,255,.25);
+            border-radius: 50%;
+            transform: translate(-50%,-50%);
+            transition: width .5s ease, height .5s ease;
+        }
+        .btn:active::after { width: 300px; height: 300px; }
+        .btn-success {
+            background: linear-gradient(135deg, var(--be-success), #115d3a);
+            border: none;
+        }
+        .btn-success:hover {
+            box-shadow: 0 12px 24px rgba(25, 135, 84, 0.35);
+        }
+        .btn-light:hover {
+            box-shadow: 0 12px 24px rgba(0,0,0,.18);
+        }
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255,255,255,.4);
+            transform: scale(0);
+            animation: be-ripple .6s linear;
+            pointer-events: none;
+        }
+        @keyframes be-ripple {
+            to { transform: scale(4); opacity: 0; }
+        }
+
+        /* ---- List group ---- */
+        .list-group-item {
+            border-color: #eee;
+            transition: var(--be-transition);
+        }
+        .list-group-item:hover {
+            background: rgba(255,193,7,.08);
+            transform: translateX(4px);
+        }
+
+        /* ---- Accordion ---- */
+        .accordion-button:not(.collapsed) {
+            background: rgba(25,135,84,.08);
+            color: var(--be-success);
+            box-shadow: none;
+        }
+        .accordion-button:focus { box-shadow: none; border-color: var(--be-primary); }
+
+        /* ---- Form ---- */
+        #consultation .form-control, #consultation .form-select {
+            border-radius: .65rem;
+            border: 1px solid #e3e8f0;
+            transition: var(--be-transition);
+        }
+        #consultation .form-control:focus, #consultation .form-select:focus {
+            border-color: var(--be-primary);
+            box-shadow: 0 0 0 .25rem rgba(255, 193, 7, 0.18);
+        }
+
+        /* ---- CTA ---- */
+        .bg-success {
+            background: linear-gradient(135deg, var(--be-success), #0d4429) !important;
+            position: relative;
+            overflow: hidden;
+        }
+        .bg-success::before {
+            content: "";
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 20% 20%, rgba(255,193,7,.18), transparent 55%);
+            pointer-events: none;
+        }
+
+        /* ---- WhatsApp floating pulse ---- */
+        .whatsapp-float {
+            position: fixed;
+            bottom: 90px; right: 24px;
+            z-index: 1500;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            background: var(--be-success);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 1.6rem;
+            box-shadow: 0 8px 24px rgba(25,135,84,.4);
+            animation: be-pulse 2.4s infinite;
+        }
+        @keyframes be-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(25,135,84,.45); }
+            70% { box-shadow: 0 0 0 16px rgba(25,135,84,0); }
+            100% { box-shadow: 0 0 0 0 rgba(25,135,84,0); }
+        }
+
+        /* ---- Sticky mobile call bar ---- */
+        #mobileCallBar {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            z-index: 1600;
+            display: none;
+            background: rgba(255,255,255,.92);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 -8px 24px rgba(0,0,0,.12);
+            padding: .6rem 1rem;
+        }
+        @media (max-width: 576px) {
+            #mobileCallBar { display: flex; gap: .6rem; }
+            body { padding-bottom: 64px; }
+        }
+
+        /* ---- Back to top ---- */
+        .back-to-top {
+            border-radius: 50% !important;
+            width: 50px; height: 50px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: var(--be-shadow-strong);
+            background: linear-gradient(135deg, var(--be-primary), var(--be-primary-dark)) !important;
+            border: none;
+        }
+        .back-to-top:hover {
+            background: var(--be-success) !important;
+            box-shadow: 0 14px 32px rgba(25,135,84,.4);
+        }
+
+        ::selection { background: var(--be-primary); color: var(--be-dark); }
+
+        /* ===================== FULL MOBILE RESPONSIVENESS ===================== */
+
+        @media (max-width: 768px) {
+            .py-5 { padding-top: 2.5rem !important; padding-bottom: 2.5rem !important; }
+            .row.g-4, .row.g-3, .row.g-5 { row-gap: 1.25rem; }
+            .rounded-4 { border-radius: .85rem !important; }
+        }
+
+        @media (max-width: 576px) {
+            .p-5 { padding: 1.75rem !important; }
+            .fa-4x { font-size: 2.3rem !important; }
+            .fa-3x { font-size: 1.9rem !important; }
+            .fa-2x { font-size: 1.4rem !important; }
+            .container { padding-left: 1rem; padding-right: 1rem; }
+            .whatsapp-float { width: 50px; height: 50px; font-size: 1.3rem; bottom: 76px; right: 16px; }
+            .btn.px-5 { padding: .85rem 1.75rem !important; }
+            #consultation .col-lg-6 .btn-lg { width: 100%; }
+        }
+
+        @media (max-width: 400px) {
+            .display-3, h1 { font-size: 1.6rem !important; }
+        }
+    </style>
 
 </head>
 
 <body>
 
+    <div id="scrollProgress"></div>
+
     <!-- Navbar -->
-    <!-- <div id="navbar"></div> -->
     <?php include __DIR__ . '/navbar.php'; ?>
     <!-- Navbar End -->
 
@@ -163,21 +410,21 @@ function lf_e(string $value): string
             PAGE HEADER
     ===============================-->
 
-    <div class="container-fluid page-header bamboo-header position-relative overflow-hidden py-5">
+    <div class="container-fluid page-header py-5">
 
         <div class="container py-5">
 
             <div class="row align-items-center">
 
-                <div class="col-lg-8">
+                <div class="col-lg-8 reveal">
 
-                    <h6 class="text-uppercase text-success fw-bold mb-3 animated slideInDown">
+                    <h6 class="text-uppercase text-success fw-bold mb-3">
 
                         Business Compliance Experts
 
                     </h6>
 
-                    <h1 class="display-3 text-white fw-bold mb-4 animated slideInDown">
+                    <h1 class="display-3 text-white fw-bold mb-4">
 
                         Legal &
                         <span class="text-success">
@@ -186,7 +433,7 @@ function lf_e(string $value): string
 
                     </h1>
 
-                    <p class="text-light fs-5 mb-4 wow fadeInUp">
+                    <p class="text-light fs-5 mb-4">
 
                         Professional Legal Documentation, Company Registration, GST Compliance, Accounting, Taxation and Financial Management Solutions for Businesses across North-East India.
 
@@ -241,7 +488,7 @@ function lf_e(string $value): string
 
     <div class="container py-5">
 
-        <div class="text-center mb-5">
+        <div class="text-center mb-5 reveal">
 
             <h6 class="text-success text-uppercase fw-bold">
 
@@ -263,7 +510,7 @@ function lf_e(string $value): string
 
         </div>
 
-        <div class="row g-4">
+        <div class="row g-4 reveal">
 
             <!-- Card 1 -->
 
@@ -447,9 +694,9 @@ function lf_e(string $value): string
 
     <div class="container py-5">
 
-        <div class="row align-items-center">
+        <div class="row align-items-center g-5">
 
-            <div class="col-lg-6">
+            <div class="col-lg-6 reveal">
 
                 <h6 class="text-success text-uppercase fw-bold">
 
@@ -540,9 +787,8 @@ function lf_e(string $value): string
 
             </div>
 
-            <div class="col-lg-6">
+            <div class="col-lg-6 reveal">
 
-                <!-- Part 2 continues from here -->
                 <div class="position-relative">
 
                     <div class="bg-white shadow rounded-4 p-5">
@@ -569,11 +815,7 @@ function lf_e(string $value): string
 
                                 <div class="border rounded-4 p-3 text-center">
 
-                                    <h2 class="text-success fw-bold">
-
-                                        100+
-
-                                    </h2>
+                                    <h2 class="text-success fw-bold counter-number" data-target="100">0</h2>
 
                                     <p class="mb-0">
 
@@ -589,11 +831,7 @@ function lf_e(string $value): string
 
                                 <div class="border rounded-4 p-3 text-center">
 
-                                    <h2 class="text-success fw-bold">
-
-                                        20+
-
-                                    </h2>
+                                    <h2 class="text-success fw-bold counter-number" data-target="20">0</h2>
 
                                     <p class="mb-0">
 
@@ -629,11 +867,7 @@ function lf_e(string $value): string
 
                                 <div class="border rounded-4 p-3 text-center">
 
-                                    <h2 class="text-success fw-bold">
-
-                                        100%
-
-                                    </h2>
+                                    <h2 class="text-success fw-bold counter-number" data-target="100" data-suffix="%">0</h2>
 
                                     <p class="mb-0">
 
@@ -667,7 +901,7 @@ function lf_e(string $value): string
 
         <div class="container">
 
-            <div class="text-center mb-5">
+            <div class="text-center mb-5 reveal">
 
                 <h6 class="text-success text-uppercase fw-bold">
 
@@ -691,7 +925,7 @@ function lf_e(string $value): string
 
             <div class="row">
 
-                <div class="col-lg-6">
+                <div class="col-lg-6 reveal">
 
                     <ul class="list-group shadow-sm">
 
@@ -747,7 +981,7 @@ function lf_e(string $value): string
 
                 </div>
 
-                <div class="col-lg-6 mt-4 mt-lg-0">
+                <div class="col-lg-6 mt-4 mt-lg-0 reveal">
 
                     <ul class="list-group shadow-sm">
 
@@ -819,7 +1053,7 @@ function lf_e(string $value): string
 
         <div class="row g-5">
 
-            <div class="col-lg-6">
+            <div class="col-lg-6 reveal">
 
                 <h6 class="text-success text-uppercase">
 
@@ -886,9 +1120,8 @@ function lf_e(string $value): string
 
             </div>
 
-            <div class="col-lg-6">
+            <div class="col-lg-6 reveal">
 
-                <!-- PART 3 STARTS FROM HERE -->
                 <div class="bg-light rounded-4 shadow p-5 h-100">
 
                     <h3 class="fw-bold mb-4">
@@ -981,7 +1214,7 @@ function lf_e(string $value): string
 
     <div class="container py-5">
 
-        <div class="text-center mb-5">
+        <div class="text-center mb-5 reveal">
 
             <h6 class="text-success text-uppercase">
                 Frequently Asked Questions
@@ -993,7 +1226,7 @@ function lf_e(string $value): string
 
         </div>
 
-        <div class="accordion" id="faqAccordion">
+        <div class="accordion reveal" id="faqAccordion">
 
             <div class="accordion-item">
 
@@ -1077,7 +1310,7 @@ function lf_e(string $value): string
 
     <div class="container-fluid bg-success text-white py-5">
 
-        <div class="container text-center">
+        <div class="container text-center reveal">
 
             <h2 class="display-5 text-white mb-4">
 
@@ -1105,827 +1338,187 @@ function lf_e(string $value): string
 
     <!-- Footer -->
 
-    <!-- <div id="footer"></div> -->
     <?php include __DIR__ . '/footer.php'; ?>
 
 
+    <!-- Floating WhatsApp Button -->
+    <a href="https://wa.me/919678431656" target="_blank" class="whatsapp-float" aria-label="Chat on WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+
+    <!-- Sticky Mobile Call Bar -->
+    <div id="mobileCallBar">
+        <a href="tel:+919678431656" class="btn btn-success flex-fill"><i class="fa fa-phone me-2"></i>Call Now</a>
+        <a href="https://wa.me/919678431656" target="_blank" class="btn btn-light flex-fill"><i class="fab fa-whatsapp me-2"></i>WhatsApp</a>
+    </div>
 
     <!-- Back To Top -->
 
-    <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded-0 back-to-top">
+    <a href="#" class="btn btn-lg btn-lg-square rounded-0 back-to-top">
 
         <i class="bi bi-arrow-up"></i>
 
     </a>
 
 
-
-
-
-</body>
-
-</html>
-
-
-</div>
-
-</div>
-
-</div>
-
-
-
-
-
-
-
-
-
-
-
-<!-- JavaScript Libraries -->
-
-<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
-
-<script src="lib/wow/wow.min.js"></script>
-
-<script src="lib/easing/easing.min.js"></script>
-
-<script src="lib/waypoints/waypoints.min.js"></script>
-
-<script src="lib/counterup/counterup.min.js"></script>
-
-<script src="lib/owlcarousel/owl.carousel.min.js"></script>
-
-<script src="js/main.js"></script>
-
-<script src="js/navbar-active-state.js"></script>
-
-
-
-<script>
-    // fetch("navbar.php")
-    //     .then(response => response.text())
-    //     .then(data => {
-
-    //         document.getElementById("navbar").innerHTML = data;
-
-    //         document.querySelectorAll(".dropdown-toggle").forEach(function(el) {
-
-    //             new bootstrap.Dropdown(el);
-
-    //         });
-
-    //     });
-
-    // fetch("footer.php")
-    //     .then(response => response.text())
-    //     .then(data => {
-
-    //         document.getElementById("footer").innerHTML = data;
-
-    //     });
-
-    window.addEventListener("scroll", function() {
-
-        const nav = document.querySelector(".navbar");
-
-        if (nav) {
-
-            if (window.scrollY > 50) {
-
-                nav.classList.add("scrolled");
-
-            } else {
-
-                nav.classList.remove("scrolled");
-
-            }
-
-        }
-
-    });
-
-    new WOW().init();
-
-
-
-    document.addEventListener("DOMContentLoaded", function() {
-
-        /*====================================================
-            INITIALIZE WOW
-        ====================================================*/
-
-        if (typeof WOW !== "undefined") {
-            new WOW().init();
-        }
-
-
-        /*====================================================
-            SCROLL PROGRESS BAR
-        ====================================================*/
-
-        const progress = document.createElement("div");
-
-        progress.id = "scrollProgress";
-
-        progress.style.position = "fixed";
-        progress.style.top = "0";
-        progress.style.left = "0";
-        progress.style.height = "4px";
-        progress.style.width = "0%";
-        progress.style.background = "#198754";
-        progress.style.zIndex = "99999";
-        progress.style.transition = "width .15s linear";
-
-        document.body.appendChild(progress);
-
-        window.addEventListener("scroll", function() {
-
-            let scroll =
-                (window.scrollY /
-                    (document.body.scrollHeight - window.innerHeight)) * 100;
-
-            progress.style.width = scroll + "%";
-
-        });
-
-
-        /*====================================================
-            PARALLAX HEADER
-        ====================================================*/
-
-        const header = document.querySelector(".page-header");
-
-        window.addEventListener("scroll", function() {
-
-            if (header) {
-
-                header.style.backgroundPositionY =
-                    window.scrollY * 0.45 + "px";
-
-            }
-
-        });
-
-
-        /*====================================================
-            NAVBAR SHADOW
-        ====================================================*/
-
-        window.addEventListener("scroll", function() {
-
-            const nav = document.querySelector(".navbar");
-
-            if (!nav) return;
-
-            if (window.scrollY > 80) {
-
-                nav.style.background = "#ffffff";
-                nav.style.boxShadow = "0 12px 35px rgba(0,0,0,.08)";
-                nav.style.transition = ".35s";
-
-            } else {
-
-                nav.style.background = "";
-                nav.style.boxShadow = "";
-
-            }
-
-        });
-
-
-        /*====================================================
-            FLOATING BUTTONS
-        ====================================================*/
-
-        document.querySelectorAll(".btn").forEach(btn => {
-
-            btn.addEventListener("mouseenter", function() {
-
-                this.style.transform = "translateY(-5px) scale(1.03)";
-
-            });
-
-            btn.addEventListener("mouseleave", function() {
-
-                this.style.transform = "";
-
-            });
-
-        });
-
-
-        /*====================================================
-            RIPPLE EFFECT
-        ====================================================*/
-
-        document.querySelectorAll(".btn").forEach(button => {
-
-            button.style.position = "relative";
-            button.style.overflow = "hidden";
-
-            button.addEventListener("click", function(e) {
-
-                const ripple = document.createElement("span");
-
-                const size = Math.max(this.clientWidth, this.clientHeight);
-
-                ripple.style.width = ripple.style.height = size + "px";
-
-                ripple.style.position = "absolute";
-
-                ripple.style.borderRadius = "50%";
-
-                ripple.style.background =
-                    "rgba(255,255,255,.4)";
-
-                ripple.style.left =
-                    e.offsetX - size / 2 + "px";
-
-                ripple.style.top =
-                    e.offsetY - size / 2 + "px";
-
-                ripple.style.transform = "scale(0)";
-
-                ripple.style.animation =
-                    "ripple .6s linear";
-
-                this.appendChild(ripple);
-
-                setTimeout(() => {
-
-                    ripple.remove();
-
-                }, 600);
-
-            });
-
-        });
-
-        const rippleStyle = document.createElement("style");
-
-        rippleStyle.innerHTML = `
-
-@keyframes ripple{
-
-0%{
-
-transform:scale(0);
-
-opacity:.8;
-
-}
-
-100%{
-
-transform:scale(4);
-
-opacity:0;
-
-}
-
-}`;
-
-        document.head.appendChild(rippleStyle);
-
-
-        /*====================================================
-            CARD HOVER TILT
-        ====================================================*/
-
-        document.querySelectorAll(".rounded-4").forEach(card => {
-
-            card.addEventListener("mousemove", function(e) {
-
-                const rect = this.getBoundingClientRect();
-
-                const x = e.clientX - rect.left;
-
-                const y = e.clientY - rect.top;
-
-                const rotateY =
-                    ((x / rect.width) - .5) * 14;
-
-                const rotateX =
-                    ((y / rect.height) - .5) * -14;
-
-                this.style.transform =
-                    `perspective(900px)
-                 rotateX(${rotateX}deg)
-                 rotateY(${rotateY}deg)
-                 translateY(-8px)`;
-
-            });
-
-            card.addEventListener("mouseleave", function() {
-
-                this.style.transform =
-                    "perspective(900px) rotateX(0) rotateY(0)";
-
-            });
-
-        });
-
-
-        /*====================================================
-            SPOTLIGHT EFFECT
-        ====================================================*/
-
-        document.querySelectorAll(".rounded-4").forEach(card => {
-
-            card.addEventListener("mousemove", function(e) {
-
-                const rect = this.getBoundingClientRect();
-
-                const x = e.clientX - rect.left;
-
-                const y = e.clientY - rect.top;
-
-                this.style.background =
-                    `radial-gradient(circle at ${x}px ${y}px,
-                rgba(25,135,84,.15),
-                #ffffff 70%)`;
-
-            });
-
-            card.addEventListener("mouseleave", function() {
-
-                this.style.background = "#ffffff";
-
-            });
-
-        });
-
-
-        /*====================================================
-            REVEAL ON SCROLL
-        ====================================================*/
-
-        const reveals =
-            document.querySelectorAll(
-                ".rounded-4,.list-group,.accordion-item,.contact-form"
-            );
-
-        const revealSection = function() {
-
-            reveals.forEach(item => {
-
-                const top = item.getBoundingClientRect().top;
-
-                if (top < window.innerHeight - 100) {
-
-                    item.style.opacity = "1";
-
-                    item.style.transform =
-                        "translateY(0)";
-
-                }
-
-            });
-
-        };
-
-        reveals.forEach(item => {
-
-            item.style.opacity = "0";
-
-            item.style.transform = "translateY(40px)";
-
-            item.style.transition =
-                ".7s ease";
-
-        });
-
-        revealSection();
-
-        window.addEventListener("scroll", revealSection);
-
-
-        /*====================================================
-            ICON FLOAT
-        ====================================================*/
-
-        document.querySelectorAll("i").forEach(icon => {
-
-            icon.addEventListener("mouseenter", function() {
-
-                this.style.transform =
-                    "translateY(-8px) scale(1.15)";
-
-            });
-
-            icon.addEventListener("mouseleave", function() {
-
-                this.style.transform = "";
-
-            });
-
-        });
-
-
-        /*====================================================
-            COUNTER
-        ====================================================*/
-
-        document.querySelectorAll("h2").forEach(counter => {
-
-            const value =
-                parseInt(counter.innerText);
-
-            if (isNaN(value)) return;
-
-            let start = 0;
-
-            const speed = value / 70;
-
-            const update = () => {
-
-                start += speed;
-
-                if (start < value) {
-
-                    counter.innerText =
-                        Math.floor(start);
-
-                    requestAnimationFrame(update);
-
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="lib/wow/wow.min.js"></script>
+    <script src="lib/easing/easing.min.js"></script>
+    <script src="lib/waypoints/waypoints.min.js"></script>
+    <script src="lib/owlcarousel/owl.carousel.min.js"></script>
+    <script src="js/main.js"></script>
+
+    <!-- ===================== Counter Animation (vanilla JS, 0 -> target) ===================== -->
+    <script>
+    (function () {
+        const counters = document.querySelectorAll('.counter-number');
+        const duration = 1600;
+
+        function animateCounter(el) {
+            const target = parseInt(el.getAttribute('data-target'), 10) || 0;
+            const suffix = el.getAttribute('data-suffix') || '+';
+            const start = performance.now();
+
+            function step(now) {
+                const progress = Math.min((now - start) / duration, 1);
+                const eased = 1 - (1 - progress) * (1 - progress);
+                el.textContent = Math.floor(eased * target);
+                if (progress < 1) {
+                    requestAnimationFrame(step);
                 } else {
-
-                    counter.innerText =
-                        value + "+";
-
+                    el.textContent = target + suffix;
                 }
+            }
+            requestAnimationFrame(step);
+        }
 
-            };
-
-            const observer = new IntersectionObserver(entries => {
-
-                entries.forEach(entry => {
-
-                    if (entry.isIntersecting) {
-
-                        update();
-
-                        observer.disconnect();
-
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting && !entry.target.dataset.animated) {
+                        entry.target.dataset.animated = 'true';
+                        animateCounter(entry.target);
+                        observer.unobserve(entry.target);
                     }
-
                 });
+            }, { threshold: 0.4 });
+            counters.forEach(function (el) { observer.observe(el); });
+        } else {
+            counters.forEach(animateCounter);
+        }
+    })();
+    </script>
 
-            });
+    <!-- ===================== Premium Interactivity ===================== -->
+    <script>
+    (function () {
+        const isTouch = window.matchMedia('(hover: none), (pointer: coarse)').matches;
 
-            observer.observe(counter);
+        // Scroll progress bar
+        const progressBar = document.getElementById('scrollProgress');
+        function updateProgress() {
+            const h = document.documentElement;
+            const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+            if (progressBar) progressBar.style.width = scrolled + '%';
+        }
+        window.addEventListener('scroll', updateProgress, { passive: true });
+        updateProgress();
 
-        });
-
-
-    });
-
-
-    document.addEventListener("DOMContentLoaded", function() {
-
-        /*====================================================
-            BACK TO TOP BUTTON
-        ====================================================*/
-
-        const backToTop = document.querySelector(".back-to-top");
-
-        if (backToTop) {
-
-            window.addEventListener("scroll", function() {
-
-                if (window.scrollY > 350) {
-
-                    backToTop.style.opacity = "1";
-                    backToTop.style.visibility = "visible";
-                    backToTop.style.transform = "translateY(0)";
-
-                } else {
-
-                    backToTop.style.opacity = "0";
-                    backToTop.style.visibility = "hidden";
-                    backToTop.style.transform = "translateY(40px)";
-
-                }
-
-            });
-
+        // Reveal-on-scroll
+        const reveals = document.querySelectorAll('.reveal');
+        if ('IntersectionObserver' in window) {
+            const revealObserver = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        revealObserver.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.12 });
+            reveals.forEach(function (el) { revealObserver.observe(el); });
+        } else {
+            reveals.forEach(function (el) { el.classList.add('is-visible'); });
         }
 
-
-        /*====================================================
-            FLOATING LABEL EFFECT
-        ====================================================*/
-
-        document.querySelectorAll(".form-control,.form-select").forEach(input => {
-
-            input.addEventListener("focus", function() {
-
-                this.style.transform = "translateY(-3px)";
-                this.style.boxShadow = "0 0 20px rgba(25,135,84,.18)";
-
-            });
-
-            input.addEventListener("blur", function() {
-
-                this.style.transform = "";
-                this.style.boxShadow = "";
-
-            });
-
-        });
-
-
-        /*====================================================
-            SIMPLE FORM VALIDATION
-        ====================================================*/
-
-        const form = document.querySelector("form");
-
-        // if (form) {
-
-        //     form.addEventListener("submit", function(e) {
-
-        //         e.preventDefault();
-
-        //         const name = form.querySelector("input[type='text']");
-        //         const email = form.querySelector("input[type='email']");
-        //         const phone = form.querySelector("input[type='tel']");
-        //         const btn = form.querySelector("button");
-
-        //         if (!name.value || !email.value || !phone.value) {
-
-        //             alert("Please fill all required fields.");
-
-        //             return;
-
-        //         }
-
-        //         btn.disabled = true;
-
-        //         const oldText = btn.innerHTML;
-
-        //         btn.innerHTML =
-        //             '<i class="fa fa-spinner fa-spin me-2"></i>Submitting...';
-
-        //         setTimeout(function() {
-
-        //             btn.innerHTML =
-        //                 '<i class="fa fa-check me-2"></i>Request Submitted';
-
-        //             btn.classList.remove("btn-success");
-        //             btn.classList.add("btn-primary");
-
-        //             setTimeout(function() {
-
-        //                 btn.innerHTML = oldText;
-
-        //                 btn.classList.remove("btn-primary");
-        //                 btn.classList.add("btn-success");
-
-        //                 btn.disabled = false;
-
-        //                 form.reset();
-
-        //             }, 2500);
-
-        //         }, 1800);
-
-        //     });
-
-        // }
-
-
-        /*====================================================
-            FAQ ICON ANIMATION
-        ====================================================*/
-
-        document.querySelectorAll(".accordion-button").forEach(item => {
-
-            item.addEventListener("click", function() {
-
-                this.classList.toggle("active");
-
-            });
-
-        });
-
-
-        /*====================================================
-            SERVICE CARD GLOW
-        ====================================================*/
-
-        document.querySelectorAll(".rounded-4").forEach(card => {
-
-            card.addEventListener("mouseenter", function() {
-
-                this.style.boxShadow =
-                    "0 25px 60px rgba(25,135,84,.20)";
-
-            });
-
-            card.addEventListener("mouseleave", function() {
-
-                this.style.boxShadow = "";
-
-            });
-
-        });
-
-
-        /*====================================================
-            IMAGE PARALLAX
-        ====================================================*/
-
-        const images = document.querySelectorAll("img");
-
-        window.addEventListener("mousemove", function(e) {
-
-            const x = (window.innerWidth / 2 - e.pageX) / 60;
-
-            const y = (window.innerHeight / 2 - e.pageY) / 60;
-
-            images.forEach(img => {
-
-                img.style.transform =
-                    `translate(${x}px,${y}px)`;
-
-            });
-
-        });
-
-
-        /*====================================================
-            BUTTON MAGNET EFFECT
-        ====================================================*/
-
-        document.querySelectorAll(".btn").forEach(button => {
-
-            button.addEventListener("mousemove", function(e) {
-
-                const rect = this.getBoundingClientRect();
-
-                const x = e.clientX - rect.left - rect.width / 2;
-
-                const y = e.clientY - rect.top - rect.height / 2;
-
-                this.style.transform =
-                    `translate(${x * .15}px,${y * .15}px)`;
-
-            });
-
-            button.addEventListener("mouseleave", function() {
-
-                this.style.transform = "";
-
-            });
-
-        });
-
-
-        /*====================================================
-            FADE IN PAGE
-        ====================================================*/
-
-        document.body.style.opacity = "0";
-
-        document.body.style.transition = "opacity .8s";
-
-        window.onload = function() {
-
-            document.body.style.opacity = "1";
-
-        };
-
-
-        /*====================================================
-            FLOATING PARTICLES
-        ====================================================*/
-
-        for (let i = 0; i < 15; i++) {
-
-            let particle = document.createElement("span");
-
-            particle.style.position = "fixed";
-            particle.style.width = "8px";
-            particle.style.height = "8px";
-            particle.style.background = "rgba(25,135,84,.15)";
-            particle.style.borderRadius = "50%";
-            particle.style.left = Math.random() * 100 + "%";
-            particle.style.top = Math.random() * 100 + "%";
-            particle.style.pointerEvents = "none";
-            particle.style.zIndex = "-1";
-            particle.style.animation =
-                `particle ${5 + Math.random() * 5}s linear infinite`;
-
-            document.body.appendChild(particle);
-
-        }
-
-        const particleStyle = document.createElement("style");
-
-        particleStyle.innerHTML = `
-
-@keyframes particle{
-
-0%{
-
-transform:translateY(0) scale(1);
-
-opacity:.4;
-
-}
-
-50%{
-
-opacity:1;
-
-}
-
-100%{
-
-transform:translateY(-180px) scale(0);
-
-opacity:0;
-
-}
-
-}`;
-
-        document.head.appendChild(particleStyle);
-
-
-        /*====================================================
-            ACTIVE MENU HIGHLIGHT
-        ====================================================*/
-
-        document.querySelectorAll(".navbar-nav .nav-link").forEach(link => {
-
-            if (window.location.href.includes(link.getAttribute("href"))) {
-
-                link.classList.add("active");
-
+        // Navbar glass on scroll
+        const nav = document.querySelector('nav.navbar, .navbar');
+        function updateNav() {
+            if (!nav) return;
+            if (window.scrollY > 40) {
+                nav.classList.add('be-scrolled');
+            } else {
+                nav.classList.remove('be-scrolled');
             }
+        }
+        window.addEventListener('scroll', updateNav, { passive: true });
+        updateNav();
 
-        });
-
-
-        /*====================================================
-            SMOOTH ANCHOR SCROLL
-        ====================================================*/
-
-        document.querySelectorAll("a[href^='#']").forEach(anchor => {
-
-            anchor.addEventListener("click", function(e) {
-
-                const target = document.querySelector(this.getAttribute("href"));
-
-                if (target) {
-
-                    e.preventDefault();
-
-                    target.scrollIntoView({
-
-                        behavior: "smooth",
-                        block: "start"
-
-                    });
-
-                }
-
+        // Card spotlight + tilt (desktop only)
+        if (!isTouch) {
+            document.querySelectorAll('.bg-white.rounded-4, .bg-light.rounded-4').forEach(function (card) {
+                card.addEventListener('mousemove', function (e) {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    card.style.background = 'radial-gradient(circle at ' + x + 'px ' + y + 'px, rgba(255,193,7,.10), #fff 65%)';
+                });
+                card.addEventListener('mouseleave', function () {
+                    card.style.background = '';
+                });
             });
 
-        });
-
-
-        /*====================================================
-            PAGE LOADER (OPTIONAL)
-        ====================================================*/
-
-        const loader = document.getElementById("pageLoader");
-
-        if (loader) {
-
-            window.addEventListener("load", function() {
-
-                loader.style.opacity = "0";
-
-                setTimeout(function() {
-
-                    loader.remove();
-
-                }, 600);
-
+            // Magnetic buttons
+            document.querySelectorAll('.btn').forEach(function (btn) {
+                btn.addEventListener('mousemove', function (e) {
+                    const rect = btn.getBoundingClientRect();
+                    const x = e.clientX - rect.left - rect.width / 2;
+                    const y = e.clientY - rect.top - rect.height / 2;
+                    btn.style.transform = 'translate(' + x * .12 + 'px,' + y * .12 + 'px)';
+                });
+                btn.addEventListener('mouseleave', function () {
+                    btn.style.transform = '';
+                });
             });
-
         }
 
-    });
-</script>
+        // Ripple on click (works on touch too)
+        document.querySelectorAll('.btn').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                const circle = document.createElement('span');
+                circle.classList.add('ripple');
+                const d = Math.max(btn.clientWidth, btn.clientHeight);
+                circle.style.width = d + 'px';
+                circle.style.height = d + 'px';
+                const rect = btn.getBoundingClientRect();
+                const offsetX = (e.clientX || rect.left + rect.width / 2) - rect.left;
+                const offsetY = (e.clientY || rect.top + rect.height / 2) - rect.top;
+                circle.style.left = offsetX - d / 2 + 'px';
+                circle.style.top = offsetY - d / 2 + 'px';
+                btn.appendChild(circle);
+                setTimeout(function () { circle.remove(); }, 650);
+            });
+        });
 
+        // Smooth anchor scroll
+        document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
+            anchor.addEventListener('click', function (e) {
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // Floating-label lift on focus
+        document.querySelectorAll('.form-control, .form-select').forEach(function (input) {
+            input.addEventListener('focus', function () { input.style.transform = 'translateY(-2px)'; });
+            input.addEventListener('blur', function () { input.style.transform = ''; });
+        });
+    })();
+    </script>
 </body>
 
 </html>

@@ -45,133 +45,382 @@
 
     <link href="css/style.css" rel="stylesheet">
 
-    <link href="css/style-ngo.css" rel="stylesheet">
-    <link href="css/navbar-active-state.css" rel="stylesheet">
-
     <style>
-         :root {
-            --primary: #198754;
-            --secondary: #0d6efd;
-            --dark: #1f2937;
-            --light: #f8f9fa;
+        :root {
+            --be-primary: #ffc107;
+            --be-primary-dark: #bf9107;
+            --be-success: #198754;
+            --be-dark: #271e01;
+            --be-radius: 1rem;
+            --be-shadow-soft: 0 10px 30px rgba(57, 51, 10, 0.08);
+            --be-shadow-strong: 0 20px 50px #c29d082e;
+            --be-transition: all .35s cubic-bezier(.25,.8,.25,1);
         }
-        
+
+        html { scroll-behavior: smooth; }
+
         body {
             font-family: 'Inter', sans-serif;
-            background: #f8fafc;
+            background: #f7f9fc;
             overflow-x: hidden;
         }
-        
+        h1, h2, h3, h4, h5, h6 { font-family: 'Roboto', sans-serif; }
+
+        /* ---- Scroll progress bar ---- */
+        #scrollProgress {
+            position: fixed;
+            top: 0; left: 0;
+            height: 4px;
+            width: 0%;
+            background: linear-gradient(90deg, var(--be-primary), var(--be-success));
+            z-index: 2000;
+            transition: width .1s ease-out;
+        }
+
+        /* ---- Reveal-on-scroll ---- */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity .8s ease, transform .8s ease;
+        }
+        .reveal.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .reveal-stagger > * {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity .7s ease, transform .7s ease;
+        }
+        .reveal-stagger.is-visible > * { opacity: 1; transform: translateY(0); }
+        .reveal-stagger.is-visible > *:nth-child(1) { transition-delay: .05s; }
+        .reveal-stagger.is-visible > *:nth-child(2) { transition-delay: .15s; }
+        .reveal-stagger.is-visible > *:nth-child(3) { transition-delay: .25s; }
+        .reveal-stagger.is-visible > *:nth-child(4) { transition-delay: .35s; }
+        .reveal-stagger.is-visible > *:nth-child(5) { transition-delay: .45s; }
+        .reveal-stagger.is-visible > *:nth-child(6) { transition-delay: .55s; }
+
+        /* ---- Navbar glass on scroll ---- */
+        .navbar {
+            transition: background .4s ease, box-shadow .4s ease, padding .4s ease;
+        }
+        .navbar.be-scrolled {
+            background: rgba(255,255,255,.78) !important;
+            backdrop-filter: blur(14px) saturate(160%);
+            -webkit-backdrop-filter: blur(14px) saturate(160%);
+            padding-top: .4rem !important;
+            padding-bottom: .4rem !important;
+            box-shadow: 0 6px 20px rgba(0,0,0,.08) !important;
+        }
+
+        /* ---- Hero / Page header ---- */
         .page-header {
             position: relative;
-            background: linear-gradient(rgba(0, 35, 20, .75), rgba(0, 35, 20, .75)), url("img/ngo-banner.jpg");
+            background: linear-gradient(rgba(28, 22, 2, .82), rgba(15, 33, 15, .82)), url("img/ngo-banner.jpg");
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
             overflow: hidden;
         }
-        
+        @media (max-width: 768px) {
+            .page-header { background-attachment: scroll; }
+        }
+
         .page-header::before {
             content: "";
             position: absolute;
             width: 500px;
             height: 500px;
-            background: rgba(25, 135, 84, .18);
+            background: rgba(255, 193, 7, .16);
             border-radius: 50%;
             top: -220px;
             right: -150px;
+            filter: blur(10px);
             animation: floatBlob 10s ease-in-out infinite alternate;
+            pointer-events: none;
         }
-        
+
         .page-header::after {
             content: "";
             position: absolute;
             width: 300px;
             height: 300px;
-            background: rgba(255, 255, 255, .08);
+            background: rgba(25, 135, 84, .22);
             border-radius: 50%;
             left: -80px;
             bottom: -80px;
+            filter: blur(10px);
             animation: floatBlob2 8s ease-in-out infinite alternate;
+            pointer-events: none;
         }
-        
+
         @keyframes floatBlob {
-            from {
-                transform: translateY(0);
-            }
-            to {
-                transform: translateY(50px);
-            }
+            from { transform: translateY(0); }
+            to { transform: translateY(50px); }
         }
-        
+
         @keyframes floatBlob2 {
-            from {
-                transform: translateX(0);
-            }
-            to {
-                transform: translateX(50px);
-            }
+            from { transform: translateX(0); }
+            to { transform: translateX(50px); }
         }
-        
+
+        .page-header h6.text-warning {
+            color: var(--be-primary) !important;
+            letter-spacing: 3px;
+            display: inline-block;
+            padding: .35rem 1rem;
+            border: 1px solid rgba(255,255,255,.35);
+            border-radius: 50px;
+            backdrop-filter: blur(6px);
+            background: rgba(255,255,255,.08);
+        }
+        .page-header .text-success { color: var(--be-primary) !important; }
+        .page-header .btn-success {
+            background: linear-gradient(135deg, var(--be-success), #115d3a);
+            border: none;
+        }
+        .breadcrumb { background: transparent; }
+        .breadcrumb-item + .breadcrumb-item::before { color: rgba(255,255,255,.6); }
+
+        /* ---- Glass cards ---- */
         .glass-card {
             background: rgba(255, 255, 255, .15);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, .2);
-            border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, .15);
+            border: 1px solid rgba(255, 255, 255, .25);
+            border-radius: var(--be-radius);
+            box-shadow: var(--be-shadow-strong);
+            transition: var(--be-transition);
         }
-        /* Use on plain/light backgrounds so the glass effect and white text stay readable */
-        
+        .glass-card.bg-white {
+            background: #fff !important;
+            color: var(--be-dark);
+            box-shadow: var(--be-shadow-soft);
+        }
+        .glass-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 45px rgba(191, 145, 7, 0.22);
+        }
+
         .glass-card-dark {
-            background: linear-gradient(135deg, rgba(15, 60, 40, .92), rgba(10, 40, 28, .92));
+            background: linear-gradient(135deg, rgba(38, 30, 4, .94), rgba(13, 46, 30, .94));
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, .15);
-            border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, .15);
+            border-radius: var(--be-radius);
+            box-shadow: var(--be-shadow-strong);
+            transition: var(--be-transition);
         }
-        
+        .glass-card-dark:hover { transform: translateY(-6px); }
+        .glass-card-dark hr { border-color: rgba(255,255,255,.2); }
+
+        /* ---- Section title ---- */
         .section-title {
             font-weight: 700;
             position: relative;
             padding-bottom: 15px;
         }
-        
+
         .section-title::after {
             content: "";
             position: absolute;
-            width: 80px;
+            width: 70px;
             height: 4px;
-            background: var(--primary);
+            background: linear-gradient(90deg, var(--be-primary), var(--be-success));
             left: 50%;
             bottom: 0;
             transform: translateX(-50%);
             border-radius: 50px;
         }
-        
+
+        /* ---- Buttons ---- */
+        .btn {
+            position: relative;
+            overflow: hidden;
+        }
+        .btn::after {
+            content: "";
+            position: absolute; top: 50%; left: 50%;
+            width: 0; height: 0;
+            background: rgba(255,255,255,.25);
+            border-radius: 50%;
+            transform: translate(-50%,-50%);
+            transition: width .5s ease, height .5s ease;
+        }
+        .btn:active::after { width: 300px; height: 300px; }
+
         .btn-success {
             border-radius: 50px;
             padding: 14px 34px;
-            transition: .35s;
+            transition: var(--be-transition);
+            background: linear-gradient(135deg, var(--be-success), #115d3a);
+            border: none;
         }
-        
+
         .btn-success:hover {
             transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(25, 135, 84, 0.35);
         }
-        
+
+        .btn-outline-light:hover {
+            background: var(--be-primary);
+            border-color: var(--be-primary);
+            color: var(--be-dark) !important;
+            transform: translateY(-4px);
+        }
+
+        .btn-light:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0,0,0,.2);
+        }
+
+        /* ---- Floating animation ---- */
         .floating {
             animation: floating 3.5s ease-in-out infinite;
         }
-        
+
         @keyframes floating {
-            0% {
-                transform: translateY(0);
-            }
-            50% {
-                transform: translateY(-12px);
-            }
-            100% {
-                transform: translateY(0);
-            }
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+            100% { transform: translateY(0); }
+        }
+
+        /* ---- Generic icon + card accents (gold/green, no blue) ---- */
+        .text-success, i.text-success { color: var(--be-success) !important; }
+        i.fa-3x.text-success, i.fa-5x.text-success {
+            transition: var(--be-transition);
+        }
+        .bg-white.rounded-4:hover i.text-success {
+            transform: scale(1.1) rotate(-4deg);
+            filter: drop-shadow(0 4px 14px rgba(25,135,84,.45));
+        }
+
+        .bg-white.rounded-4 {
+            transition: var(--be-transition);
+        }
+        .bg-white.rounded-4:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 45px rgba(191, 145, 7, 0.22) !important;
+        }
+
+        /* ---- Gallery ---- */
+        .gallery-card {
+            border-radius: var(--be-radius);
+            overflow: hidden;
+            box-shadow: var(--be-shadow-soft);
+            transition: var(--be-transition);
+            height: 100%;
+        }
+        .gallery-card img {
+            width: 100%;
+            height: 100%;
+            min-height: 220px;
+            object-fit: cover;
+            transition: transform .6s ease;
+            display: block;
+        }
+        .gallery-card:hover { box-shadow: var(--be-shadow-strong); transform: translateY(-6px); }
+        .gallery-card:hover img { transform: scale(1.08); }
+
+        /* ---- CTA section ---- */
+        section.bg-success {
+            background: linear-gradient(135deg, var(--be-success), #0d4429) !important;
+            position: relative;
+            overflow: hidden;
+        }
+        section.bg-success::before {
+            content: "";
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 20% 20%, rgba(255,193,7,.18), transparent 55%);
+            pointer-events: none;
+        }
+        section.bg-success h6.text-warning { color: var(--be-primary) !important; }
+
+        /* ---- Counters ---- */
+        .counter { display: inline-block; }
+
+        /* ---- WhatsApp floating pulse ---- */
+        .whatsapp-float {
+            position: fixed;
+            bottom: 90px; right: 24px;
+            z-index: 1500;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            background: var(--be-success);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 1.6rem;
+            box-shadow: 0 8px 24px rgba(25,135,84,.4);
+            animation: be-pulse 2.4s infinite;
+        }
+        @keyframes be-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(25,135,84,.45); }
+            70% { box-shadow: 0 0 0 16px rgba(25,135,84,0); }
+            100% { box-shadow: 0 0 0 0 rgba(25,135,84,0); }
+        }
+
+        /* ---- Sticky mobile call bar ---- */
+        #mobileCallBar {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            z-index: 1600;
+            display: none;
+            background: rgba(255,255,255,.92);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 -8px 24px rgba(0,0,0,.12);
+            padding: .6rem 1rem;
+        }
+        @media (max-width: 576px) {
+            #mobileCallBar { display: flex; gap: .6rem; }
+            body { padding-bottom: 64px; }
+        }
+
+        /* ---- Back to top ---- */
+        .back-to-top {
+            border-radius: 50% !important;
+            width: 50px; height: 50px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: var(--be-shadow-strong);
+            background: linear-gradient(135deg, var(--be-primary), var(--be-primary-dark)) !important;
+            border: none;
+        }
+        .back-to-top:hover {
+            background: var(--be-success) !important;
+            box-shadow: 0 14px 32px rgba(25,135,84,.4);
+        }
+
+        ::selection { background: var(--be-primary); color: var(--be-dark); }
+
+        /* ===================== FULL MOBILE RESPONSIVENESS ===================== */
+
+        /* Fluid type */
+        h1, .display-3 { font-size: clamp(1.8rem, 4.5vw + .5rem, 3.4rem) !important; }
+        h2, .display-5 { font-size: clamp(1.5rem, 3vw + .5rem, 2.4rem) !important; }
+        p { font-size: clamp(.92rem, .4vw + .8rem, 1.05rem); }
+
+        @media (max-width: 991px) {
+            .page-header .col-lg-5 { margin-top: 2.5rem; }
+        }
+
+        @media (max-width: 768px) {
+            .py-5 { padding-top: 2.5rem !important; padding-bottom: 2.5rem !important; }
+            .row.g-4 { row-gap: 1.25rem; }
+            .glass-card, .glass-card-dark, .bg-white.rounded-4 { border-radius: .85rem !important; }
+            .page-header .d-flex.flex-wrap.gap-3 { flex-direction: column; }
+            .page-header .d-flex.flex-wrap.gap-3 .btn { width: 100%; text-align: center; }
+        }
+
+        @media (max-width: 576px) {
+            .glass-card.p-5, .glass-card-dark.p-5 { padding: 1.75rem !important; }
+            .glass-card.p-4, .bg-white.rounded-4.p-4 { padding: 1.25rem !important; }
+            .section-title { font-size: 1.5rem !important; }
+            .fa-5x { font-size: 3rem !important; }
+            .fa-3x { font-size: 1.9rem !important; }
+            .gallery-card img { min-height: 160px; }
+            .whatsapp-float { width: 50px; height: 50px; font-size: 1.3rem; bottom: 76px; right: 16px; }
+            .container { padding-left: 1rem; padding-right: 1rem; }
+        }
+
+        @media (max-width: 400px) {
+            .display-3, h1 { font-size: 1.6rem !important; }
+            .btn-lg { font-size: .85rem; padding: .65rem 1.3rem; }
         }
     </style>
 
@@ -179,11 +428,12 @@
 
 <body>
 
+    <div id="scrollProgress"></div>
+
     <!-- ===========================
             NAVBAR
     ============================ -->
 
-    <!-- <div id="navbar"></div> -->
      <?php include __DIR__ . '/navbar.php'; ?>
 
     <!-- Navbar End -->
@@ -199,7 +449,7 @@
 
             <div class="row align-items-center">
 
-                <div class="col-lg-7 wow fadeInLeft" data-wow-delay="0.1s">
+                <div class="col-lg-7 reveal">
 
                     <h6 class="text-uppercase text-warning fw-bold mb-3">
 
@@ -241,7 +491,7 @@
                 </div>
 
 
-                <div class="col-lg-5 text-center mt-5 mt-lg-0 wow fadeInRight" data-wow-delay="0.3s">
+                <div class="col-lg-5 text-center mt-5 mt-lg-0 reveal">
 
                     <div class="glass-card p-5 floating">
 
@@ -302,11 +552,11 @@
 
     <div class="container py-5">
 
-        <div class="row g-4">
+        <div class="row g-4 reveal reveal-stagger">
 
-            <div class="col-md-3">
+            <div class="col-6 col-md-3">
 
-                <div class="glass-card bg-white text-center p-4 h-100 wow fadeInUp">
+                <div class="glass-card bg-white text-center p-4 h-100">
 
                     <i class="fas fa-tree fa-3x text-success mb-3"></i>
 
@@ -327,9 +577,9 @@
             </div>
 
 
-            <div class="col-md-3">
+            <div class="col-6 col-md-3">
 
-                <div class="glass-card bg-white text-center p-4 h-100 wow fadeInUp" data-wow-delay=".2s">
+                <div class="glass-card bg-white text-center p-4 h-100">
 
                     <i class="fas fa-users fa-3x text-success mb-3"></i>
 
@@ -350,9 +600,9 @@
             </div>
 
 
-            <div class="col-md-3">
+            <div class="col-6 col-md-3">
 
-                <div class="glass-card bg-white text-center p-4 h-100 wow fadeInUp" data-wow-delay=".4s">
+                <div class="glass-card bg-white text-center p-4 h-100">
 
                     <i class="fas fa-hands-helping fa-3x text-success mb-3"></i>
 
@@ -373,9 +623,9 @@
             </div>
 
 
-            <div class="col-md-3">
+            <div class="col-6 col-md-3">
 
-                <div class="glass-card bg-white text-center p-4 h-100 wow fadeInUp" data-wow-delay=".6s">
+                <div class="glass-card bg-white text-center p-4 h-100">
 
                     <i class="fas fa-globe-asia fa-3x text-success mb-3"></i>
 
@@ -409,7 +659,7 @@
 
         <div class="container">
 
-            <div class="text-center mb-5">
+            <div class="text-center mb-5 reveal">
 
                 <h6 class="text-success text-uppercase fw-bold">
 
@@ -433,7 +683,7 @@
 
             <div class="row">
 
-                <div class="col-lg-6 wow fadeInLeft" data-wow-delay="0.1s">
+                <div class="col-lg-6 reveal">
 
                     <div class="pe-lg-5">
 
@@ -574,7 +824,7 @@
 
                 </div>
 
-                <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.3s">
+                <div class="col-lg-6 mt-5 mt-lg-0 reveal">
 
                     <div class="glass-card-dark p-5 h-100">
 
@@ -685,7 +935,7 @@
 
         <div class="container">
 
-            <div class="text-center mb-5">
+            <div class="text-center mb-5 reveal">
 
                 <h6 class="text-success text-uppercase fw-bold">
 
@@ -707,9 +957,9 @@
 
             </div>
 
-            <div class="row g-4">
+            <div class="row g-4 reveal reveal-stagger">
 
-                <div class="col-lg-4 col-md-6 wow fadeInUp">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="bg-white rounded-4 shadow p-4 h-100 text-center">
 
@@ -731,7 +981,7 @@
 
                 </div>
 
-                <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay=".2s">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="bg-white rounded-4 shadow p-4 h-100 text-center">
 
@@ -753,7 +1003,7 @@
 
                 </div>
 
-                <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay=".4s">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="bg-white rounded-4 shadow p-4 h-100 text-center">
 
@@ -775,7 +1025,7 @@
 
                 </div>
 
-                <div class="col-lg-4 col-md-6 wow fadeInUp">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="bg-white rounded-4 shadow p-4 h-100 text-center">
 
@@ -797,7 +1047,7 @@
 
                 </div>
 
-                <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay=".2s">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="bg-white rounded-4 shadow p-4 h-100 text-center">
 
@@ -819,7 +1069,7 @@
 
                 </div>
 
-                <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay=".4s">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="bg-white rounded-4 shadow p-4 h-100 text-center">
 
@@ -857,7 +1107,7 @@
 
         <div class="container">
 
-            <div class="text-center mb-5">
+            <div class="text-center mb-5 reveal">
 
                 <h6 class="text-success text-uppercase fw-bold">
 
@@ -873,7 +1123,7 @@
 
             </div>
 
-            <div class="row g-4">
+            <div class="row g-4 reveal reveal-stagger">
 
                 <div class="col-lg-3 col-md-6">
 
@@ -970,9 +1220,6 @@
     </section>
 
     <!-- ===========================
-      PART 2 STARTS HERE
-=========================== -->
-    <!-- ===========================
         SDGs SECTION
 =========================== -->
 
@@ -980,7 +1227,7 @@
 
         <div class="container">
 
-            <div class="text-center mb-5">
+            <div class="text-center mb-5 reveal">
 
                 <h6 class="text-success text-uppercase fw-bold">
 
@@ -1002,9 +1249,9 @@
 
             </div>
 
-            <div class="row g-4">
+            <div class="row g-4 reveal reveal-stagger">
 
-                <div class="col-lg-3 col-md-6 wow fadeInUp">
+                <div class="col-lg-3 col-md-6">
 
                     <div class="bg-white rounded-4 shadow p-4 text-center h-100">
 
@@ -1022,7 +1269,7 @@
 
                 </div>
 
-                <div class="col-lg-3 col-md-6 wow fadeInUp" data-wow-delay=".2s">
+                <div class="col-lg-3 col-md-6">
 
                     <div class="bg-white rounded-4 shadow p-4 text-center h-100">
 
@@ -1040,7 +1287,7 @@
 
                 </div>
 
-                <div class="col-lg-3 col-md-6 wow fadeInUp" data-wow-delay=".4s">
+                <div class="col-lg-3 col-md-6">
 
                     <div class="bg-white rounded-4 shadow p-4 text-center h-100">
 
@@ -1058,7 +1305,7 @@
 
                 </div>
 
-                <div class="col-lg-3 col-md-6 wow fadeInUp" data-wow-delay=".6s">
+                <div class="col-lg-3 col-md-6">
 
                     <div class="bg-white rounded-4 shadow p-4 text-center h-100">
 
@@ -1092,7 +1339,7 @@
 
         <div class="container">
 
-            <div class="text-center mb-5">
+            <div class="text-center mb-5 reveal">
 
                 <h6 class="text-success text-uppercase fw-bold">
 
@@ -1108,9 +1355,9 @@
 
             </div>
 
-            <div class="row g-4">
+            <div class="row g-4 reveal reveal-stagger">
 
-                <div class="col-lg-6 wow fadeInLeft">
+                <div class="col-lg-6">
 
                     <div class="bg-white rounded-4 shadow p-4 h-100">
 
@@ -1144,7 +1391,7 @@
 
                 </div>
 
-                <div class="col-lg-6 wow fadeInRight">
+                <div class="col-lg-6">
 
                     <div class="bg-white rounded-4 shadow p-4 h-100">
 
@@ -1178,7 +1425,7 @@
 
                 </div>
 
-                <div class="col-lg-6 wow fadeInLeft" data-wow-delay=".2s">
+                <div class="col-lg-6">
 
                     <div class="bg-white rounded-4 shadow p-4 h-100">
 
@@ -1212,7 +1459,7 @@
 
                 </div>
 
-                <div class="col-lg-6 wow fadeInRight" data-wow-delay=".2s">
+                <div class="col-lg-6">
 
                     <div class="bg-white rounded-4 shadow p-4 h-100">
 
@@ -1253,10 +1500,6 @@
     </section>
 
     <!-- ===========================
-      PART 2B STARTS HERE
-=========================== -->
-
-    <!-- ===========================
         ENVIRONMENTAL INITIATIVES
 =========================== -->
 
@@ -1264,8 +1507,7 @@
 
         <div class="container">
 
-            <div class="text-center mb-5">
-
+            <div class="text-center mb-5 reveal">
                 <h6 class="text-success text-uppercase fw-bold">
                     Environmental Initiatives
                 </h6>
@@ -1280,9 +1522,9 @@
 
             </div>
 
-            <div class="row g-4">
+            <div class="row g-4 reveal reveal-stagger">
 
-                <div class="col-lg-4 wow fadeInUp">
+                <div class="col-lg-4">
 
                     <div class="bg-white rounded-4 shadow p-4 h-100 text-center">
 
@@ -1300,7 +1542,7 @@
 
                 </div>
 
-                <div class="col-lg-4 wow fadeInUp" data-wow-delay=".2s">
+                <div class="col-lg-4">
 
                     <div class="bg-white rounded-4 shadow p-4 h-100 text-center">
 
@@ -1318,7 +1560,7 @@
 
                 </div>
 
-                <div class="col-lg-4 wow fadeInUp" data-wow-delay=".4s">
+                <div class="col-lg-4">
 
                     <div class="bg-white rounded-4 shadow p-4 h-100 text-center">
 
@@ -1354,7 +1596,7 @@
 
             <div class="row align-items-center">
 
-                <div class="col-lg-6 wow fadeInLeft">
+                <div class="col-lg-6 reveal">
 
                     <h6 class="text-success text-uppercase fw-bold">
 
@@ -1476,7 +1718,7 @@
 
                 </div>
 
-                <div class="col-lg-6 wow fadeInRight">
+                <div class="col-lg-6 mt-5 mt-lg-0 reveal">
 
                     <div class="glass-card-dark p-5">
 
@@ -1569,10 +1811,6 @@
 
 
     <!-- ===========================
-      PART 2C STARTS HERE
-=========================== -->
-
-    <!-- ===========================
         IMPACT STATISTICS
 =========================== -->
 
@@ -1580,7 +1818,7 @@
 
         <div class="container">
 
-            <div class="text-center mb-5">
+            <div class="text-center mb-5 reveal">
 
                 <h6 class="text-success text-uppercase fw-bold">
 
@@ -1602,15 +1840,15 @@
 
             </div>
 
-            <div class="row g-4">
+            <div class="row g-4 reveal reveal-stagger">
 
-                <div class="col-lg-3 col-md-6">
+                <div class="col-6 col-lg-3 col-md-6">
 
                     <div class="bg-white rounded-4 shadow p-4 text-center h-100">
 
                         <i class="fas fa-tree fa-3x text-success mb-3"></i>
 
-                        <h2 class="fw-bold text-success counter">10000</h2>
+                        <h2 class="fw-bold text-success counter-number" data-target="10000">0</h2>
 
                         <h6>Trees Planned</h6>
 
@@ -1618,13 +1856,13 @@
 
                 </div>
 
-                <div class="col-lg-3 col-md-6">
+                <div class="col-6 col-lg-3 col-md-6">
 
                     <div class="bg-white rounded-4 shadow p-4 text-center h-100">
 
                         <i class="fas fa-users fa-3x text-success mb-3"></i>
 
-                        <h2 class="fw-bold text-success counter">500</h2>
+                        <h2 class="fw-bold text-success counter-number" data-target="500">0</h2>
 
                         <h6>Families Supported</h6>
 
@@ -1632,13 +1870,13 @@
 
                 </div>
 
-                <div class="col-lg-3 col-md-6">
+                <div class="col-6 col-lg-3 col-md-6">
 
                     <div class="bg-white rounded-4 shadow p-4 text-center h-100">
 
                         <i class="fas fa-hands-helping fa-3x text-success mb-3"></i>
 
-                        <h2 class="fw-bold text-success counter">100</h2>
+                        <h2 class="fw-bold text-success counter-number" data-target="100">0</h2>
 
                         <h6>Volunteers</h6>
 
@@ -1646,13 +1884,13 @@
 
                 </div>
 
-                <div class="col-lg-3 col-md-6">
+                <div class="col-6 col-lg-3 col-md-6">
 
                     <div class="bg-white rounded-4 shadow p-4 text-center h-100">
 
                         <i class="fas fa-leaf fa-3x text-success mb-3"></i>
 
-                        <h2 class="fw-bold text-success counter">20</h2>
+                        <h2 class="fw-bold text-success counter-number" data-target="20">0</h2>
 
                         <h6>Green Initiatives</h6>
 
@@ -1675,7 +1913,7 @@
     <section class="py-5">
         <div class="container">
 
-            <div class="text-center mb-5">
+            <div class="text-center mb-5 reveal">
                 <h6 class="text-success text-uppercase fw-bold">
                     Gallery
                 </h6>
@@ -1689,35 +1927,35 @@
                 </p>
             </div>
 
-            <div class="row g-4">
+            <div class="row g-4 reveal reveal-stagger">
 
-                <div class="col-lg-8">
+                <div class="col-12 col-lg-8">
                     <div class="gallery-card">
-                        <img src="img/ngo1.png" alt="NGO Activity">
+                        <img src="img/ngo1.png" alt="NGO Activity" loading="lazy">
                     </div>
                 </div>
 
-                <div class="col-lg-4">
+                <div class="col-6 col-lg-4">
                     <div class="gallery-card">
-                        <img src="img/ngo2.png" alt="Tree Plantation">
+                        <img src="img/ngo2.png" alt="Tree Plantation" loading="lazy">
                     </div>
                 </div>
 
-                <div class="col-lg-4">
+                <div class="col-6 col-lg-4">
                     <div class="gallery-card">
-                        <img src="img/ngo3.png" alt="Community Support">
+                        <img src="img/ngo3.png" alt="Community Support" loading="lazy">
                     </div>
                 </div>
 
-                <div class="col-lg-4">
+                <div class="col-6 col-lg-4">
                     <div class="gallery-card">
-                        <img src="img/ngo4.png" alt="Bamboo Initiative">
+                        <img src="img/ngo4.png" alt="Bamboo Initiative" loading="lazy">
                     </div>
                 </div>
 
-                <div class="col-lg-4">
+                <div class="col-6 col-lg-4">
                     <div class="gallery-card">
-                        <img src="img/ngo5.png" alt="Environmental Program">
+                        <img src="img/ngo5.png" alt="Environmental Program" loading="lazy">
                     </div>
                 </div>
 
@@ -1734,7 +1972,7 @@
 
     <section class="py-5 bg-success text-white">
 
-        <div class="container text-center">
+        <div class="container text-center reveal">
 
             <h6 class="text-uppercase text-warning fw-bold">
 
@@ -1780,14 +2018,23 @@
         FOOTER
 =========================== -->
 
-    <!-- <div id="footer"></div> -->
      <?php include __DIR__ . '/footer.php'; ?>
 
 
+    <!-- Floating WhatsApp Button -->
+    <a href="https://wa.me/919678431656" target="_blank" class="whatsapp-float" aria-label="Chat on WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+
+    <!-- Sticky Mobile Call Bar -->
+    <div id="mobileCallBar">
+        <a href="tel:+919678431656" class="btn btn-success flex-fill"><i class="fa fa-phone me-2"></i>Call Now</a>
+        <a href="https://wa.me/919678431656" target="_blank" class="btn btn-light flex-fill"><i class="fab fa-whatsapp me-2"></i>WhatsApp</a>
+    </div>
 
     <!-- Back To Top -->
 
-    <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded-0 back-to-top">
+    <a href="#" class="btn btn-lg btn-lg-square rounded-0 back-to-top">
 
         <i class="bi bi-arrow-up"></i>
 
@@ -1807,55 +2054,106 @@
 
     <script src="lib/waypoints/waypoints.min.js"></script>
 
-    <script src="lib/counterup/counterup.min.js"></script>
-
     <script src="lib/owlcarousel/owl.carousel.min.js"></script>
 
     <script src="js/main.js"></script>
 
-    <script src="js/navbar-active-state.js"></script>
-
+    <!-- ===================== Counter Animation (vanilla JS, 0 -> target) ===================== -->
     <script>
-        new WOW().init();
+    (function () {
+        const counters = document.querySelectorAll('.counter-number');
+        const duration = 1800;
 
-        // fetch("navbar.php")
-        //     .then(res => res.text())
-        //     .then(data => {
-        //         document.getElementById("navbar").innerHTML = data;
+        function animateCounter(el) {
+            const target = parseInt(el.getAttribute('data-target'), 10) || 0;
+            const start = performance.now();
 
-        //         document.querySelectorAll(".dropdown-toggle").forEach(function(el) {
-        //             new bootstrap.Dropdown(el);
-        //         });
-
-        //     });
-
-        // fetch("footer.php")
-        //     .then(res => res.text())
-        //     .then(data => {
-
-        //         document.getElementById("footer").innerHTML = data;
-
-        //     });
-
-        window.addEventListener("scroll", function() {
-
-            const nav = document.querySelector(".navbar");
-
-            if (nav) {
-
-                if (window.scrollY > 50) {
-
-                    nav.classList.add("scrolled");
-
+            function step(now) {
+                const progress = Math.min((now - start) / duration, 1);
+                const eased = 1 - (1 - progress) * (1 - progress);
+                el.textContent = Math.floor(eased * target);
+                if (progress < 1) {
+                    requestAnimationFrame(step);
                 } else {
-
-                    nav.classList.remove("scrolled");
-
+                    el.textContent = target;
                 }
-
             }
+            requestAnimationFrame(step);
+        }
 
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting && !entry.target.dataset.animated) {
+                        entry.target.dataset.animated = 'true';
+                        animateCounter(entry.target);
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.4 });
+
+            counters.forEach(function (el) { observer.observe(el); });
+        } else {
+            counters.forEach(animateCounter);
+        }
+    })();
+    </script>
+
+    <!-- ===================== Premium Interactivity (scroll progress, reveal, navbar) ===================== -->
+    <script>
+    (function () {
+        // Scroll progress bar
+        const progressBar = document.getElementById('scrollProgress');
+        function updateProgress() {
+            const h = document.documentElement;
+            const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+            if (progressBar) progressBar.style.width = scrolled + '%';
+        }
+        window.addEventListener('scroll', updateProgress, { passive: true });
+        updateProgress();
+
+        // Reveal-on-scroll sections
+        const reveals = document.querySelectorAll('.reveal');
+        if ('IntersectionObserver' in window) {
+            const revealObserver = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        revealObserver.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.12 });
+            reveals.forEach(function (el) { revealObserver.observe(el); });
+        } else {
+            reveals.forEach(function (el) { el.classList.add('is-visible'); });
+        }
+
+        // Navbar glass effect on scroll
+        const nav = document.querySelector('nav.navbar, .navbar');
+        function updateNav() {
+            if (!nav) return;
+            if (window.scrollY > 40) {
+                nav.classList.add('be-scrolled');
+            } else {
+                nav.classList.remove('be-scrolled');
+            }
+        }
+        window.addEventListener('scroll', updateNav, { passive: true });
+        updateNav();
+
+        // Card mouse-follow glow (gold accent, no template styling)
+        document.querySelectorAll('.bg-white.rounded-4, .glass-card.bg-white').forEach(function (card) {
+            card.addEventListener('mousemove', function (e) {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                card.style.background = 'radial-gradient(circle at ' + x + 'px ' + y + 'px, rgba(255,193,7,.10), #fff 65%)';
+            });
+            card.addEventListener('mouseleave', function () {
+                card.style.background = '#fff';
+            });
         });
+    })();
     </script>
 
 </body>
