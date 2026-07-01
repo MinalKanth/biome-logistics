@@ -161,7 +161,7 @@ function bf_e(string $value): string
     <meta content="" name="description">
 
     <!-- Favicon -->
-    <link href="img/favicon.ico" rel="icon">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
 
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -181,8 +181,8 @@ function bf_e(string $value): string
 
     <!-- Template Stylesheet -->
     <link href="css/style.css" rel="stylesheet">
-    <!-- <link href="css/style-bamboo-trading.css" rel="stylesheet">
-    <link href="css/navbar-active-state.css" rel="stylesheet"> -->
+    <!-- <link href="css/style-bamboo-trading.css" rel="stylesheet"> -->
+    <link href="css/navbar-active-state.css" rel="stylesheet">
 
     <!-- ===================================================
          ENHANCED INTERACTIVE / RESPONSIVE STYLES (NEW)

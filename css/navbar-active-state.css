@@ -1,248 +1,68 @@
 /* ============================================
-   NAVBAR ACTIVE STATE - STYLING
+   NAVBAR ACTIVE STATE - STYLING 
    ============================================ */
 
 
-/* ============ ACTIVE NAV LINK STYLING ============ */
-
-
-/* .bg-primary {
-    background-color: #68c06d !important;
-} */
-
-
-/* .bg-primary {
-    background: linear-gradient(135deg, #1b1f23 0%, #23462f 40%, #2e7d32 100%) !important;
-} */
+/* ============ NAVBAR BACKGROUND ============ */
 
 .bg-primary {
     background: linear-gradient(135deg, #68c06d 0%, #2e7d32 45%, #23462f 75%, #1b1f23 100%) !important;
 }
 
+
+/* ============ NAVBAR BRAND ============ */
+
 .navbar-brand img {
     filter: drop-shadow(0 2px 6px rgba(255, 255, 255, .25));
 }
 
+
+/* ============ NAV LINKS ============ */
+
 .navbar-nav .nav-link {
-    position: relative;
-    transition: all 0.3s ease;
-    color: #333 !important;
+    color: #333;
     font-weight: 600;
     letter-spacing: 0.5px;
-    padding: 0.5rem 1rem !important;
-    border-radius: 6px;
-}
-
-.navbar-nav .nav-link:hover {
-    background: rgba(13, 110, 253, 0.1);
-    color: #2e7d32 !important;
-    transform: translateY(-2px);
+    padding: 0.5rem 1rem;
 }
 
 
-/* ============ ACTIVE STATE ============ */
+/* ============ ACTIVE NAV LINK ============ */
 
 .navbar-nav .nav-link.active {
-    /* background: linear-gradient(135deg, #2e7d32 0%, #0b5ed7 100%); */
-    background: linear-gradient(135deg, #256d2a 0%, #3f9b46 55%, #68c06d 100%);
-    color: #ffffff !important;
-    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
-    border-radius: 6px;
-}
-
-.navbar-nav .nav-link.active::after {
-    content: '';
-    position: absolute;
-    bottom: -8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 6px;
-    height: 6px;
-    background: #2e7d32;
-    border-radius: 50%;
-    opacity: 0;
-    animation: activeIndicator 0.4s ease forwards;
-}
-
-@keyframes activeIndicator {
-    0% {
-        opacity: 0;
-        transform: translateX(-50%) scale(0);
-    }
-    100% {
-        opacity: 1;
-        transform: translateX(-50%) scale(1);
-    }
-}
-
-
-/* ============ DROPDOWN STYLING ============ */
-
-.navbar-nav .dropdown-toggle {
-    transition: all 0.3s ease;
-    color: #333 !important;
-}
-
-.navbar-nav .dropdown-toggle:hover {
-    color: #2e7d32 !important;
-}
-
-.navbar-nav .dropdown-toggle.active {
-    color: #ffffff !important;
+    color: #fff;
     font-weight: 700;
 }
 
-.navbar-nav .dropdown-toggle.active::after {
-    filter: invert(0.3);
+
+/* ============ DROPDOWN ============ */
+
+.navbar-nav .dropdown-menu {
+    border: 1px solid rgba(13, 110, 253, 0.15);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-
-/* ============ DROPDOWN ITEMS ============ */
-
-.dropdown-menu .dropdown-item {
-    position: relative;
-    transition: all 0.3s ease;
+.dropdown-item {
     color: #333;
     font-weight: 500;
     padding: 0.75rem 1.5rem;
 }
 
-.dropdown-menu .dropdown-item:hover {
-    background: rgba(13, 110, 253, 0.08);
-    color: #2e7d32;
-    padding-left: 1.75rem;
-}
-
 
 /* ============ ACTIVE DROPDOWN ITEM ============ */
 
-.dropdown-menu .dropdown-item.active {
-    background: linear-gradient(135deg, rgba(13, 110, 253, 0.15) 0%, rgba(13, 110, 253, 0.08) 100%);
-    color: #2e7d32 !important;
-    font-weight: 700;
-    border-left: 4px solid #2e7d32;
-    padding-left: calc(1.5rem - 4px);
-    box-shadow: inset -2px 0 6px rgba(13, 110, 253, 0.1);
-}
-
-.dropdown-menu .dropdown-item.active::before {
-    content: '✓';
-    position: absolute;
-    left: 0.5rem;
-    font-weight: 700;
+.dropdown-item.active {
+    background-color: #e9ecef;
     color: #2e7d32;
-    font-size: 1.1rem;
+    font-weight: 700;
 }
 
 
-/* ============ DROPDOWN MENU STYLING ============ */
-
-.dropdown-menu {
-    border: 1px solid rgba(13, 110, 253, 0.15);
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    padding: 0.5rem 0;
-    animation: dropdownFadeIn 0.3s ease;
-}
-
-@keyframes dropdownFadeIn {
-    0% {
-        opacity: 0;
-        transform: translateY(-8px);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.dropdown-menu .dropdown-item:first-child {
-    border-radius: 7px 7px 0 0;
-}
-
-.dropdown-menu .dropdown-item:last-child {
-    border-radius: 0 0 7px 7px;
-}
-
-
-/* ============ RESPONSIVE - MOBILE NAVBAR ============ */
-
-@media (max-width: 991px) {
-    .navbar-nav .nav-link {
-        padding: 0.75rem 0 !important;
-        border-radius: 0;
-        margin: 0.25rem 0;
-    }
-    .navbar-nav .nav-link.active {
-        background: linear-gradient(90deg, #2e7d32 0%, transparent 100%);
-        border-left: 4px solid #2e7d32;
-        padding-left: calc(1rem - 4px) !important;
-        color: #2e7d32 !important;
-    }
-    .navbar-nav .nav-link.active::after {
-        display: none;
-    }
-    .dropdown-menu {
-        background: #f8f9fa;
-        border: none;
-        box-shadow: none;
-        padding-left: 1.5rem;
-    }
-    .dropdown-menu .dropdown-item {
-        padding: 0.5rem 0;
-        background: transparent;
-        border-radius: 0;
-    }
-    .dropdown-menu .dropdown-item:hover {
-        background: transparent;
-        padding-left: 0.5rem;
-    }
-    .dropdown-menu .dropdown-item.active {
-        background: transparent;
-        border-left: none;
-        padding-left: 0;
-    }
-}
-
-
-/* ============ SMOOTH TRANSITIONS ============ */
-
-.nav-link,
-.dropdown-item {
-    -webkit-transition: all 0.3s ease;
-    -moz-transition: all 0.3s ease;
-    -o-transition: all 0.3s ease;
-    transition: all 0.3s ease;
-}
-
-
-/* ============ FOCUS STATES (ACCESSIBILITY) ============ */
+/* ============ FOCUS STATES ============ */
 
 .nav-link:focus,
 .dropdown-item:focus {
     outline: 2px solid #2e7d32;
     outline-offset: 2px;
-}
-
-
-/* ============ NAVBAR BRAND (HOME LINK) ============ */
-
-.navbar-brand {
-    transition: all 0.3s ease;
-}
-
-.navbar-brand:hover {
-    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2);
-    transform: translateY(-2px);
-}
-
-
-/* ============ UTILITY - Remove default Bootstrap active ============ */
-
-.navbar-nav .nav-link.active::after {
-    /* Override Bootstrap's default ::after */
-}
-
-.nav-link.active {
-    /* Override Bootstrap's default styling */
 }

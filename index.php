@@ -174,13 +174,13 @@ function qf_e(string $value): string
 
 <head>
     <meta charset="utf-8">
-    <title>Biome Enterprises | Home</title>
+    <title>Biome Enterprises | Reliable Transportation, Bamboo Trading, Legal & Compliance Services</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <meta content="" name="keywords">
-    <meta content="" name="description">
+    <meta name="keywords" content="Biome Enterprises, transportation, logistics, bamboo trading, legal services, compliance, accounting, hospitality, cab booking, North-East India, Assam">
+    <meta name="description" content="Biome Enterprises provides reliable transportation, bamboo trading, legal & compliance services, accounting, hospitality, and cab booking solutions across North-East India.">
 
     <!-- Favicon -->
-    <link href="img/favicon.ico" rel="icon">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
 
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -196,6 +196,7 @@ function qf_e(string $value): string
 
     <!-- Customized Bootstrap Stylesheet -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/navbar-active-state.css" rel="stylesheet">
 
     <!-- Template Stylesheet -->
     <link href="css/style.css" rel="stylesheet">

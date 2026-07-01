@@ -14,7 +14,7 @@
     <meta name="description" content="Biome Enterprises is committed to sustainability, environmental conservation, bamboo plantation, community development, skill development, waste management, and creating a greener future through impactful NGO initiatives.">
 
     <!-- Favicon -->
-    <link href="img/favicon.ico" rel="icon">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,7 +35,7 @@
 
     <link href="lib/animate/animate.min.css" rel="stylesheet">
 
-    <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
+    <!-- <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet"> -->
 
     <!-- Bootstrap -->
 
@@ -101,22 +101,12 @@
         .reveal-stagger.is-visible > *:nth-child(6) { transition-delay: .55s; }
 
         /* ---- Navbar glass on scroll ---- */
-        .navbar {
-            transition: background .4s ease, box-shadow .4s ease, padding .4s ease;
-        }
-        .navbar.be-scrolled {
-            background: rgba(255,255,255,.78) !important;
-            backdrop-filter: blur(14px) saturate(160%);
-            -webkit-backdrop-filter: blur(14px) saturate(160%);
-            padding-top: .4rem !important;
-            padding-bottom: .4rem !important;
-            box-shadow: 0 6px 20px rgba(0,0,0,.08) !important;
-        }
+        
 
         /* ---- Hero / Page header ---- */
         .page-header {
             position: relative;
-            background: linear-gradient(rgba(28, 22, 2, .82), rgba(15, 33, 15, .82)), url("img/ngo-banner.jpg");
+            background: linear-gradient(rgba(28, 22, 2, .82), rgba(15, 33, 15, .82)), url("img/ngo-banner.png");
             background-size: cover;
             background-position: center;
             background-attachment: fixed;

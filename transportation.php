@@ -112,7 +112,7 @@ function cf_e(string $value): string
     <meta name="description" content="Biome Enterprises Transport Services — 32 ft. single & multi axle container trucks and open body trucks for reliable freight across North-East India.">
 
     <!-- Favicon -->
-    <link href="img/favicon.ico" rel="icon">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
 
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -129,7 +129,7 @@ function cf_e(string $value): string
     <!-- NOTE: the page-specific theme stylesheet (css/style-transport.css) is
          intentionally NOT loaded here. This page is now self-contained and
          styled with Bootstrap utilities + the embedded CSS below. -->
-    <!-- <link href="css/navbar-active-state.css" rel="stylesheet"> -->
+    <link href="css/navbar-active-state.css" rel="stylesheet"> 
 
     <!-- ===================================================
          SELF-CONTAINED PAGE STYLES (Bootstrap-first)
@@ -1051,17 +1051,26 @@ function cf_e(string $value): string
             <div class="col-lg-5 reveal-up">
                 <div class="coverage-card">
                     <div class="section-eyebrow" style="color:#d7f5e6;">Coverage</div>
-                    <h3 class="mt-2">Pan North-East India</h3>
+                    <h3 class="mt-2" style="color: #D4AF37;">Pan North-East India</h3>
                     <p class="mb-0" style="color:#d7f5e6;">Our trucks regularly cover freight routes across all eight North-Eastern states with reliable service and on-time delivery.</p>
                     <ul class="coverage-list">
-                        <li><i class="fa fa-map-marker-alt"></i>Assam</li>
-                        <li><i class="fa fa-map-marker-alt"></i>Meghalaya</li>
-                        <li><i class="fa fa-map-marker-alt"></i>Tripura</li>
-                        <li><i class="fa fa-map-marker-alt"></i>Mizoram</li>
-                        <li><i class="fa fa-map-marker-alt"></i>Manipur</li>
-                        <li><i class="fa fa-map-marker-alt"></i>Nagaland</li>
-                        <li><i class="fa fa-map-marker-alt"></i>Arunachal Pradesh</li>
-                        <li><i class="fa fa-map-marker-alt"></i>Sikkim</li>
+                        <li><i class="fa fa-map-marker-alt"></i>Assam Operations</li>
+                        <li><i class="fa fa-map-marker-alt"></i>Meghalaya Operations</li>
+                        <li><i class="fa fa-map-marker-alt"></i>Tripura Operations</li>
+                        <li><i class="fa fa-map-marker-alt"></i>Mizoram Operations</li>
+                        <li><i class="fa fa-map-marker-alt"></i>Manipur Operations</li>
+                        <li><i class="fa fa-map-marker-alt"></i>Nagaland Operations</li>
+                        <li><i class="fa fa-map-marker-alt"></i>Arunachal Pradesh Operations</li>
+                        <li><i class="fa fa-map-marker-alt"></i>Sikkim Operations</li>
+                        <li><i class="fa fa-map-marker-alt"></i>Uttar Pradesh Operations</li>
+                        <li><i class="fa fa-map-marker-alt"></i>Uttarakhand Operations</li>
+                        <li><i class="fa fa-map-marker-alt"></i>Punjab Operations</li>
+                        <li><i class="fa fa-map-marker-alt"></i>Haryana Operations</li>
+                        <li><i class="fa fa-map-marker-alt"></i>Delhi NCR Operations</li>
+                        <li><i class="fa fa-map-marker-alt"></i>Gujarat Operations</li>
+                        <li><i class="fa fa-map-marker-alt"></i>Madhya Pradesh Operations</li>
+                        <li><i class="fa fa-map-marker-alt"></i>Maharashtra Operations</li>
+                        <li><i class="fa fa-map-marker-alt"></i>Pan-India Service Network</li>
                     </ul>
                 </div>
             </div>
@@ -1245,12 +1254,12 @@ function cf_e(string $value): string
          layered on top.
     ==================================================== -->
     <script>
-        window.addEventListener("scroll", function() {
-            const nav = document.querySelector(".navbar");
-            if (nav) {
-                nav.classList.toggle("scrolled", window.scrollY > 50);
-            }
-        });
+        // window.addEventListener("scroll", function() {
+        //     const nav = document.querySelector(".navbar");
+        //     if (nav) {
+        //         nav.classList.toggle("scrolled", window.scrollY > 50);
+        //     }
+        // });
 
         (function() {
             'use strict';
@@ -1458,11 +1467,11 @@ function cf_e(string $value): string
             }
 
             /* ---------- Active nav highlight ---------- */
-            function updateActiveNav() {
-                document.querySelectorAll('.nav-link').forEach(link => {
-                    link.classList.toggle('active', link.href && link.href.includes('transport'));
-                });
-            }
+            // function updateActiveNav() {
+            //     document.querySelectorAll('.nav-link').forEach(link => {
+            //         link.classList.toggle('active', link.href && link.href.includes('transport'));
+            //     });
+            // }
 
             function init() {
                 initCounters();
@@ -1474,7 +1483,7 @@ function cf_e(string $value): string
                 initQuoteForm();
                 initSmoothScroll();
                 initBackToTop();
-                updateActiveNav();
+                // updateActiveNav();
             }
 
             if (document.readyState === 'loading') {

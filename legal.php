@@ -121,7 +121,7 @@ function lf_e(string $value): string
     <meta name="description" content="Biome Enterprises provides complete legal, accounting, taxation, registration and compliance services for startups, MSMEs and businesses across North-East India.">
 
     <!-- Favicon -->
-    <link href="img/favicon.ico" rel="icon">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -112,7 +112,7 @@ function cf_e(string $value): string
     <meta content="" name="description">
 
     <!-- Favicon -->
-    <link href="img/favicon.ico" rel="icon">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
 
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -124,9 +124,9 @@ function cf_e(string $value): string
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
 
     <!-- Libraries Stylesheet -->
-    <link href="lib/animate/animate.min.css" rel="stylesheet">
-    <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
-
+    <!-- <link href="lib/animate/animate.min.css" rel="stylesheet"> -->
+    <!-- <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet"> -->
+    <link href="css/navbar-active-state.css" rel="stylesheet">
     <!-- Customized Bootstrap Stylesheet -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
 
@@ -366,6 +366,49 @@ function cf_e(string $value): string
             box-shadow: 0 6px 20px rgba(0,0,0,.08) !important;
         }
 
+
+
+        /* Keep navbar identical to NGO page */
+.navbar{
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.navbar .navbar-brand h2,
+.navbar .navbar-brand,
+.navbar .nav-link,
+.navbar .dropdown-toggle{
+    color:#fff !important;
+}
+
+.navbar .navbar-toggler{
+    border-color: rgba(255,255,255,.35);
+}
+
+.navbar .navbar-toggler i,
+.navbar .navbar-toggler-icon{
+    color:#fff !important;
+}
+
+/* Same glass effect after scrolling */
+.navbar.be-scrolled{
+    background: rgba(255,255,255,.78) !important;
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    box-shadow:0 6px 20px rgba(0,0,0,.08)!important;
+}
+
+.navbar.be-scrolled .navbar-brand h2,
+.navbar.be-scrolled .navbar-brand,
+.navbar.be-scrolled .nav-link,
+.navbar.be-scrolled .dropdown-toggle{
+    color:#fff !important;
+}
+
+
+
+
+
         /* Selection color branding */
         ::selection { background: var(--be-primary); color: #271e01; }
 
@@ -575,8 +618,8 @@ function cf_e(string $value): string
     <script src="lib/wow/wow.min.js"></script>
     <script src="lib/easing/easing.min.js"></script>
     <script src="lib/waypoints/waypoints.min.js"></script>
-    <script src="lib/counterup/counterup.min.js"></script>
-    <script src="lib/owlcarousel/owl.carousel.min.js"></script>
+    <!-- <script src="lib/counterup/counterup.min.js"></script>
+    <script src="lib/owlcarousel/owl.carousel.min.js"></script> -->
 
     <!-- Template Javascript -->
     <script src="js/main.js"></script>
