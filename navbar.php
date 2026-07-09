@@ -383,6 +383,11 @@
                     <i class="fa fa-seedling me-2"></i> NGO
                 </a>
 
+                 <!-- Blog Link -->
+                <a href="blog.php" class="nav-item nav-link">
+                    <i class="fa fa-camera-retro me-2"></i> Blog
+                </a>
+
                 <!-- Phone CTA (mobile / collapsed menu only) -->
                 <a href="tel:+919678431656" class="bio-mobile-phone">
                     <i class="fa fa-phone-alt"></i> +91 96784 31656  
