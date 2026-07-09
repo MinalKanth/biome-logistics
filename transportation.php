@@ -241,7 +241,23 @@ function cf_e(string $value): string
             background: var(--bio-green-dark) !important;
             border-color: var(--bio-green-dark) !important;
         }
+        
+        /* ---- Navbar premium ---- */
+.navbar.be-scrolled {
+    box-shadow: 0 6px 20px rgba(0,0,0,.08) !important;
+}
 
+/* Glassmorphism navbar once scrolled */
+.navbar {
+    transition: background .4s ease, box-shadow .4s ease, padding .4s ease;
+}
+.navbar.be-scrolled {
+    background: rgba(255,255,255,.78) !important;
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    padding-top: .4rem !important;
+    padding-bottom: .4rem !important;
+}
         /* ===================================================
            HERO
         ==================================================== */
@@ -420,6 +436,8 @@ function cf_e(string $value): string
             font-weight: 600;
             color: var(--bio-dark);
         }
+
+        
 
         @keyframes bio-pulse {
             0%, 100% { transform: scale(1); }
@@ -668,28 +686,37 @@ function cf_e(string $value): string
 
         .bio-mobile-cta .btn { flex: 1; font-size: .85rem; }
 
-        .back-to-top {
-            position: fixed;
-            right: 20px;
-            bottom: 30px;
-            z-index: 1045;
-            width: 45px;
-            height: 45px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50% !important;
-            background: var(--bio-green) !important;
-            border-color: var(--bio-green) !important;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity .3s ease, transform .3s ease;
-        }
+       .back-to-top {
+        
+    border-radius: 50% !important;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--be-shadow-strong);
+}
+.back-to-top {
+    position: fixed !important;
+    right: 24px !important;
+    bottom: 20px !important;
+    left: auto !important;
+    z-index: 1501;
+}
+.back-to-top {
+    background: var(--be-primary) !important;
+    border-color: var(--be-primary) !important;
+}
+.back-to-top:hover {
+    background: var(--be-success) !important;
+    box-shadow: 0 14px 32px rgba(25,135,84,.4);
+}
 
-        .back-to-top:hover {
-            background: var(--bio-green-dark) !important;
-            transform: translateY(-3px);
-        }
+
+.btn-primary {
+    
+    border: none;
+}
 
         /* ===================================================
            RESPONSIVE — mobile first, scaling up
@@ -739,9 +766,7 @@ function cf_e(string $value): string
 
             body { padding-bottom: 66px; }
 
-            .back-to-top { bottom: 78px !important; right: 12px !important; }
-        }
-
+            
         /* Respect reduced motion */
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after {
@@ -1235,7 +1260,7 @@ function cf_e(string $value): string
     </div>
 
     <!-- Back to Top -->
-    <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded-0 back-to-top"><i class="bi bi-arrow-up"></i></a>
+    <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded-0 back-to-top"><i class="bi bi-arrow-up" ></i></a>
 
 
     <!-- JavaScript Libraries -->

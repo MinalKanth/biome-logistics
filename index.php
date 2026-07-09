@@ -435,6 +435,19 @@ function qf_e(string $value): string
             display: flex; align-items: center; justify-content: center;
             box-shadow: var(--be-shadow-strong);
         }
+        .back-to-top {
+
+    position: fixed !important;
+
+    right: 24px !important;
+
+    bottom: 20px !important;
+
+    left: auto !important;
+
+    z-index: 1501;
+
+}
 
         /* ---- Navbar premium ---- */
         .navbar.be-scrolled {

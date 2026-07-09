@@ -239,6 +239,19 @@
             background: linear-gradient(135deg, var(--be-primary), var(--be-primary-dark)) !important;
             border: none;
         }
+        .back-to-top {
+
+    position: fixed !important;
+
+    right: 24px !important;
+
+    bottom: 20px !important;
+
+    left: auto !important;
+
+    z-index: 1501;
+
+}
         .back-to-top:hover {
             background: var(--be-success) !important;
             box-shadow: 0 14px 32px rgba(25,135,84,.4);

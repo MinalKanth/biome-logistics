@@ -192,6 +192,8 @@ function bf_e(string $value): string
          needed for responsiveness & interactivity.
     ==================================================== -->
     <style>
+
+
         :root {
             --bamboo-green: #198754;
             --bamboo-green-dark: #14532d;
@@ -319,6 +321,31 @@ function bf_e(string $value): string
             color: #fff !important;
         }
 
+        .back-to-top {
+            border-radius: 50% !important;
+            width: 50px; height: 50px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: var(--be-shadow-strong);
+            background: linear-gradient(135deg, var(--be-primary), var(--be-primary-dark)) !important;
+            border: none;
+        }
+        .back-to-top {
+
+    position: fixed !important;
+
+    right: 24px !important;
+
+    bottom: 20px !important;
+
+    left: auto !important;
+
+    z-index: 1501;
+
+}
+        .back-to-top:hover {
+            background: var(--be-success) !important;
+            box-shadow: 0 14px 32px rgba(25,135,84,.4);
+        }
         /* ---------- Enquiry form ---------- */
         #enquiry .bg-white.rounded-4 {
             border: none;
@@ -407,6 +434,8 @@ function bf_e(string $value): string
             border-radius: 50px;
             font-weight: 600;
         }
+
+        
 
         /* ---------- Back to top repositioned on mobile ---------- */
         @media (max-width: 575.98px) {
