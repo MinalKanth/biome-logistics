@@ -15,6 +15,14 @@
         background: linear-gradient(180deg, var(--bio-foot-dark) 0%, #0c0f0d 100%);
         position: relative;
         overflow: hidden;
+        height: auto !important;
+        min-height: 0 !important;
+    }
+
+    .bio-footer *,
+    .bio-footer *::before,
+    .bio-footer *::after {
+        box-sizing: border-box;
     }
 
     .bio-footer::before {
@@ -184,8 +192,12 @@
        RESPONSIVE — mobile-first stacking & spacing
     ==================================================== */
     @media (max-width: 991.98px) {
+        .bio-footer .row.g-5 {
+            --bs-gutter-y: 1.5rem;
+        }
+
         .bio-footer .row.g-5 > div {
-            margin-bottom: .5rem;
+            margin-bottom: 0;
         }
     }
 
@@ -226,7 +238,7 @@
         }
 
         .bio-footer-cta {
-            margin-top: .5rem;
+            margin-top: 0;
         }
     }
 
@@ -254,9 +266,9 @@
 </style>
 
 <!-- Footer Start -->
-<div class="container-fluid bio-footer text-light footer pt-5 wow fadeIn" data-wow-delay="0.1s" style="margin-top:6rem;">
+<div class="container-fluid bio-footer text-light pt-5 wow fadeIn" data-wow-delay="0.1s" style="margin-top:6rem;">
     <div class="container py-5">
-        <div class="row g-5">
+        <div class="row g-5 reveal reveal-stagger">
 
             <!-- Company Info -->
             <div class="col-lg-4 col-md-6">
@@ -393,3 +405,23 @@
     </div>
 </div>
 <!-- Footer End -->
+
+<script>
+    // Magnetic hover on footer social icons (desktop/hover-capable only)
+    (function () {
+        if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        document.querySelectorAll('.bio-footer .btn-social').forEach(function (btn) {
+            btn.addEventListener('mousemove', function (e) {
+                const rect = btn.getBoundingClientRect();
+                const x = (e.clientX - rect.left - rect.width / 2) * 0.35;
+                const y = (e.clientY - rect.top - rect.height / 2) * 0.35;
+                btn.style.transform = 'translate(' + x + 'px,' + (y - 3) + 'px)';
+            });
+            btn.addEventListener('mouseleave', function () {
+                btn.style.transform = '';
+            });
+        });
+    })();
+</script>

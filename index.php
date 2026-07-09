@@ -213,12 +213,32 @@ function qf_e(string $value): string
             --be-transition: all .35s cubic-bezier(.25,.8,.25,1);
         }
 
-        html { scroll-behavior: smooth; }
+        html {
+            scroll-behavior: smooth;
+            overflow-x: hidden;
+            width: 100%;
+        }
 
         body {
             font-family: 'Inter', sans-serif;
             background: #f7f9fc;
             overflow-x: hidden;
+            width: 100%;
+            position: relative;
+        }
+
+        /* Sticky navbar: pin it to its own compositor layer so scroll-driven
+           class/style changes (background, blur, padding) never trigger a
+           layout shift of the bar itself — this is what fixes the
+           left-right "jump" while scrolling on phones. */
+        .navbar.sticky-top {
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            backface-visibility: hidden;
+            will-change: background, box-shadow;
+            left: 0;
+            right: 0;
+            width: 100%;
         }
         h1, h2, h3, h4, h5, h6 { font-family: 'Roboto', sans-serif; }
 
@@ -1383,14 +1403,21 @@ function qf_e(string $value): string
     <!-- ===================== Premium Interactivity (scroll progress, reveal, navbar) ===================== -->
     <script>
     (function () {
-        // Scroll progress bar
+        // Scroll progress bar (rAF-throttled)
         const progressBar = document.getElementById('scrollProgress');
+        let progressTicking = false;
         function updateProgress() {
             const h = document.documentElement;
             const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
             if (progressBar) progressBar.style.width = scrolled + '%';
+            progressTicking = false;
         }
-        window.addEventListener('scroll', updateProgress, { passive: true });
+        window.addEventListener('scroll', function () {
+            if (!progressTicking) {
+                requestAnimationFrame(updateProgress);
+                progressTicking = true;
+            }
+        }, { passive: true });
         updateProgress();
 
         // Reveal-on-scroll sections
@@ -1409,17 +1436,20 @@ function qf_e(string $value): string
             reveals.forEach(function (el) { el.classList.add('is-visible'); });
         }
 
-        // Navbar shadow on scroll
+        // Navbar shadow on scroll (rAF-throttled so it never fights the browser's paint cycle)
         const nav = document.querySelector('nav.navbar, .navbar');
+        let navTicking = false;
         function updateNav() {
             if (!nav) return;
-            if (window.scrollY > 40) {
-                nav.classList.add('be-scrolled');
-            } else {
-                nav.classList.remove('be-scrolled');
-            }
+            nav.classList.toggle('be-scrolled', window.scrollY > 40);
+            navTicking = false;
         }
-        window.addEventListener('scroll', updateNav, { passive: true });
+        window.addEventListener('scroll', function () {
+            if (!navTicking) {
+                requestAnimationFrame(updateNav);
+                navTicking = true;
+            }
+        }, { passive: true });
         updateNav();
 
         // Cursor glow (desktop only)

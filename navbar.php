@@ -17,6 +17,9 @@
         box-shadow: 0 4px 18px rgba(20, 30, 25, .08);
         transition: box-shadow .3s ease, background .3s ease; 
         padding: 0;
+        width: 100%;
+        max-width: 100vw;
+        overflow-x: clip;
     }
 
     .bio-navbar.scrolled {
@@ -66,6 +69,9 @@
         line-height: 1.15;
         margin: 0;
         white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 56vw;
     }
 
     .bio-brand-tagline {
@@ -79,11 +85,63 @@
     .bio-navbar .navbar-toggler {
         border: 2px solid var(--bio-nav-green);
         border-radius: .5rem; 
-        padding: .4rem .55rem;
+        padding: .5rem .6rem;
+        width: 44px;
+        height: 40px;
+        position: relative;
+        background: transparent;
     }
 
     .bio-navbar .navbar-toggler:focus {
         box-shadow: 0 0 0 .2rem rgba(25, 135, 84, .25);
+    }
+
+    /* Custom 3-line -> X animated icon, replaces Bootstrap's default SVG icon */
+    .bio-navbar .navbar-toggler-icon {
+        background-image: none !important;
+        position: relative;
+        display: block;
+        width: 20px;
+        height: 2px;
+        background: var(--bio-nav-green);
+        border-radius: 2px;
+        transition: background-color .2s ease .1s;
+    }
+
+    .bio-navbar .navbar-toggler-icon::before,
+    .bio-navbar .navbar-toggler-icon::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 20px;
+        height: 2px;
+        background: var(--bio-nav-green);
+        border-radius: 2px;
+        transition: transform .3s ease, top .3s ease;
+    }
+
+    .bio-navbar .navbar-toggler-icon::before { top: -6px; }
+    .bio-navbar .navbar-toggler-icon::after { top: 6px; }
+
+    .bio-navbar .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon {
+        background: transparent;
+    }
+
+    .bio-navbar .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon::before {
+        top: 0;
+        transform: rotate(45deg);
+    }
+
+    .bio-navbar .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon::after {
+        top: 0;
+        transform: rotate(-45deg);
+    }
+
+    /* Smooth open/close for the mobile menu instead of Bootstrap's abrupt collapse */
+    @media (max-width: 991.98px) {
+        .bio-navbar .navbar-collapse.collapsing {
+            transition: height .3s ease;
+        }
     }
 
     /* ---------- Nav links ---------- */
@@ -100,14 +158,15 @@
         color: var(--bio-nav-green);  
     }
 
-    /* .bio-navbar .nav-link::after {
+    .bio-navbar .nav-link::after {
         content: "";
         position: absolute;
         left: 1rem;
         right: 1rem;
         bottom: .55rem; 
         height: 2px;
-        background: var(--bio-nav-green);
+        background: linear-gradient(90deg, var(--bio-nav-green), var(--bio-nav-gold));
+        border-radius: 2px;
         transform: scaleX(0);
         transform-origin: left;
         transition: transform .25s ease;
@@ -121,10 +180,6 @@
     .bio-navbar .nav-link:hover::after,
     .bio-navbar .nav-link.active::after {
         transform: scaleX(1);
-    } */
-
-    .bio-navbar .nav-link:hover {
-    color: var(--bio-nav-green) !important;
     }
 
     /* ---------- Dropdown ---------- */
@@ -245,7 +300,7 @@
         }
 
         .bio-brand-logo {
-            height: 34px !importantss       ;
+            height: 34px !important;
         }
 
         .bio-brand-tagline {
@@ -344,6 +399,17 @@
     </div>
 </nav>
 <!-- Navbar End -->
+
+<!-- Note: the scroll-triggered "scrolled" look is now driven entirely by the
+     single rAF-throttled listener in index.php (adds .be-scrolled), so this
+     navbar no longer runs its own separate, unthrottled scroll handler. -->
+<style>
+    /* Keep the same scrolled visual treatment, just driven by .be-scrolled now */
+    .bio-navbar.be-scrolled {
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 8px 24px rgba(20, 30, 25, .14);
+    }
+</style>
 
 <script>
     // Add a subtle shadow and background blur once the page is scrolled (cosmetic)
