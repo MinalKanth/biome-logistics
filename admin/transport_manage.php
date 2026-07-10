@@ -667,7 +667,7 @@ require __DIR__ . '/includes/header.php';
                     </td>
                     <td><span class="mono-time"><?= e((string) $b['pickup_date']) ?></span></td>
                     <td class="actions">
-                      <a href="transport_track.php?id=<?= (int) $b['id'] ?>" class="btn btn-small btn-ghost" title="Timeline / tracking">
+                      <a href="transport_track.php?tracking_id=<?= urlencode($b['tracking_id']) ?>" class="btn btn-small btn-ghost" title="Timeline / tracking" target="_blank">
                         <i class="fa-solid fa-timeline"></i>
                       </a>
                       <a href="transport_edit.php?id=<?= (int) $b['id'] ?>" class="btn btn-small btn-secondary">

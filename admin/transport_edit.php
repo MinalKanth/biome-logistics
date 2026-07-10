@@ -465,7 +465,7 @@ function fclass(array $errors, string $key): string
           <h1>Edit booking <span class="tracking-id-badge" style="font-size:.9rem;vertical-align:middle;"><?= e($booking['tracking_id']) ?></span></h1>
         </div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-          <a href="transport_track.php?id=<?= $bookingId ?>" class="btn btn-ghost"><i class="fa-solid fa-timeline"></i> View timeline</a>
+          <a href="transport_track.php?tracking_id=<?= urlencode($booking['tracking_id']) ?>" class="btn btn-ghost" target="_blank"><i class="fa-solid fa-timeline"></i> View timeline</a>
           <a href="transport_manage.php" class="btn btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back to list</a>
         </div>
       </div>
