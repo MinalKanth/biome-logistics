@@ -87,7 +87,7 @@ require __DIR__ . '/includes/header.php';
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <div class="mark">A</div>
-      <div class="name">Atlas<br><small>Control Panel</small></div>
+      <div class="name">Biome<br><small>Control Panel</small></div>
     </div>
 
     <div class="sidebar-section-label">Overview</div>
@@ -106,6 +106,7 @@ require __DIR__ . '/includes/header.php';
         <li><a href="roles.php" class="nav-item"><i class="fa-solid fa-key"></i> Roles &amp; Permissions</a></li>
         <li><a href="content.php" class="nav-item"><i class="fa-solid fa-layer-group"></i> Content</a></li>
         <li><a href="billing.php" class="nav-item"><i class="fa-solid fa-credit-card"></i> Billing</a></li>
+        <li><a href="blog_manage.php" class="nav-item"><i class="fa-solid fa-newspaper"></i> Blog Posts <span class="pill"><?= e((string) $sidebarBlogCount) ?></span></a></li>
       </ul>
 
       <div class="sidebar-section-label">System</div>
@@ -167,7 +168,7 @@ require __DIR__ . '/includes/header.php';
 
       <div class="page-head">
         <div>
-          <div class="breadcrumb">Atlas <span class="sep">/</span> <span class="current">Users</span></div>
+          <div class="breadcrumb">Biome <span class="sep">/</span> <span class="current">Users</span></div>
           <h1>Manage users</h1>
         </div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -312,7 +313,7 @@ require __DIR__ . '/includes/header.php';
 
       <!-- ---------- Footer ---------- -->
       <div class="dash-footer">
-        <span>&copy; <?= date('Y') ?> Atlas Control Panel. All rights reserved.</span>
+        <span>&copy; <?= date('Y') ?> Biome Control Panel. All rights reserved.</span>
         <span>
           <a href="settings.php">Settings</a> &nbsp;·&nbsp;
           <a href="security.php">Security</a> &nbsp;·&nbsp;
@@ -334,6 +335,16 @@ require __DIR__ . '/includes/header.php';
     });
   }
 })();
+function safe_scalar_blog(PDO $pdo, string $sql, $default = 0)
+{
+    try {
+        $val = $pdo->query($sql)->fetchColumn();
+        return $val === false ? $default : $val;
+    } catch (Throwable $e) {
+        return $default;
+    }
+}
+$sidebarBlogCount = (int) safe_scalar_blog($pdo, 'SELECT COUNT(*) FROM blog_posts');
 </script>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>

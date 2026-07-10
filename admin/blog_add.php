@@ -95,10 +95,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$errors) {
+        // mkdir()'s mode is filtered by umask, so chmod explicitly afterward to
+        // guarantee the web server user can actually write into the folder.
         if (!is_dir(BLOG_UPLOAD_DIR)) {
-            mkdir(BLOG_UPLOAD_DIR, 0755, true);
+            if (!@mkdir(BLOG_UPLOAD_DIR, 0775, true) && !is_dir(BLOG_UPLOAD_DIR)) {
+                $errors[] = 'Could not create upload directory: ' . BLOG_UPLOAD_DIR;
+            } else {
+                @chmod(BLOG_UPLOAD_DIR, 0775);
+            }
         }
 
+        if (!$errors && !is_writable(BLOG_UPLOAD_DIR)) {
+            @chmod(BLOG_UPLOAD_DIR, 0775);
+            if (!is_writable(BLOG_UPLOAD_DIR)) {
+                $errors[] = 'Upload directory is not writable: ' . BLOG_UPLOAD_DIR
+                    . '. Run: chmod -R 775 "' . BLOG_UPLOAD_DIR . '"';
+            }
+        }
+    }
+
+    if (!$errors) {
         $slug = make_slug($pdo, $title);
 
         $pdo->beginTransaction();
@@ -124,8 +140,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach ($photoFiles as $photo) {
                 $filename = bin2hex(random_bytes(16)) . '.' . $photo['ext'];
                 $destination = BLOG_UPLOAD_DIR . '/' . $filename;
-                if (!move_uploaded_file($photo['tmp'], $destination)) {
-                    throw new RuntimeException('Could not save an uploaded photo to disk.');
+                if (!@move_uploaded_file($photo['tmp'], $destination)) {
+                    $lastErr = error_get_last();
+                    throw new RuntimeException(
+                        'Could not save uploaded photo to "' . $destination . '". '
+                        . ($lastErr['message'] ?? 'Unknown filesystem error.')
+                    );
                 }
                 $photoStmt->execute([
                     ':p' => $postId,
@@ -157,118 +177,306 @@ $recent = $pdo->query(
      LIMIT 8'
 )->fetchAll();
 
+// Best-effort total user count for the sidebar pill (kept consistent with dashboard.php / users.php)
+function safe_scalar_users(PDO $pdo, string $sql, $default = 0)
+{
+    try {
+        $val = $pdo->query($sql)->fetchColumn();
+        return $val === false ? $default : $val;
+    } catch (Throwable $e) {
+        return $default;
+    }
+}
+$sidebarUserCount = (int) safe_scalar_users($pdo, 'SELECT COUNT(*) FROM users');
+
 require __DIR__ . '/includes/header.php';
 ?>
+
+<link rel="stylesheet" href="assets/css/dashboard.css">
+
 <style>
-    body { background: #f4f6f5; font-family: 'Inter', Arial, sans-serif; }
-    .blog-add-wrap { max-width: 760px; margin: 40px auto; padding: 0 16px; }
-    .blog-add-card { background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,.06); }
-    .blog-add-card h1 { font-size: 1.5rem; margin-bottom: 4px; color: #1b3a1e; }
-    .blog-add-card .sub { color: #6b7280; margin-bottom: 24px; font-size: .92rem; }
-    .form-group { margin-bottom: 18px; }
-    label { display: block; font-weight: 600; margin-bottom: 6px; font-size: .9rem; color: #1b3a1e; }
-    input[type=text], input[type=date], input[type=url], textarea, select {
-        width: 100%; padding: 10px 12px; border: 1px solid #d7ddd8; border-radius: 8px; font-size: .95rem; box-sizing: border-box;
-    }
-    textarea { resize: vertical; min-height: 120px; }
-    input[type=file] { width: 100%; padding: 8px; border: 1px dashed #b7c4b8; border-radius: 8px; background: #fafcfa; }
-    .hint { font-size: .8rem; color: #8a8a8a; margin-top: 4px; }
-    .btn-submit {
-        background: #2e7d32; color: #fff; border: none; padding: 11px 26px; border-radius: 8px;
-        font-weight: 600; cursor: pointer; font-size: .95rem;
-    }
-    .btn-submit:hover { background: #256428; }
-    .errors { background: #fdecea; border: 1px solid #f5c2bd; color: #7a271a; padding: 12px 16px; border-radius: 8px; margin-bottom: 18px; font-size: .9rem; }
-    .errors ul { margin: 0; padding-left: 18px; }
-    .recent-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: .88rem; }
-    .recent-table th, .recent-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; }
-    .badge { padding: 2px 9px; border-radius: 20px; font-size: .75rem; font-weight: 600; }
-    .badge-published { background: #e6f4ea; color: #1b7a34; }
-    .badge-draft { background: #f1f1f1; color: #666; }
-    .top-links { max-width: 760px; margin: 24px auto 0; padding: 0 16px; font-size: .9rem; }
-    .top-links a { color: #2e7d32; text-decoration: none; font-weight: 600; }
+  /* Scoped additions for the blog form — reuses the dashboard.css design tokens
+     (--text-muted, --text-secondary, --border, --accent, etc.) so it inherits
+     the same palette as the rest of the admin panel. */
+  .blog-form-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 980px) { .blog-form-grid { grid-template-columns: 1fr; } }
+
+  .form-group { margin-bottom: 18px; }
+  .form-group label {
+    display: block; font-weight: 600; margin-bottom: 6px; font-size: .85rem; color: var(--text-primary, #1b1b1b);
+  }
+  .form-group .optional { font-weight: 400; color: var(--text-muted); }
+  .form-group input[type=text],
+  .form-group input[type=date],
+  .form-group input[type=url],
+  .form-group textarea,
+  .form-group select {
+    width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 8px;
+    border: 1px solid var(--border, #e2e5e3); font-size: .92rem; font-family: inherit;
+    background: var(--surface, #fff); color: inherit;
+  }
+  .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+    outline: none; border-color: var(--accent, #2e7d32);
+    box-shadow: 0 0 0 3px rgba(46,125,50,.12);
+  }
+  .form-group textarea { resize: vertical; min-height: 140px; }
+  .form-group input[type=file] {
+    width: 100%; padding: 10px; border: 1px dashed var(--border, #cfd6d1); border-radius: 8px;
+    background: var(--surface-muted, #fafcfa); font-size: .88rem;
+  }
+  .field-hint { font-size: .78rem; color: var(--text-muted); margin-top: 5px; }
+
+  .form-errors {
+    background: #fdecea; border: 1px solid #f5c2bd; color: #7a271a;
+    padding: 12px 16px; border-radius: 8px; margin-bottom: 18px; font-size: .88rem;
+  }
+  .form-errors ul { margin: 0; padding-left: 18px; }
+
+  .card-panel {
+    background: var(--surface, #fff); border: 1px solid var(--border, #e9ece9);
+    border-radius: 12px; padding: 22px;
+  }
+  .card-panel + .card-panel { margin-top: 20px; }
+  .card-panel h2 {
+    font-size: .95rem; margin: 0 0 4px; color: var(--text-primary, #1b1b1b);
+  }
+  .card-panel .card-sub { font-size: .8rem; color: var(--text-muted); margin-bottom: 16px; }
+
+  .recent-list { display: flex; flex-direction: column; gap: 10px; }
+  .recent-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 12px; border-radius: 8px; background: var(--surface-muted, #f7f9f7);
+  }
+  .recent-row .rt-title { font-weight: 600; font-size: .85rem; }
+  .recent-row .rt-meta { font-size: .76rem; color: var(--text-muted); margin-top: 2px; }
+
+  .form-actions { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
 </style>
 
-<div class="top-links">
-    <a href="dashboard.php">&larr; Back to Dashboard</a> &nbsp;|&nbsp; <a href="../blog.php" target="_blank">View public Blog page &#8599;</a>
-</div>
+<div class="app-shell">
 
-<div class="blog-add-wrap">
-    <div class="blog-add-card">
-        <h1>Add a Blog Post</h1>
-        <div class="sub">Share a daily event with photos and an optional video link.</div>
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="mark">A</div>
+      <div class="name">Biome<br><small>Control Panel</small></div>
+    </div>
 
-        <?php if ($errors): ?>
-            <div class="errors">
-                <ul>
-                    <?php foreach ($errors as $err): ?>
-                        <li><?= e($err) ?></li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-        <?php endif; ?>
+    <div class="sidebar-section-label">Overview</div>
+    <nav class="sidebar-nav">
+      <ul>
+        <li><a href="dashboard.php" class="nav-item"><i class="fa-solid fa-grid-2"></i> Dashboard</a></li>
+        <li><a href="analytics.php" class="nav-item"><i class="fa-solid fa-chart-line"></i> Analytics</a></li>
+        <li><a href="reports.php" class="nav-item"><i class="fa-solid fa-file-lines"></i> Reports</a></li>
+      </ul>
 
-        <form method="post" enctype="multipart/form-data" novalidate>
+      <div class="sidebar-section-label">Manage</div>
+      <ul>
+        <li><a href="users.php" class="nav-item"><i class="fa-solid fa-users"></i> Users <span class="pill"><?= e((string) $sidebarUserCount) ?></span></a></li>
+        <li><a href="admins.php" class="nav-item"><i class="fa-solid fa-user-shield"></i> Admins</a></li>
+        <li><a href="bamboo-enquiries.php" class="nav-item"><i class="fa-solid fa-user-shield"></i> Bamboo Trading</a></li>
+        <li><a href="roles.php" class="nav-item"><i class="fa-solid fa-key"></i> Roles &amp; Permissions</a></li>
+        <li><a href="content.php" class="nav-item active"><i class="fa-solid fa-layer-group"></i> Content</a></li>
+        <li><a href="billing.php" class="nav-item"><i class="fa-solid fa-credit-card"></i> Billing</a></li>
+        <li><a href="blog_manage.php" class="nav-item"><i class="fa-solid fa-newspaper"></i> Blog Posts <span class="pill"><?= e((string) $sidebarBlogCount) ?></span></a></li>
+      </ul>
+
+      <div class="sidebar-section-label">System</div>
+      <ul>
+        <li><a href="logs.php" class="nav-item"><i class="fa-solid fa-clock-rotate-left"></i> Activity Logs</a></li>
+        <li><a href="notifications.php" class="nav-item"><i class="fa-solid fa-bell"></i> Notifications</a></li>
+        <li><a href="security.php" class="nav-item"><i class="fa-solid fa-shield-halved"></i> Security</a></li>
+        <li><a href="settings.php" class="nav-item"><i class="fa-solid fa-gear"></i> Settings</a></li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="sidebar-upgrade">
+        <div class="label">System status</div>
+        <p>All services operational. Last checked just now.</p>
+        <a href="security.php" class="btn btn-outline-accent" style="width:100%;justify-content:center;">
+          <i class="fa-solid fa-circle-check"></i> View status page
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN COLUMN ===================== -->
+  <div class="main-col">
+
+    <!-- ---------- Topbar ---------- -->
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="menu-toggle" id="menuToggle"><i class="fa-solid fa-bars"></i></div>
+        <div class="topbar-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search users, logs, settings…">
+          <kbd>⌘K</kbd>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <div class="icon-btn" title="Notifications">
+          <i class="fa-regular fa-bell"></i>
+          <span class="dot"></span>
+        </div>
+        <div class="icon-btn" title="Help &amp; documentation">
+          <i class="fa-regular fa-circle-question"></i>
+        </div>
+        <div class="topbar-divider"></div>
+        <div class="profile-chip">
+          <div class="avatar"><?= e(strtoupper(substr($_SESSION['admin_name'] ?? $_SESSION['admin_username'] ?? 'A', 0, 1))) ?></div>
+          <div class="who">
+            <strong><?= e($_SESSION['admin_name'] ?? $_SESSION['admin_username'] ?? 'Administrator') ?></strong>
+            <span><?= e($_SESSION['admin_role'] ?? 'Super Admin') ?></span>
+          </div>
+          <i class="fa-solid fa-chevron-down" style="font-size:10px;color:var(--text-muted);"></i>
+        </div>
+      </div>
+    </header>
+
+    <!-- ---------- Content ---------- -->
+    <main class="content">
+
+      <div class="page-head">
+        <div>
+          <div class="breadcrumb">Biome <span class="sep">/</span> <a href="content.php" style="color:inherit;text-decoration:none;">Content</a> <span class="sep">/</span> <span class="current">Add Blog Post</span></div>
+          <h1>Add a blog post</h1>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <a href="../blog.php" target="_blank" class="btn btn-ghost"><i class="fa-solid fa-arrow-up-right-from-square"></i> View public blog</a>
+        </div>
+      </div>
+
+      <!-- Signature element: live activity pulse -->
+      <svg class="pulse-divider" viewBox="0 0 1200 34" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,17 L1200,17"></path>
+        <path class="live" d="M0,17 L120,17 L132,4 L144,30 L156,17 L300,17 L312,9 L324,25 L336,17 L520,17 L532,2 L544,32 L556,17 L760,17 L772,7 L784,27 L796,17 L1000,17 L1012,4 L1024,30 L1036,17 L1200,17"></path>
+      </svg>
+
+      <?php if ($errors): ?>
+        <div class="form-errors">
+          <ul>
+            <?php foreach ($errors as $err): ?>
+              <li><?= e($err) ?></li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
+      <?php endif; ?>
+
+      <div class="blog-form-grid">
+
+        <!-- ---------- Form ---------- -->
+        <div class="card-panel">
+          <h2>Post details</h2>
+          <div class="card-sub">Share a daily event with photos and an optional video link.</div>
+
+          <form method="post" enctype="multipart/form-data" novalidate>
             <?= csrf_field() ?>
 
             <div class="form-group">
-                <label for="title">Title</label>
-                <input type="text" id="title" name="title" maxlength="200" value="<?= e($title) ?>" required>
+              <label for="title">Title</label>
+              <input type="text" id="title" name="title" maxlength="200" value="<?= e($title) ?>" required>
             </div>
 
             <div class="form-group">
-                <label for="event_date">Event Date</label>
-                <input type="date" id="event_date" name="event_date" value="<?= e($eventDate) ?>" required>
+              <label for="event_date">Event date</label>
+              <input type="date" id="event_date" name="event_date" value="<?= e($eventDate) ?>" required>
             </div>
 
             <div class="form-group">
-                <label for="description">Description</label>
-                <textarea id="description" name="description" maxlength="5000" required><?= e($description) ?></textarea>
+              <label for="description">Description</label>
+              <textarea id="description" name="description" maxlength="5000" required><?= e($description) ?></textarea>
             </div>
 
             <div class="form-group">
-                <label for="video_url">Video Link <span style="font-weight:400;color:#8a8a8a;">(YouTube/Vimeo, optional)</span></label>
-                <input type="url" id="video_url" name="video_url" placeholder="https://www.youtube.com/watch?v=..." value="<?= e($videoUrl) ?>">
+              <label for="video_url">Video link <span class="optional">(YouTube/Vimeo, optional)</span></label>
+              <input type="url" id="video_url" name="video_url" placeholder="https://www.youtube.com/watch?v=..." value="<?= e($videoUrl) ?>">
             </div>
 
             <div class="form-group">
-                <label for="photos">Photos</label>
-                <input type="file" id="photos" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple>
-                <div class="hint">JPG, PNG or WEBP. Up to 5MB each. You can select multiple photos at once.</div>
+              <label for="photos">Photos</label>
+              <input type="file" id="photos" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple>
+              <div class="field-hint">JPG, PNG or WEBP. Up to 5MB each. You can select multiple photos at once.</div>
             </div>
 
             <div class="form-group">
-                <label for="status">Status</label>
-                <select id="status" name="status">
-                    <option value="published" <?= $status === 'published' ? 'selected' : '' ?>>Published (visible on the blog page)</option>
-                    <option value="draft" <?= $status === 'draft' ? 'selected' : '' ?>>Draft (hidden for now)</option>
-                </select>
+              <label for="status">Status</label>
+              <select id="status" name="status">
+                <option value="published" <?= $status === 'published' ? 'selected' : '' ?>>Published (visible on the blog page)</option>
+                <option value="draft" <?= $status === 'draft' ? 'selected' : '' ?>>Draft (hidden for now)</option>
+              </select>
             </div>
 
-            <button type="submit" class="btn-submit">Publish Post</button>
-        </form>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> Publish post</button>
+              <a href="content.php" class="btn btn-secondary">Cancel</a>
+            </div>
+          </form>
+        </div>
 
-        <?php if ($recent): ?>
-            <h2 style="font-size:1.05rem;margin-top:34px;color:#1b3a1e;">Recently Added</h2>
-            <table class="recent-table">
-                <thead>
-                    <tr><th>Title</th><th>Date</th><th>Photos</th><th>Status</th></tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($recent as $row): ?>
-                        <tr>
-                            <td><?= e($row['title']) ?></td>
-                            <td><?= e((string) $row['event_date']) ?></td>
-                            <td><?= (int) $row['photo_count'] ?></td>
-                            <td>
-                                <span class="badge badge-<?= e($row['status']) ?>"><?= e($row['status']) ?></span>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        <?php endif; ?>
-    </div>
+        <!-- ---------- Recently added ---------- -->
+        <div class="card-panel">
+          <h2>Recently added</h2>
+          <div class="card-sub">Last 8 posts, newest first.</div>
+
+          <?php if (!$recent): ?>
+            <div class="empty-state">
+              <i class="fa-solid fa-image"></i>
+              <p>No posts yet.</p>
+              <span>Published posts will show up here.</span>
+            </div>
+          <?php else: ?>
+            <div class="recent-list">
+              <?php foreach ($recent as $row): ?>
+                <div class="recent-row">
+                  <div>
+                    <div class="rt-title"><?= e($row['title']) ?></div>
+                    <div class="rt-meta"><?= e((string) $row['event_date']) ?> &middot; <?= (int) $row['photo_count'] ?> photo<?= (int) $row['photo_count'] === 1 ? '' : 's' ?></div>
+                  </div>
+                  <span class="badge badge-<?= $row['status'] === 'published' ? 'success' : 'muted' ?>"><?= e($row['status']) ?></span>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
+        </div>
+
+      </div>
+
+      <!-- ---------- Footer ---------- -->
+      <div class="dash-footer">
+        <span>&copy; <?= date('Y') ?> Biome Control Panel. All rights reserved.</span>
+        <span>
+          <a href="settings.php">Settings</a> &nbsp;·&nbsp;
+          <a href="security.php">Security</a> &nbsp;·&nbsp;
+          <a href="logs.php">Activity logs</a>
+        </span>
+      </div>
+
+    </main>
+  </div>
 </div>
+
+<script>
+(function () {
+  const toggle = document.getElementById('menuToggle');
+  const sidebar = document.getElementById('sidebar');
+  if (toggle && sidebar) {
+    toggle.addEventListener('click', function () {
+      sidebar.classList.toggle('open');
+    });
+  }
+})();
+function safe_scalar_blog(PDO $pdo, string $sql, $default = 0)
+{
+    try {
+        $val = $pdo->query($sql)->fetchColumn();
+        return $val === false ? $default : $val;
+    } catch (Throwable $e) {
+        return $default;
+    }
+}
+$sidebarBlogCount = (int) safe_scalar_blog($pdo, 'SELECT COUNT(*) FROM blog_posts');
+</script>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>

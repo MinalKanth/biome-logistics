@@ -65,7 +65,8 @@
     .bio-brand-name {
         color: #fff; 
         font-weight: 700;
-        font-size: clamp(1.05rem, 2.2vw + .6rem, 1.6rem);
+        /* font-size: clamp(1.05rem, 2.2vw + .6rem, 1.6rem); */
+        font-size: 1.35rem;
         line-height: 1.15;
         margin: 0;
         white-space: nowrap;

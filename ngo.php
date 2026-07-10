@@ -1,48 +1,138 @@
+<?php
+declare(strict_types=1);
+
+require_once __DIR__ . '/admin/config/database.php';
+
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+if (empty($_SESSION['contact_csrf_token'])) {
+    $_SESSION['contact_csrf_token'] = bin2hex(random_bytes(32));
+}
+$contactCsrfToken = $_SESSION['contact_csrf_token'];
+
+$contactFormErrors = [];
+$contactFormSuccess = false;
+if (!empty($_SESSION['contact_flash_success'])) {
+    $contactFormSuccess = true;
+    unset($_SESSION['contact_flash_success']);
+}
+
+$contactFormValues = [
+    'name'    => '',
+    'email'   => '',
+    'subject' => '',
+    'message' => '',
+];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_form_submit'])) {
+
+    $postedToken = $_POST['csrf_token'] ?? '';
+    if (!hash_equals($_SESSION['contact_csrf_token'], $postedToken)) {
+        $contactFormErrors[] = 'Your session expired. Please refresh the page and try again.';
+    } else {
+
+        $name    = trim((string) ($_POST['name'] ?? ''));
+        $email   = trim((string) ($_POST['email'] ?? ''));
+        $subject = trim((string) ($_POST['subject'] ?? ''));
+        $message = trim((string) ($_POST['message'] ?? ''));
+
+        $contactFormValues = compact('name', 'email', 'subject', 'message');
+
+        if ($name === '' || mb_strlen($name) > 150) {
+            $contactFormErrors[] = 'Name is required (max 150 characters).';
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 150) {
+            $contactFormErrors[] = 'Please enter a valid email address.';
+        }
+
+        $allowedServices = [
+            'Transportation & Logistics', 'Bamboo Trading', 'GST Registration',
+            'Company Registration', 'MSME Registration', 'Accounting', 'Cab Rental', 'Other',
+        ];
+        if ($subject !== '' && !in_array($subject, $allowedServices, true)) {
+            $contactFormErrors[] = 'Please select a valid service from the list.';
+        }
+        if (mb_strlen($message) > 2000) {
+            $contactFormErrors[] = 'Message is too long (max 2000 characters).';
+        }
+
+        $now = time();
+        $bucket = $_SESSION['contact_rate_limit'] ?? ['count' => 0, 'start' => $now];
+        if ($now - $bucket['start'] > 600) {
+            $bucket = ['count' => 0, 'start' => $now];
+        }
+        $bucket['count']++;
+        $_SESSION['contact_rate_limit'] = $bucket;
+        if ($bucket['count'] > 3) {
+            $contactFormErrors[] = 'Too many submissions. Please wait a few minutes and try again.';
+        }
+
+        if (!$contactFormErrors) {
+            try {
+                $pdo = get_db();
+                $stmt = $pdo->prepare(
+                    'INSERT INTO contact_messages (full_name, email, service_required, message, ip_address)
+                     VALUES (:name, :email, :subject, :message, :ip)'
+                );
+                $stmt->execute([
+                    ':name'    => $name,
+                    ':email'   => $email,
+                    ':subject' => $subject !== '' ? $subject : null,
+                    ':message' => $message !== '' ? $message : null,
+                    ':ip'      => $_SERVER['REMOTE_ADDR'] ?? null,
+                ]);
+
+                $_SESSION['contact_flash_success'] = true;
+                $_SESSION['contact_csrf_token'] = bin2hex(random_bytes(32));
+                header('Location: ' . $_SERVER['PHP_SELF']);
+                exit;
+
+            } catch (PDOException $e) {
+                error_log('Contact form insert failed: ' . $e->getMessage());
+                $contactFormErrors[] = 'Something went wrong on our end. Please try again later.';
+            }
+        }
+    }
+}
+
+function cf_e(string $value): string
+{
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-
     <meta charset="utf-8">
-
     <title>Biome Enterprises | NGO & Sustainability</title>
-
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-
     <meta name="keywords" content="NGO, Sustainability, Environment, Bamboo Plantation, Green India, CSR, Community Development, Biome Enterprises, Assam">
 
     <meta name="description" content="Biome Enterprises is committed to sustainability, environmental conservation, bamboo plantation, community development, skill development, waste management, and creating a greener future through impactful NGO initiatives.">
 
+
     <!-- Favicon -->
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
 
-    <!-- Google Fonts -->
+    <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto:wght@500;700&display=swap" rel="stylesheet">
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-
-    <!-- Font Awesome -->
-
+    <!-- Icon Font Stylesheet -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
 
-    <!-- Bootstrap Icons -->
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-
-    <!-- Libraries -->
-
+    <!-- Libraries Stylesheet -->
     <link href="lib/animate/animate.min.css" rel="stylesheet">
-
     <!-- <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet"> -->
-
-    <!-- Bootstrap -->
-
+    <link href="css/navbar-active-state.css" rel="stylesheet">
+    <!-- Customized Bootstrap Stylesheet -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- Main CSS -->
-
+    <!-- Template Stylesheet -->
     <link href="css/style.css" rel="stylesheet">
 
     <style>
@@ -96,66 +186,21 @@
         .reveal-stagger.is-visible > *:nth-child(1) { transition-delay: .05s; }
         .reveal-stagger.is-visible > *:nth-child(2) { transition-delay: .15s; }
         .reveal-stagger.is-visible > *:nth-child(3) { transition-delay: .25s; }
-        .reveal-stagger.is-visible > *:nth-child(4) { transition-delay: .35s; }
-        .reveal-stagger.is-visible > *:nth-child(5) { transition-delay: .45s; }
-        .reveal-stagger.is-visible > *:nth-child(6) { transition-delay: .55s; }
 
-        /* ---- Navbar glass on scroll ---- */
-        
-
-        /* ---- Hero / Page header ---- */
+        /* ---- Page Header (replaces template's page-header bg) ---- */
         .page-header {
             position: relative;
-            background: linear-gradient(rgba(28, 22, 2, .82), rgba(15, 33, 15, .82)), url("img/ngo-banner.png");
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
+            background: linear-gradient(135deg, #1c1602 0%, #3a2e05 55%, #16210f 100%);
             overflow: hidden;
         }
-        @media (max-width: 768px) {
-            .page-header { background-attachment: scroll; }
-        }
-
         .page-header::before {
             content: "";
-            position: absolute;
-            width: 500px;
-            height: 500px;
-            background: rgba(255, 193, 7, .16);
-            border-radius: 50%;
-            top: -220px;
-            right: -150px;
-            filter: blur(10px);
-            animation: floatBlob 10s ease-in-out infinite alternate;
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 15% 20%, rgba(255,193,7,.25), transparent 55%),
+                        radial-gradient(circle at 85% 80%, rgba(25,135,84,.3), transparent 55%);
             pointer-events: none;
         }
-
-        .page-header::after {
-            content: "";
-            position: absolute;
-            width: 300px;
-            height: 300px;
-            background: rgba(25, 135, 84, .22);
-            border-radius: 50%;
-            left: -80px;
-            bottom: -80px;
-            filter: blur(10px);
-            animation: floatBlob2 8s ease-in-out infinite alternate;
-            pointer-events: none;
-        }
-
-        @keyframes floatBlob {
-            from { transform: translateY(0); }
-            to { transform: translateY(50px); }
-        }
-
-        @keyframes floatBlob2 {
-            from { transform: translateX(0); }
-            to { transform: translateX(50px); }
-        }
-
         .page-header h6.text-warning {
-            color: var(--be-primary) !important;
             letter-spacing: 3px;
             display: inline-block;
             padding: .35rem 1rem;
@@ -164,12 +209,8 @@
             backdrop-filter: blur(6px);
             background: rgba(255,255,255,.08);
         }
-        .page-header .text-success { color: var(--be-primary) !important; }
-        .page-header .btn-success {
-            background: linear-gradient(135deg, var(--be-success), #115d3a);
-            border: none;
-        }
-        .breadcrumb { background: transparent; }
+        .page-header .text-success { color: #ffc107 !important; }
+        .breadcrumb { background: transparent; margin: 0; }
         .breadcrumb-item + .breadcrumb-item::before { color: rgba(255,255,255,.6); }
 
         /* ---- Glass cards ---- */
@@ -394,8 +435,8 @@
         /* ===================== FULL MOBILE RESPONSIVENESS ===================== */
 
         /* Fluid type */
-        h1, .display-3 { font-size: clamp(1.8rem, 4.5vw + .5rem, 3.4rem) !important; }
-        h2, .display-5 { font-size: clamp(1.5rem, 3vw + .5rem, 2.4rem) !important; }
+        .display-3 { font-size: clamp(1.8rem, 4.5vw + .5rem, 3.4rem) !important; }
+        .display-5 { font-size: clamp(1.5rem, 3vw + .5rem, 2.4rem) !important; }
         p { font-size: clamp(.92rem, .4vw + .8rem, 1.05rem); }
 
         @media (max-width: 991px) {
@@ -426,26 +467,18 @@
             .btn-lg { font-size: .85rem; padding: .65rem 1.3rem; }
         }
     </style>
-
 </head>
 
 <body>
 
     <div id="scrollProgress"></div>
 
-    <!-- ===========================
-            NAVBAR
-    ============================ -->
-
-     <?php include __DIR__ . '/navbar.php'; ?>
-
+    <!-- Navbar -->
+    <?php include __DIR__ . '/navbar.php'; ?>
     <!-- Navbar End -->
 
 
-    <!-- ===========================
-            HERO SECTION
-    ============================ -->
-
+    <!-- Page Header Start -->
     <div class="container-fluid page-header position-relative overflow-hidden py-5">
 
         <div class="container py-5 position-relative">
@@ -545,8 +578,48 @@
         </div>
 
     </div>
+    <!-- Page Header End -->
 
-    <!-- Hero End -->
+
+    <!-- Quick Info Cards Start -->
+    <div class="container">
+        <div class="row g-4 mb-5 reveal reveal-stagger" style="margin-top:-3rem;">
+
+            <div class="col-md-4">
+                <div class="card info-card border-0 shadow text-center p-4 h-100">
+                    <i class="fa fa-phone fa-3x text-primary mb-3"></i>
+                    <h5>Call</h5>
+                    <p class="mb-0">
+                        <a href="tel:+919678431656" class="text-dark text-decoration-none fw-semibold">
+                            +91 96784 31656
+                        </a>
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card info-card border-0 shadow text-center p-4 h-100">
+                    <i class="fa fa-envelope fa-3x text-primary mb-3"></i>
+                    <h5>Email</h5>
+                    <p class="mb-0">
+                        <a href="mailto:info@biomeenterprises.com" class="text-dark text-decoration-none">
+                            info@biomeenterprises.com
+                        </a>
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card info-card border-0 shadow text-center p-4 h-100">
+                    <i class="fa fa-map-marker-alt fa-3x text-primary mb-3"></i>
+                    <h5>Location</h5>
+                    <p class="mb-0">Assam, India</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <!-- Quick Info Cards End -->
 
 
     <!-- ===========================
@@ -652,285 +725,7 @@
 
     </div>
 
-
-
-    <!-- ===========================
-            MISSION SECTION
-    ============================ -->
-
-    <section id="mission" class="py-5">
-
-        <div class="container">
-
-            <div class="text-center mb-5 reveal">
-
-                <h6 class="text-success text-uppercase fw-bold">
-
-                    Our Mission
-
-                </h6>
-
-                <h2 class="section-title">
-
-                    Creating Sustainable Communities
-
-                </h2>
-
-                <p class="text-muted mt-4">
-
-                    Biome Enterprises is committed to promoting sustainable development by protecting the environment, supporting rural communities, encouraging bamboo cultivation, empowering youth, and creating long-term social impact through responsible initiatives.
-
-                </p>
-
-            </div>
-
-            <div class="row">
-
-                <div class="col-lg-6 reveal">
-
-                    <div class="pe-lg-5">
-
-                        <h6 class="text-success text-uppercase fw-bold mb-3">
-
-                            Our Purpose
-
-                        </h6>
-
-                        <h2 class="display-5 fw-bold mb-4">
-
-                            Building A Better Future Through Sustainable Development
-
-                        </h2>
-
-                        <p class="mb-4">
-
-                            At <strong>Biome Enterprises</strong>, sustainability is more than a responsibility—it is our foundation. Through our NGO initiatives, we strive to create meaningful environmental, social and economic impact by empowering communities
-                            and preserving natural resources for future generations.
-
-                        </p>
-
-                        <p class="mb-4">
-
-                            We collaborate with local communities, educational institutions, government agencies, NGOs and corporate partners to implement sustainable solutions that improve livelihoods while protecting the environment.
-
-                        </p>
-
-                        <div class="row g-4 mt-3">
-
-                            <div class="col-sm-6">
-
-                                <div class="d-flex">
-
-                                    <i class="fas fa-check-circle text-success fa-2x me-3 mt-1"></i>
-
-                                    <div>
-
-                                        <h5 class="fw-bold">
-
-                                            Environmental Protection
-
-                                        </h5>
-
-                                        <p class="mb-0 text-muted">
-
-                                            Promoting conservation, afforestation and climate resilience initiatives.
-
-                                        </p>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                            <div class="col-sm-6">
-
-                                <div class="d-flex">
-
-                                    <i class="fas fa-check-circle text-success fa-2x me-3 mt-1"></i>
-
-                                    <div>
-
-                                        <h5 class="fw-bold">
-
-                                            Community Development
-
-                                        </h5>
-
-                                        <p class="mb-0 text-muted">
-
-                                            Supporting education, healthcare and livelihood opportunities.
-
-                                        </p>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                            <div class="col-sm-6">
-
-                                <div class="d-flex">
-
-                                    <i class="fas fa-check-circle text-success fa-2x me-3 mt-1"></i>
-
-                                    <div>
-
-                                        <h5 class="fw-bold">
-
-                                            Sustainable Agriculture
-
-                                        </h5>
-
-                                        <p class="mb-0 text-muted">
-
-                                            Encouraging eco-friendly farming and bamboo-based livelihoods.
-
-                                        </p>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                            <div class="col-sm-6">
-
-                                <div class="d-flex">
-
-                                    <i class="fas fa-check-circle text-success fa-2x me-3 mt-1"></i>
-
-                                    <div>
-
-                                        <h5 class="fw-bold">
-
-                                            Youth Empowerment
-
-                                        </h5>
-
-                                        <p class="mb-0 text-muted">
-
-                                            Building skills, entrepreneurship and employment opportunities.
-
-                                        </p>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-                <div class="col-lg-6 mt-5 mt-lg-0 reveal">
-
-                    <div class="glass-card-dark p-5 h-100">
-
-                        <div class="text-center mb-4">
-
-                            <i class="fas fa-leaf fa-5x text-success mb-4 floating"></i>
-
-                            <h3 class="fw-bold text-white">
-
-                                Our Vision
-
-                            </h3>
-
-                        </div>
-
-                        <p class="text-light mb-4">
-
-                            To become a leading force in sustainable development by creating environmentally responsible businesses and empowering communities through innovation, collaboration and social responsibility.
-
-                        </p>
-
-                        <hr class="bg-light">
-
-                        <div class="d-flex mb-4">
-
-                            <i class="fas fa-seedling text-success fa-2x me-3 mt-1"></i>
-
-                            <div>
-
-                                <h5 class="text-white">
-
-                                    Green Environment
-
-                                </h5>
-
-                                <p class="text-light mb-0">
-
-                                    Plantation drives, biodiversity conservation and eco-restoration.
-
-                                </p>
-
-                            </div>
-
-                        </div>
-
-                        <div class="d-flex mb-4">
-
-                            <i class="fas fa-recycle text-success fa-2x me-3 mt-1"></i>
-
-                            <div>
-
-                                <h5 class="text-white">
-
-                                    Circular Economy
-
-                                </h5>
-
-                                <p class="text-light mb-0">
-
-                                    Waste reduction, recycling and sustainable resource utilization.
-
-                                </p>
-
-                            </div>
-
-                        </div>
-
-                        <div class="d-flex">
-
-                            <i class="fas fa-hands-helping text-success fa-2x me-3 mt-1"></i>
-
-                            <div>
-
-                                <h5 class="text-white">
-
-                                    Inclusive Growth
-
-                                </h5>
-
-                                <p class="text-light mb-0">
-
-                                    Empowering women, youth, artisans and rural communities through sustainable opportunities.
-
-                                </p>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </section>
-
-    <!-- Mission Section End -->
-
-
-    <!-- ===========================
+     <!-- ===========================
         CORE VALUES SECTION
 =========================== -->
 
@@ -2016,14 +1811,6 @@
     </section>
 
 
-
-    <!-- ===========================
-        FOOTER
-=========================== -->
-
-     <?php include __DIR__ . '/footer.php'; ?>
-
-
     <!-- Floating WhatsApp Button -->
     <a href="https://wa.me/919678431656" target="_blank" class="whatsapp-float" aria-label="Chat on WhatsApp">
         <i class="fab fa-whatsapp"></i>
@@ -2031,38 +1818,32 @@
 
     <!-- Sticky Mobile Call Bar -->
     <div id="mobileCallBar">
-        <a href="tel:+919678431656" class="btn btn-success flex-fill"><i class="fa fa-phone me-2"></i>Call Now</a>
-        <a href="https://wa.me/919678431656" target="_blank" class="btn btn-light flex-fill"><i class="fab fa-whatsapp me-2"></i>WhatsApp</a>
+        <a href="tel:+919678431656" class="btn btn-primary flex-fill"><i class="fa fa-phone me-2"></i>Call Now</a>
+        <a href="https://wa.me/919678431656" target="_blank" class="btn btn-success flex-fill"><i class="fab fa-whatsapp me-2"></i>WhatsApp</a>
     </div>
 
-    <!-- Back To Top -->
+    <!-- Footer -->
+    <?php include __DIR__ . '/footer.php'; ?>
+    <!-- Footer End -->
 
-    <a href="#" class="btn btn-lg btn-lg-square rounded-0 back-to-top">
 
-        <i class="bi bi-arrow-up"></i>
-
-    </a>
-
+    <!-- Back to Top -->
+    <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded-0 back-to-top"><i class="bi bi-arrow-up"></i></a>
 
 
     <!-- JavaScript Libraries -->
-
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
-
     <script src="lib/wow/wow.min.js"></script>
-
     <script src="lib/easing/easing.min.js"></script>
-
     <script src="lib/waypoints/waypoints.min.js"></script>
-
+    <!-- <script src="lib/counterup/counterup.min.js"></script> -->
     <script src="lib/owlcarousel/owl.carousel.min.js"></script>
 
+    <!-- Template Javascript -->
     <script src="js/main.js"></script>
 
-    <!-- ===================== Counter Animation (vanilla JS, 0 -> target) ===================== -->
-    <script>
+   <script>
     (function () {
         const counters = document.querySelectorAll('.counter-number');
         const duration = 1800;
@@ -2158,6 +1939,7 @@
         });
     })();
     </script>
+
 
 </body>
 

@@ -21,9 +21,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
 
     <!-- Libraries Stylesheet -->
-    <link href="lib/animate/animate.min.css" rel="stylesheet">
-    <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
-
+    <!-- <link href="lib/animate/animate.min.css" rel="stylesheet"> -->
+    <!-- <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet"> -->
+    <link href="css/navbar-active-state.css" rel="stylesheet">
     <!-- Customized Bootstrap Stylesheet -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
 
@@ -81,6 +81,32 @@
         .reveal-stagger.is-visible > *:nth-child(1) { transition-delay: .05s; }
         .reveal-stagger.is-visible > *:nth-child(2) { transition-delay: .15s; }
         .reveal-stagger.is-visible > *:nth-child(3) { transition-delay: .25s; }
+
+        /* ---- Page Header (replaces template's page-header bg) ---- */
+        .page-header {
+            position: relative;
+            background: linear-gradient(135deg, #1c1602 0%, #3a2e05 55%, #16210f 100%);
+            overflow: hidden;
+        }
+        .page-header::before {
+            content: "";
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 15% 20%, rgba(255,193,7,.25), transparent 55%),
+                        radial-gradient(circle at 85% 80%, rgba(25,135,84,.3), transparent 55%);
+            pointer-events: none;
+        }
+        .page-header h6.text-warning {
+            letter-spacing: 3px;
+            display: inline-block;
+            padding: .35rem 1rem;
+            border: 1px solid rgba(255,255,255,.35);
+            border-radius: 50px;
+            backdrop-filter: blur(6px);
+            background: rgba(255,255,255,.08);
+        }
+        .page-header .text-success { color: #ffc107 !important; }
+        .breadcrumb { background: transparent; margin: 0; }
+        .breadcrumb-item + .breadcrumb-item::before { color: rgba(255,255,255,.6); }
 
         /* ---- Navbar glass on scroll ---- */
         .navbar {
@@ -424,11 +450,6 @@
     <!-- Coming Soon End -->
 
 
-    <!-- Footer -->
-     <?php include __DIR__ . '/footer.php'; ?>
-    <!-- Footer End -->
-
-
     <!-- Floating WhatsApp Button -->
     <a href="https://wa.me/919678431656" target="_blank" class="whatsapp-float" aria-label="Chat on WhatsApp">
         <i class="fab fa-whatsapp"></i>
@@ -436,12 +457,17 @@
 
     <!-- Sticky Mobile Call Bar -->
     <div id="mobileCallBar">
-        <a href="tel:+919678431656" class="btn btn-success flex-fill"><i class="fa fa-phone me-2"></i>Call Now</a>
-        <a href="https://wa.me/919678431656" target="_blank" class="btn btn-light flex-fill"><i class="fab fa-whatsapp me-2"></i>WhatsApp</a>
+        <a href="tel:+919678431656" class="btn btn-primary flex-fill"><i class="fa fa-phone me-2"></i>Call Now</a>
+        <a href="https://wa.me/919678431656" target="_blank" class="btn btn-success flex-fill"><i class="fab fa-whatsapp me-2"></i>WhatsApp</a>
     </div>
 
+    <!-- Footer -->
+    <?php include __DIR__ . '/footer.php'; ?>
+    <!-- Footer End -->
+
+
     <!-- Back to Top -->
-    <a href="#" class="btn btn-lg btn-lg-square rounded-0 back-to-top"><i class="bi bi-arrow-up"></i></a>
+    <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded-0 back-to-top"><i class="bi bi-arrow-up"></i></a>
 
 
     <!-- JavaScript Libraries -->
@@ -450,7 +476,8 @@
     <script src="lib/wow/wow.min.js"></script>
     <script src="lib/easing/easing.min.js"></script>
     <script src="lib/waypoints/waypoints.min.js"></script>
-    <script src="lib/owlcarousel/owl.carousel.min.js"></script>
+    <!-- <script src="lib/counterup/counterup.min.js"></script>
+    <script src="lib/owlcarousel/owl.carousel.min.js"></script> -->
 
     <!-- Template Javascript -->
     <script src="js/main.js"></script>
@@ -511,6 +538,7 @@
         });
     })();
     </script>
+
 </body>
 
 </html>

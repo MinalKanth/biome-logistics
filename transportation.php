@@ -2,6 +2,11 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/admin/config/database.php';
+require_once __DIR__ . '/vendor/autoload.php';   
+
+use PHPMailer\PHPMailer\PHPMailer;                
+use PHPMailer\PHPMailer\SMTP;                     
+use PHPMailer\PHPMailer\Exception as PHPMailerException; 
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
@@ -24,6 +29,38 @@ $contactFormValues = [
     'subject' => '',
     'message' => '',
 ];
+
+function cf_send_notification_email(string $name, string $email, string $subject, string $message): bool
+{
+    $mail = new PHPMailer(true);
+    try {
+        $mail->isSMTP();
+        $mail->Host       = 'smtp.gmail.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = 'pwsminal@gmail.com';   
+        $mail->Password   = 'kopuslfjheqivscw';            
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = 587;
+
+        $mail->setFrom('pwsminal@gmail.com', 'Biome Enterprises Website');
+        $mail->addAddress('director@biomeenterprises.com');
+        $mail->addReplyTo($email, $name);
+
+        $mail->isHTML(true);
+        $mail->Subject = 'New Transport Enquiry: ' . ($subject !== '' ? $subject : 'General');
+        $mail->Body    = '<p><strong>Name:</strong> ' . htmlspecialchars($name) . '</p>'
+                        . '<p><strong>Email:</strong> ' . htmlspecialchars($email) . '</p>'
+                        . '<p><strong>Service:</strong> ' . htmlspecialchars($subject ?: 'Not specified') . '</p>'
+                        . '<p><strong>Message:</strong><br>' . nl2br(htmlspecialchars($message)) . '</p>';
+        $mail->AltBody = "Name: {$name}\nEmail: {$email}\nService: {$subject}\nMessage: {$message}";
+
+        $mail->send();
+        return true;
+    } catch (PHPMailerException $e) {
+        error_log('Contact form email failed: ' . $mail->ErrorInfo);
+        return false;
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_form_submit'])) {
 
@@ -82,6 +119,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_form_submit']
                     ':message' => $message !== '' ? $message : null,
                     ':ip'      => $_SERVER['REMOTE_ADDR'] ?? null,
                 ]);
+
+                cf_send_notification_email($name, $email, $subject, $message); 
 
                 $_SESSION['contact_flash_success'] = true;
                 $_SESSION['contact_csrf_token'] = bin2hex(random_bytes(32));
