@@ -130,6 +130,7 @@ function cf_e(string $value): string
          intentionally NOT loaded here. This page is now self-contained and
          styled with Bootstrap utilities + the embedded CSS below. -->
     <link href="css/navbar-active-state.css" rel="stylesheet"> 
+    <link href="css/style.css" rel="stylesheet">
 
     <!-- ===================================================
          SELF-CONTAINED PAGE STYLES (Bootstrap-first)
@@ -742,10 +743,10 @@ function cf_e(string $value): string
 
         /* Phones (≤575.98px) — tighten everything up */
         @media (max-width: 575.98px) {
-            .container, .container-fluid, .container-lg {
+            /* .container, .container-fluid, .container-lg {
                 padding-left: 1rem !important;
                 padding-right: 1rem !important;
-            }
+            } */
 
             .transport-header { padding-top: 2rem; padding-bottom: 1.5rem; }
 

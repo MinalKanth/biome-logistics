@@ -563,10 +563,10 @@ function bf_e(string $value): string
 
         /* ----- Small phones (≤575.98px) ----- */
         @media (max-width: 575.98px) {
-            .container, .container-fluid, .container-xxl {
+            /* .container, .container-fluid, .container-xxl {
                 padding-left: 1rem !important;
                 padding-right: 1rem !important;
-            }
+            } */
 
             .service-item .p-4,
             .product-feature,
