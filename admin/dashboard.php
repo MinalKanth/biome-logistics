@@ -145,7 +145,87 @@ require __DIR__ . '/includes/header.php';
         <li><a href="billing.php" class="nav-item"><i class="fa-solid fa-credit-card"></i> Billing</a></li>
         <li><a href="blog_manage.php" class="nav-item"><i class="fa-solid fa-newspaper"></i> Blog Posts <span class="pill"><?= e((string) $sidebarBlogCount) ?></span></a></li>
       </ul>
+      <!-- Transport -->
 
+        <div class="sidebar-section-label">Transport Management</div>
+
+        <ul>
+
+            <li>
+
+                <a href="transport_manage.php" class="nav-item">
+
+                    <i class="fa-solid fa-truck-fast"></i>
+
+                    Bookings
+
+                    <span class="pill"><?= e((string)$sidebarTransportCount) ?></span>
+
+                </a>
+
+            </li>
+
+            <li>
+
+                <a href="transport_add.php" class="nav-item">
+
+                    <i class="fa-solid fa-plus"></i>
+
+                    Add Booking
+
+                </a>
+
+            </li>
+
+            <li>
+
+                <a href="timeline.php" class="nav-item">
+
+                    <i class="fa-solid fa-timeline"></i>
+
+                    Timeline
+
+                </a>
+
+            </li>
+
+            <li>
+
+                <a href="payment.php" class="nav-item">
+
+                    <i class="fa-solid fa-wallet"></i>
+
+                    Payments
+
+                </a>
+
+            </li>
+
+            <li>
+
+                <a href="invoice.php" class="nav-item">
+
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+
+                    Invoices
+
+                </a>
+
+            </li>
+
+            <li>
+
+                <a href="transport_track.php" class="nav-item">
+
+                    <i class="fa-solid fa-location-dot"></i>
+
+                    Live Tracking
+
+                </a>
+
+            </li>
+
+        </ul>
       <div class="sidebar-section-label">System</div>
       <ul>
         <li><a href="logs.php" class="nav-item"><i class="fa-solid fa-clock-rotate-left"></i> Activity Logs</a></li>

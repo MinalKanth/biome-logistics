@@ -1,0 +1,161 @@
+<aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-brand">
+        <div class="mark">A</div>
+        <div class="name">
+            Biome
+            <br>
+            <small>Control Panel</small>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+
+        <!-- Dashboard -->
+        <div class="sidebar-section-label">Dashboard</div>
+
+        <ul>
+            <li>
+                <a href="dashboard.php" class="nav-item">
+                    <i class="fa-solid fa-grid-2"></i>
+                    Dashboard
+                </a>
+            </li>
+        </ul>
+
+
+        <!-- Transport -->
+        <div class="sidebar-section-label">Transport Management</div>
+
+        <ul>
+
+            <li>
+                <a href="transport_manage.php" class="nav-item">
+                    <i class="fa-solid fa-truck-fast"></i>
+                    Bookings
+                    <span class="pill"><?= e((string)$sidebarTransportCount) ?></span>
+                </a>
+            </li>
+
+            <li>
+                <a href="transport_add.php" class="nav-item">
+                    <i class="fa-solid fa-plus"></i>
+                    Add Booking
+                </a>
+            </li>
+
+            <li>
+                <a href="timeline.php" class="nav-item">
+                    <i class="fa-solid fa-timeline"></i>
+                    Timeline
+                </a>
+            </li>
+
+            <li>
+                <a href="payment.php" class="nav-item">
+                    <i class="fa-solid fa-wallet"></i>
+                    Payments
+                </a>
+            </li>
+
+            <li>
+                <a href="invoice.php" class="nav-item">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    Invoices
+                </a>
+            </li>
+
+            <li>
+                <a href="transport_track.php" class="nav-item">
+                    <i class="fa-solid fa-location-dot"></i>
+                    Live Tracking
+                </a>
+            </li>
+
+        </ul>
+
+
+        <!-- Content -->
+        <div class="sidebar-section-label">Content</div>
+
+        <ul>
+
+            <li>
+                <a href="blog_manage.php" class="nav-item">
+                    <i class="fa-solid fa-newspaper"></i>
+                    Blog Posts
+                    <span class="pill"><?= e((string)$sidebarBlogCount) ?></span>
+                </a>
+            </li>
+
+            <li>
+                <a href="bamboo-enquiries.php" class="nav-item">
+                    <i class="fa-solid fa-tree"></i>
+                    Bamboo Trading
+                </a>
+            </li>
+
+        </ul>
+
+
+        <!-- Administration -->
+        <div class="sidebar-section-label">Administration</div>
+
+        <ul>
+
+            <li>
+                <a href="users.php" class="nav-item">
+                    <i class="fa-solid fa-users"></i>
+                    Users
+                    <span class="pill"><?= e((string)$sidebarUserCount) ?></span>
+                </a>
+            </li>
+
+            <li>
+                <a href="admins.php" class="nav-item">
+                    <i class="fa-solid fa-user-shield"></i>
+                    Admins
+                </a>
+            </li>
+
+            <li>
+                <a href="roles.php" class="nav-item">
+                    <i class="fa-solid fa-key"></i>
+                    Roles & Permissions
+                </a>
+            </li>
+
+        </ul>
+
+
+        <!-- System -->
+        <div class="sidebar-section-label">System</div>
+
+        <ul>
+
+            <li>
+                <a href="logs.php" class="nav-item">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    Activity Logs
+                </a>
+            </li>
+
+            <li>
+                <a href="notifications.php" class="nav-item">
+                    <i class="fa-solid fa-bell"></i>
+                    Notifications
+                </a>
+            </li>
+
+            <li>
+                <a href="settings.php" class="nav-item">
+                    <i class="fa-solid fa-gear"></i>
+                    Settings
+                </a>
+            </li>
+
+        </ul>
+
+    </nav>
+
+</aside>
