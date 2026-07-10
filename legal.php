@@ -144,6 +144,12 @@ function lf_e(string $value): string
 
     <!-- Main CSS -->
     <link href="css/style.css" rel="stylesheet">
+    <!-- Bootstrap -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/navbar-active-state.css" rel="stylesheet">
+
+    <!-- Main CSS -->
+    <link href="css/style.css" rel="stylesheet">
 
     <style>
         :root {
