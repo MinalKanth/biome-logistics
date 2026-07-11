@@ -48,11 +48,7 @@ $navActive = static fn(string ...$pages): string => in_array($currentPage, $page
       <div class="sidebar-section-label">Manage</div>
       <ul>
         <li><a href="users.php" class="nav-item<?= $navActive('users.php') ?>"><i class="fa-solid fa-users"></i> Users <span class="pill"><?= e((string) $totalUsers) ?></span></a></li>
-        <li><a href="admins.php" class="nav-item<?= $navActive('admins.php') ?>"><i class="fa-solid fa-user-shield"></i> Admins</a></li>
         <li><a href="bamboo_enquiries.php" class="nav-item<?= $navActive('bamboo_enquiries.php') ?>"><i class="fa-solid fa-user-shield"></i> Bamboo Enquiries</a></li>
-        <li><a href="roles.php" class="nav-item<?= $navActive('roles.php') ?>"><i class="fa-solid fa-key"></i> Roles &amp; Permissions</a></li>
-        <li><a href="content.php" class="nav-item<?= $navActive('content.php') ?>"><i class="fa-solid fa-layer-group"></i> Content</a></li>
-        <li><a href="billing.php" class="nav-item<?= $navActive('billing.php') ?>"><i class="fa-solid fa-credit-card"></i> Billing</a></li>
         <li><a href="blog_manage.php" class="nav-item<?= $navActive('blog_manage.php') ?>"><i class="fa-solid fa-newspaper"></i> Blog Posts <span class="pill"><?= e((string) $sidebarBlogCount) ?></span></a></li>
       </ul>
 
