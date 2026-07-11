@@ -1,5 +1,11 @@
 <?php
 declare(strict_types=1);
+
+// Enable full error reporting (Development only)
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
 require_once __DIR__ . '/includes/bootstrap.php';
 require_admin();
 
@@ -89,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'bulk_
                 // tracking history reflects the bulk update.
                 $tlStmt = $pdo->prepare(
                     'INSERT INTO transport_booking_timeline
-                        (booking_id, tracking_id, status, title, description, is_customer_visible, created_by_admin_id, created_at)
+                        (booking_id, tracking_id, status, title, description, customer_visible, created_by, created_at)
                      SELECT id, tracking_id, ?, ?, ?, 1, ?, NOW() FROM transport_bookings WHERE id = ?'
                 );
                 $title = $STATUS_LIST[$bulkTo]['label'];
@@ -129,7 +135,7 @@ $where  = ['tb.deleted_at IS NULL'];
 $params = [];
 
 if ($search !== '') {
-    $where[] = '(tb.tracking_id LIKE :s OR tb.booking_reference LIKE :s OR tb.customer_name LIKE :s OR tb.phone LIKE :s OR tb.company_name LIKE :s)';
+    $where[] = '(tb.tracking_id LIKE :s OR tb.enquiry_reference LIKE :s OR tb.customer_name LIKE :s OR tb.phone LIKE :s OR tb.company_name LIKE :s)';
     $params[':s'] = '%' . $search . '%';
 }
 if ($fStatus !== '') {
@@ -145,11 +151,11 @@ if ($fPriority !== '') {
     $params[':priority'] = $fPriority;
 }
 if ($fDateFrom !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $fDateFrom)) {
-    $where[] = 'tb.pickup_date >= :date_from';
+    $where[] = 'tb.scheduled_pickup >= :date_from';
     $params[':date_from'] = $fDateFrom;
 }
 if ($fDateTo !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $fDateTo)) {
-    $where[] = 'tb.pickup_date <= :date_to';
+    $where[] = 'tb.scheduled_pickup <= :date_to';
     $params[':date_to'] = $fDateTo;
 }
 $whereSql = implode(' AND ', $where);
@@ -168,13 +174,13 @@ $totalPages = max(1, (int) ceil($totalRows / $perPage));
 
 $listSql = "
     SELECT
-        tb.id, tb.tracking_id, tb.booking_reference, tb.customer_name, tb.company_name,
-        tb.phone, tb.pickup_city, tb.pickup_state, tb.delivery_city, tb.delivery_state,
-        tb.cargo_type, tb.cargo_weight, tb.cargo_weight_unit, tb.vehicle_type_requested,
-        tb.status, tb.priority, tb.pickup_date, tb.expected_delivery_date,
-        tb.net_amount, tb.paid_amount, tb.balance_amount, tb.payment_status,
+        tb.id, tb.tracking_id, tb.enquiry_reference, tb.customer_name, tb.company_name,
+        tb.phone, tb.pickup_city, tb.pickup_state, tb.drop_city, tb.drop_state,
+        tb.cargo_type, tb.cargo_weight, tb.cargo_unit, tb.vehicle_type,
+        tb.status, tb.priority, tb.scheduled_pickup, tb.expected_delivery,
+        tb.grand_total, tb.paid_amount, tb.balance_amount, tb.payment_status,
         tb.created_at,
-        d.id AS driver_id, d.driver_name, d.phone AS driver_phone, d.photo AS driver_photo,
+        d.id AS driver_id, d.full_name AS driver_name, d.mobile AS driver_phone, d.photo AS driver_photo,
         v.id AS vehicle_id, v.registration_number, v.vehicle_type AS vehicle_type_actual
     FROM transport_bookings tb
     LEFT JOIN transport_drivers d ON d.id = tb.driver_id
@@ -223,10 +229,10 @@ $cardPendingAmount = (float) safe_scalar_transport($pdo,
     "SELECT COALESCE(SUM(balance_amount),0) FROM transport_bookings WHERE deleted_at IS NULL AND payment_status IN ('unpaid','partial')");
 
 $cardMonthlyRevenue = (float) safe_scalar_transport($pdo,
-    "SELECT COALESCE(SUM(net_amount),0) FROM transport_bookings WHERE deleted_at IS NULL AND MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())");
+    "SELECT COALESCE(SUM(grand_total),0) FROM transport_bookings WHERE deleted_at IS NULL AND MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())");
 
 $cardDriverCount = (int) safe_scalar_transport($pdo,
-    "SELECT COUNT(*) FROM transport_drivers WHERE status = 'active'");
+    "SELECT COUNT(*) FROM transport_drivers WHERE employment_status = 'active'");
 
 $cardVehicleCount = (int) safe_scalar_transport($pdo,
     "SELECT COUNT(*) FROM transport_vehicles WHERE status = 'active'");
@@ -344,51 +350,7 @@ require __DIR__ . '/includes/header.php';
 <div class="app-shell">
 
   <!-- ===================== SIDEBAR ===================== -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-      <div class="mark">A</div>
-      <div class="name">Biome<br><small>Control Panel</small></div>
-    </div>
-
-    <div class="sidebar-section-label">Overview</div>
-    <nav class="sidebar-nav">
-      <ul>
-        <li><a href="dashboard.php" class="nav-item"><i class="fa-solid fa-grid-2"></i> Dashboard</a></li>
-        <li><a href="analytics.php" class="nav-item"><i class="fa-solid fa-chart-line"></i> Analytics</a></li>
-        <li><a href="reports.php" class="nav-item"><i class="fa-solid fa-file-lines"></i> Reports</a></li>
-      </ul>
-
-      <div class="sidebar-section-label">Manage</div>
-      <ul>
-        <li><a href="users.php" class="nav-item"><i class="fa-solid fa-users"></i> Users <span class="pill"><?= e((string) $sidebarUserCount) ?></span></a></li>
-        <li><a href="admins.php" class="nav-item"><i class="fa-solid fa-user-shield"></i> Admins</a></li>
-        <li><a href="bamboo-enquiries.php" class="nav-item"><i class="fa-solid fa-user-shield"></i> Bamboo Trading</a></li>
-        <li><a href="roles.php" class="nav-item"><i class="fa-solid fa-key"></i> Roles &amp; Permissions</a></li>
-        <li><a href="content.php" class="nav-item"><i class="fa-solid fa-layer-group"></i> Content</a></li>
-        <li><a href="billing.php" class="nav-item"><i class="fa-solid fa-credit-card"></i> Billing</a></li>
-        <li><a href="blog_manage.php" class="nav-item"><i class="fa-solid fa-newspaper"></i> Blog Posts</a></li>
-        <li><a href="transport_manage.php" class="nav-item active"><i class="fa-solid fa-truck-fast"></i> Transport Bookings <span class="pill"><?= e((string) $totalRows) ?></span></a></li>
-      </ul>
-
-      <div class="sidebar-section-label">System</div>
-      <ul>
-        <li><a href="logs.php" class="nav-item"><i class="fa-solid fa-clock-rotate-left"></i> Activity Logs</a></li>
-        <li><a href="notifications.php" class="nav-item"><i class="fa-solid fa-bell"></i> Notifications</a></li>
-        <li><a href="security.php" class="nav-item"><i class="fa-solid fa-shield-halved"></i> Security</a></li>
-        <li><a href="settings.php" class="nav-item"><i class="fa-solid fa-gear"></i> Settings</a></li>
-      </ul>
-    </nav>
-
-    <div class="sidebar-foot">
-      <div class="sidebar-upgrade">
-        <div class="label">System status</div>
-        <p>All services operational. Last checked just now.</p>
-        <a href="security.php" class="btn btn-outline-accent" style="width:100%;justify-content:center;">
-          <i class="fa-solid fa-circle-check"></i> View status page
-        </a>
-      </div>
-    </div>
-  </aside>
+  <?php require __DIR__ . '/includes/sidebar.php'; ?>
 
   <!-- ===================== MAIN COLUMN ===================== -->
   <div class="main-col">
@@ -619,8 +581,8 @@ require __DIR__ . '/includes/header.php';
                     </td>
                     <td>
                       <span class="tracking-id-badge"><i class="fa-solid fa-barcode"></i> <?= e($b['tracking_id']) ?></span>
-                      <?php if ($b['booking_reference']): ?>
-                        <div style="font-size:.72rem;color:var(--text-muted);margin-top:3px;">Ref: <?= e($b['booking_reference']) ?></div>
+                      <?php if ($b['enquiry_reference']): ?>
+                        <div style="font-size:.72rem;color:var(--text-muted);margin-top:3px;">Ref: <?= e($b['enquiry_reference']) ?></div>
                       <?php endif; ?>
                     </td>
                     <td>
@@ -638,12 +600,12 @@ require __DIR__ . '/includes/header.php';
                     <td class="route-cell">
                       <span class="city"><?= e($b['pickup_city']) ?></span>
                       <span class="arrow">&rarr;</span>
-                      <span class="city"><?= e($b['delivery_city']) ?></span>
+                      <span class="city"><?= e($b['drop_city']) ?></span>
                     </td>
                     <td class="route-cell">
                       <?= e($b['cargo_type'] ?: '—') ?><br>
                       <span style="color:var(--text-muted);">
-                        <?= $b['cargo_weight'] ? e(rtrim(rtrim((string) $b['cargo_weight'], '0'), '.') . ' ' . $b['cargo_weight_unit']) : '' ?>
+                        <?= $b['cargo_weight'] ? e(rtrim(rtrim((string) $b['cargo_weight'], '0'), '.') . ' ' . $b['cargo_unit']) : '' ?>
                         <?= $b['registration_number'] ? ' · ' . e($b['registration_number']) : '' ?>
                       </span>
                     </td>
@@ -660,12 +622,12 @@ require __DIR__ . '/includes/header.php';
                     <td><?= status_badge($b['status'], $STATUS_LIST) ?></td>
                     <td><?= status_badge($b['payment_status'], $PAYMENT_STATUS_LIST) ?></td>
                     <td class="amount-cell">
-                      <div class="net"><?= e(inr((float) $b['net_amount'])) ?></div>
+                      <div class="net"><?= e(inr((float) $b['grand_total'])) ?></div>
                       <div class="balance <?= $balance <= 0 ? 'zero' : '' ?>">
                         <?= $balance > 0 ? 'Due ' . e(inr($balance)) : 'Fully paid' ?>
                       </div>
                     </td>
-                    <td><span class="mono-time"><?= e((string) $b['pickup_date']) ?></span></td>
+                    <td><span class="mono-time"><?= e((string) $b['scheduled_pickup']) ?></span></td>
                     <td class="actions">
                       <a href="transport_track.php?tracking_id=<?= urlencode($b['tracking_id']) ?>" class="btn btn-small btn-ghost" title="Timeline / tracking" target="_blank">
                         <i class="fa-solid fa-timeline"></i>

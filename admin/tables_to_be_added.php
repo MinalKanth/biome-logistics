@@ -226,6 +226,18 @@ CREATE TABLE transport_bookings (
 DEFAULT CHARSET=utf8mb4
 COLLATE=utf8mb4_unicode_ci;
 
+ALTER TABLE transport_bookings 
+ADD COLUMN deleted_at DATETIME NULL DEFAULT NULL AFTER updated_at;
+
+
+ALTER TABLE transport_bookings
+  ADD COLUMN fragile TINYINT(1) NOT NULL DEFAULT 0 AFTER cargo_unit,
+  ADD COLUMN hazardous TINYINT(1) NOT NULL DEFAULT 0 AFTER fragile,
+  ADD COLUMN temperature_controlled TINYINT(1) NOT NULL DEFAULT 0 AFTER hazardous,
+  ADD COLUMN cargo_value DECIMAL(12,2) NULL DEFAULT NULL AFTER number_of_packages,
+  ADD COLUMN estimated_duration INT NULL DEFAULT NULL AFTER distance_km,
+  ADD COLUMN tracking_enabled TINYINT(1) NOT NULL DEFAULT 1 AFTER customer_notes;
+
 INSERT INTO transport_bookings (
 
 tracking_id,

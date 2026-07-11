@@ -31,7 +31,16 @@ $PRIORITY_LIST = [
     'high'   => 'High',
     'urgent' => 'Urgent',
 ];
-$CARGO_WEIGHT_UNITS = ['kg' => 'kg', 'ton' => 'ton', 'lb' => 'lb'];
+$CARGO_UNITS = ['kg' => 'kg', 'ton' => 'ton', 'lb' => 'lb'];
+$PAYMENT_MODES = [
+    ''              => '— Not specified —',
+    'cash'          => 'Cash',
+    'upi'           => 'UPI',
+    'bank_transfer' => 'Bank Transfer',
+    'cheque'        => 'Cheque',
+    'card'          => 'Card',
+    'other'         => 'Other',
+];
 
 /* =====================================================================
    SEQUENCE GENERATOR (transport_sequences)
@@ -81,39 +90,37 @@ function next_sequence_code(PDO $pdo, string $sequenceName, string $defaultPrefi
    REFERENCE LISTS FOR SELECTS
 ===================================================================== */
 $drivers = $pdo->query(
-    "SELECT id, driver_name, phone FROM transport_drivers WHERE status = 'active' ORDER BY driver_name"
+    "SELECT id, full_name AS driver_name, mobile AS phone FROM transport_drivers WHERE employment_status = 'active' ORDER BY full_name"
 )->fetchAll();
 
 $vehicles = $pdo->query(
     "SELECT id, registration_number, vehicle_type FROM transport_vehicles WHERE status = 'active' ORDER BY registration_number"
 )->fetchAll();
 
-$customers = $pdo->query(
-    "SELECT id, customer_code, company_name, contact_person, phone, email FROM transport_customers ORDER BY company_name LIMIT 500"
-)->fetchAll();
-
 /* =====================================================================
    FORM DEFAULTS
 ===================================================================== */
 $defaults = [
-    'customer_id' => '', 'customer_name' => '', 'company_name' => '', 'email' => '',
+    'customer_name' => '', 'company_name' => '', 'email' => '',
     'phone' => '', 'alternate_phone' => '',
-    'pickup_contact_name' => '', 'pickup_contact_phone' => '',
-    'delivery_contact_name' => '', 'delivery_contact_phone' => '',
+    'service_type' => '',
+    'pickup_contact_person' => '', 'pickup_contact_number' => '',
+    'drop_contact_person' => '', 'drop_contact_number' => '',
     'pickup_address' => '', 'pickup_city' => '', 'pickup_state' => '', 'pickup_pincode' => '',
-    'delivery_address' => '', 'delivery_city' => '', 'delivery_state' => '', 'delivery_pincode' => '',
-    'cargo_type' => '', 'cargo_description' => '', 'cargo_weight' => '', 'cargo_weight_unit' => 'kg',
-    'cargo_volume' => '', 'cargo_value' => '', 'package_count' => '',
+    'drop_address' => '', 'drop_city' => '', 'drop_state' => '', 'drop_pincode' => '',
+    'cargo_type' => '', 'cargo_description' => '', 'cargo_weight' => '', 'cargo_unit' => 'kg',
+    'cargo_value' => '', 'number_of_packages' => '',
     'fragile' => '', 'hazardous' => '', 'temperature_controlled' => '',
-    'truck_type' => '', 'vehicle_type_requested' => '',
+    'truck_type' => '', 'vehicle_type' => '',
     'status' => 'pending', 'priority' => 'normal',
     'driver_id' => '', 'vehicle_id' => '',
-    'estimated_distance' => '', 'estimated_duration' => '',
+    'distance_km' => '', 'estimated_duration' => '', 'expected_days' => '',
     'pickup_date' => '', 'pickup_time' => '', 'expected_delivery_date' => '', 'expected_delivery_time' => '',
     'total_amount' => '', 'gst_percentage' => '18', 'discount_amount' => '0', 'other_charges' => '0',
-    'advance_amount' => '0', 'paid_amount' => '0', 'payment_status' => 'unpaid',
+    'advance_amount' => '0', 'paid_amount' => '0', 'payment_status' => 'unpaid', 'payment_mode' => '',
+    'quotation_number' => '', 'invoice_number' => '', 'lr_number' => '',
     'tracking_enabled' => '1',
-    'special_instruction' => '', 'customer_notes' => '', 'internal_notes' => '',
+    'customer_notes' => '', 'internal_notes' => '',
 ];
 
 $data   = $defaults;
@@ -138,11 +145,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($data['phone'] === '')         $errors['phone'] = 'Phone number is required.';
     if ($data['pickup_address'] === '') $errors['pickup_address'] = 'Pickup address is required.';
     if ($data['pickup_city'] === '')    $errors['pickup_city'] = 'Pickup city is required.';
-    if ($data['delivery_address'] === '') $errors['delivery_address'] = 'Delivery address is required.';
-    if ($data['delivery_city'] === '')    $errors['delivery_city'] = 'Delivery city is required.';
-    if ($data['cargo_type'] === '')       $errors['cargo_type'] = 'Cargo type is required.';
-    if ($data['vehicle_type_requested'] === '') $errors['vehicle_type_requested'] = 'Requested vehicle type is required.';
-    if ($data['pickup_date'] === '')      $errors['pickup_date'] = 'Pickup date is required.';
+    if ($data['drop_address'] === '')   $errors['drop_address'] = 'Delivery address is required.';
+    if ($data['drop_city'] === '')      $errors['drop_city'] = 'Delivery city is required.';
+    if ($data['cargo_type'] === '')     $errors['cargo_type'] = 'Cargo type is required.';
+    if ($data['vehicle_type'] === '')   $errors['vehicle_type'] = 'Requested vehicle type is required.';
+    if ($data['pickup_date'] === '')    $errors['pickup_date'] = 'Pickup date is required.';
     if ($data['total_amount'] === '' || !is_numeric($data['total_amount'])) $errors['total_amount'] = 'Enter a valid total amount.';
     if ($data['email'] !== '' && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) $errors['email'] = 'Enter a valid email address.';
     if (!array_key_exists($data['status'], $STATUS_LIST)) $errors['status'] = 'Invalid status.';
@@ -158,117 +165,143 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $paid          = (float) ($data['paid_amount'] ?: 0);
 
     $gstAmount  = round($totalAmount * $gstPercentage / 100, 2);
-    $netAmount  = round($totalAmount + $gstAmount - $discount + $otherCharges, 2);
-    $balance    = round($netAmount - $paid, 2);
+    // toll/fuel/labour are not collected on this form yet — default to 0
+    $tollAmount = 0.0;
+    $fuelCharge = 0.0;
+    $labourCharge = 0.0;
+    $grandTotal = round($totalAmount + $gstAmount + $tollAmount + $fuelCharge + $labourCharge + $otherCharges - $discount, 2);
+    $balance    = round($grandTotal - $paid, 2);
+
+    // ---- Combine date + time into single DATETIME values ----
+    $scheduledPickup = $data['pickup_date'] !== ''
+        ? $data['pickup_date'] . ' ' . ($data['pickup_time'] !== '' ? $data['pickup_time'] . ':00' : '00:00:00')
+        : null;
+    $expectedDelivery = $data['expected_delivery_date'] !== ''
+        ? $data['expected_delivery_date'] . ' ' . ($data['expected_delivery_time'] !== '' ? $data['expected_delivery_time'] . ':00' : '00:00:00')
+        : null;
 
     if (!$errors) {
         try {
             $pdo->beginTransaction();
 
-            $trackingId  = next_sequence_code($pdo, 'tracking_id', 'TRK');
-            $bookingRef  = next_sequence_code($pdo, 'booking_reference', 'BKG');
+            $trackingId = next_sequence_code($pdo, 'tracking_id', 'TRK');
+            $enquiryRef = next_sequence_code($pdo, 'enquiry_reference', 'ENQ');
 
             $sql = "INSERT INTO transport_bookings (
-                        tracking_id, booking_reference, customer_id, customer_name, company_name, email,
-                        phone, alternate_phone, pickup_contact_name, pickup_contact_phone,
-                        delivery_contact_name, delivery_contact_phone,
+                        tracking_id, enquiry_reference, customer_name, company_name, email,
+                        phone, alternate_phone, service_type,
+                        truck_type, vehicle_type, cargo_type, cargo_description,
+                        cargo_weight, cargo_unit, number_of_packages, cargo_value,
+                        fragile, hazardous, temperature_controlled,
                         pickup_address, pickup_city, pickup_state, pickup_pincode,
-                        delivery_address, delivery_city, delivery_state, delivery_pincode,
-                        cargo_type, cargo_description, cargo_weight, cargo_weight_unit,
-                        cargo_volume, cargo_value, package_count, fragile, hazardous, temperature_controlled,
-                        truck_type, vehicle_type_requested, status, priority, driver_id, vehicle_id,
-                        estimated_distance, estimated_duration,
-                        pickup_date, pickup_time, expected_delivery_date, expected_delivery_time,
-                        total_amount, gst_percentage, gst_amount, discount_amount, other_charges,
-                        net_amount, advance_amount, paid_amount, balance_amount, payment_status,
-                        tracking_enabled, special_instruction, customer_notes, internal_notes,
-                        assigned_admin_id, created_by, updated_by, ip_address, created_at, updated_at
+                        pickup_contact_person, pickup_contact_number,
+                        drop_address, drop_city, drop_state, drop_pincode,
+                        drop_contact_person, drop_contact_number,
+                        distance_km, expected_days, estimated_duration,
+                        status, priority, driver_id, vehicle_id,
+                        total_amount, gst_amount, toll_amount, fuel_charge, labour_charge, extra_charge,
+                        discount, grand_total, advance_paid, paid_amount, balance_amount,
+                        payment_status, payment_mode,
+                        invoice_number, lr_number, quotation_number,
+                        scheduled_pickup, expected_delivery,
+                        remarks, internal_notes, customer_notes, tracking_enabled,
+                        created_by, updated_by, created_at, updated_at
                     ) VALUES (
-                        :tracking_id, :booking_reference, :customer_id, :customer_name, :company_name, :email,
-                        :phone, :alternate_phone, :pickup_contact_name, :pickup_contact_phone,
-                        :delivery_contact_name, :delivery_contact_phone,
+                        :tracking_id, :enquiry_reference, :customer_name, :company_name, :email,
+                        :phone, :alternate_phone, :service_type,
+                        :truck_type, :vehicle_type, :cargo_type, :cargo_description,
+                        :cargo_weight, :cargo_unit, :number_of_packages, :cargo_value,
+                        :fragile, :hazardous, :temperature_controlled,
                         :pickup_address, :pickup_city, :pickup_state, :pickup_pincode,
-                        :delivery_address, :delivery_city, :delivery_state, :delivery_pincode,
-                        :cargo_type, :cargo_description, :cargo_weight, :cargo_weight_unit,
-                        :cargo_volume, :cargo_value, :package_count, :fragile, :hazardous, :temperature_controlled,
-                        :truck_type, :vehicle_type_requested, :status, :priority, :driver_id, :vehicle_id,
-                        :estimated_distance, :estimated_duration,
-                        :pickup_date, :pickup_time, :expected_delivery_date, :expected_delivery_time,
-                        :total_amount, :gst_percentage, :gst_amount, :discount_amount, :other_charges,
-                        :net_amount, :advance_amount, :paid_amount, :balance_amount, :payment_status,
-                        :tracking_enabled, :special_instruction, :customer_notes, :internal_notes,
-                        :assigned_admin_id, :created_by, :updated_by, :ip_address, NOW(), NOW()
+                        :pickup_contact_person, :pickup_contact_number,
+                        :drop_address, :drop_city, :drop_state, :drop_pincode,
+                        :drop_contact_person, :drop_contact_number,
+                        :distance_km, :expected_days, :estimated_duration,
+                        :status, :priority, :driver_id, :vehicle_id,
+                        :total_amount, :gst_amount, :toll_amount, :fuel_charge, :labour_charge, :extra_charge,
+                        :discount, :grand_total, :advance_paid, :paid_amount, :balance_amount,
+                        :payment_status, :payment_mode,
+                        :invoice_number, :lr_number, :quotation_number,
+                        :scheduled_pickup, :expected_delivery,
+                        :remarks, :internal_notes, :customer_notes, :tracking_enabled,
+                        :created_by, :updated_by, NOW(), NOW()
                     )";
 
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
                 ':tracking_id' => $trackingId,
-                ':booking_reference' => $bookingRef,
-                ':customer_id' => $data['customer_id'] !== '' ? (int) $data['customer_id'] : null,
+                ':enquiry_reference' => $enquiryRef,
                 ':customer_name' => $data['customer_name'],
                 ':company_name' => $data['company_name'] ?: null,
                 ':email' => $data['email'] ?: null,
                 ':phone' => $data['phone'],
                 ':alternate_phone' => $data['alternate_phone'] ?: null,
-                ':pickup_contact_name' => $data['pickup_contact_name'] ?: null,
-                ':pickup_contact_phone' => $data['pickup_contact_phone'] ?: null,
-                ':delivery_contact_name' => $data['delivery_contact_name'] ?: null,
-                ':delivery_contact_phone' => $data['delivery_contact_phone'] ?: null,
+                ':service_type' => $data['service_type'] ?: null,
+                ':truck_type' => $data['truck_type'] ?: null,
+                ':vehicle_type' => $data['vehicle_type'],
+                ':cargo_type' => $data['cargo_type'],
+                ':cargo_description' => $data['cargo_description'] ?: null,
+                ':cargo_weight' => $data['cargo_weight'] !== '' ? (float) $data['cargo_weight'] : null,
+                ':cargo_unit' => $data['cargo_unit'] ?: 'kg',
+                ':number_of_packages' => $data['number_of_packages'] !== '' ? (int) $data['number_of_packages'] : null,
+                ':cargo_value' => $data['cargo_value'] !== '' ? (float) $data['cargo_value'] : null,
+                ':fragile' => (int) $data['fragile'],
+                ':hazardous' => (int) $data['hazardous'],
+                ':temperature_controlled' => (int) $data['temperature_controlled'],
                 ':pickup_address' => $data['pickup_address'],
                 ':pickup_city' => $data['pickup_city'],
                 ':pickup_state' => $data['pickup_state'] ?: null,
                 ':pickup_pincode' => $data['pickup_pincode'] ?: null,
-                ':delivery_address' => $data['delivery_address'],
-                ':delivery_city' => $data['delivery_city'],
-                ':delivery_state' => $data['delivery_state'] ?: null,
-                ':delivery_pincode' => $data['delivery_pincode'] ?: null,
-                ':cargo_type' => $data['cargo_type'],
-                ':cargo_description' => $data['cargo_description'] ?: null,
-                ':cargo_weight' => $data['cargo_weight'] !== '' ? (float) $data['cargo_weight'] : null,
-                ':cargo_weight_unit' => $data['cargo_weight_unit'] ?: 'kg',
-                ':cargo_volume' => $data['cargo_volume'] !== '' ? (float) $data['cargo_volume'] : null,
-                ':cargo_value' => $data['cargo_value'] !== '' ? (float) $data['cargo_value'] : null,
-                ':package_count' => $data['package_count'] !== '' ? (int) $data['package_count'] : null,
-                ':fragile' => (int) $data['fragile'],
-                ':hazardous' => (int) $data['hazardous'],
-                ':temperature_controlled' => (int) $data['temperature_controlled'],
-                ':truck_type' => $data['truck_type'] ?: null,
-                ':vehicle_type_requested' => $data['vehicle_type_requested'],
+                ':pickup_contact_person' => $data['pickup_contact_person'] ?: null,
+                ':pickup_contact_number' => $data['pickup_contact_number'] ?: null,
+                ':drop_address' => $data['drop_address'],
+                ':drop_city' => $data['drop_city'],
+                ':drop_state' => $data['drop_state'] ?: null,
+                ':drop_pincode' => $data['drop_pincode'] ?: null,
+                ':drop_contact_person' => $data['drop_contact_person'] ?: null,
+                ':drop_contact_number' => $data['drop_contact_number'] ?: null,
+                ':distance_km' => $data['distance_km'] !== '' ? (float) $data['distance_km'] : null,
+                ':expected_days' => $data['expected_days'] !== '' ? (int) $data['expected_days'] : null,
+                ':estimated_duration' => $data['estimated_duration'] !== '' ? (int) $data['estimated_duration'] : null,
                 ':status' => $data['status'],
                 ':priority' => $data['priority'],
                 ':driver_id' => $data['driver_id'] !== '' ? (int) $data['driver_id'] : null,
                 ':vehicle_id' => $data['vehicle_id'] !== '' ? (int) $data['vehicle_id'] : null,
-                ':estimated_distance' => $data['estimated_distance'] !== '' ? (float) $data['estimated_distance'] : null,
-                ':estimated_duration' => $data['estimated_duration'] !== '' ? (int) $data['estimated_duration'] : null,
-                ':pickup_date' => $data['pickup_date'],
-                ':pickup_time' => $data['pickup_time'] ?: null,
-                ':expected_delivery_date' => $data['expected_delivery_date'] ?: null,
-                ':expected_delivery_time' => $data['expected_delivery_time'] ?: null,
                 ':total_amount' => $totalAmount,
-                ':gst_percentage' => $gstPercentage,
                 ':gst_amount' => $gstAmount,
-                ':discount_amount' => $discount,
-                ':other_charges' => $otherCharges,
-                ':net_amount' => $netAmount,
-                ':advance_amount' => $advance,
+                ':toll_amount' => $tollAmount,
+                ':fuel_charge' => $fuelCharge,
+                ':labour_charge' => $labourCharge,
+                ':extra_charge' => $otherCharges,
+                ':discount' => $discount,
+                ':grand_total' => $grandTotal,
+                ':advance_paid' => $advance,
                 ':paid_amount' => $paid,
                 ':balance_amount' => $balance,
                 ':payment_status' => $data['payment_status'],
-                ':tracking_enabled' => (int) $data['tracking_enabled'],
-                ':special_instruction' => $data['special_instruction'] ?: null,
-                ':customer_notes' => $data['customer_notes'] ?: null,
+                ':payment_mode' => $data['payment_mode'] ?: null,
+                ':invoice_number' => $data['invoice_number'] ?: null,
+                ':lr_number' => $data['lr_number'] ?: null,
+                ':quotation_number' => $data['quotation_number'] ?: null,
+                ':scheduled_pickup' => $scheduledPickup,
+                ':expected_delivery' => $expectedDelivery,
+                ':remarks' => null,
                 ':internal_notes' => $data['internal_notes'] ?: null,
-                ':assigned_admin_id' => $_SESSION['admin_id'],
+                ':customer_notes' => $data['customer_notes'] ?: null,
+                ':tracking_enabled' => (int) $data['tracking_enabled'],
                 ':created_by' => $_SESSION['admin_id'],
                 ':updated_by' => $_SESSION['admin_id'],
-                ':ip_address' => $_SERVER['REMOTE_ADDR'] ?? null,
             ]);
 
             $bookingId = (int) $pdo->lastInsertId();
 
+            // NOTE: verify transport_booking_timeline's real column list matches this insert
+            // (booking_id, tracking_id, status, title, description, location, is_customer_visible,
+            //  created_by_admin_id, created_at) before relying on this — it hasn't been confirmed
+            // against your schema the way transport_bookings has.
             $tl = $pdo->prepare(
                 'INSERT INTO transport_booking_timeline
-                    (booking_id, tracking_id, status, title, description, location, is_customer_visible, created_by_admin_id, created_at)
+                    (booking_id, tracking_id, status, title, description, current_location, customer_visible, created_by, created_at)
                  VALUES (:bid, :tid, :status, :title, :desc, :loc, 1, :admin, NOW())'
             );
             $tl->execute([
@@ -410,51 +443,7 @@ function fclass(array $errors, string $key): string
 <div class="app-shell">
 
   <!-- ===================== SIDEBAR ===================== -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-      <div class="mark">A</div>
-      <div class="name">Biome<br><small>Control Panel</small></div>
-    </div>
-
-    <div class="sidebar-section-label">Overview</div>
-    <nav class="sidebar-nav">
-      <ul>
-        <li><a href="dashboard.php" class="nav-item"><i class="fa-solid fa-grid-2"></i> Dashboard</a></li>
-        <li><a href="analytics.php" class="nav-item"><i class="fa-solid fa-chart-line"></i> Analytics</a></li>
-        <li><a href="reports.php" class="nav-item"><i class="fa-solid fa-file-lines"></i> Reports</a></li>
-      </ul>
-
-      <div class="sidebar-section-label">Manage</div>
-      <ul>
-        <li><a href="users.php" class="nav-item"><i class="fa-solid fa-users"></i> Users <span class="pill"><?= e((string) $sidebarUserCount) ?></span></a></li>
-        <li><a href="admins.php" class="nav-item"><i class="fa-solid fa-user-shield"></i> Admins</a></li>
-        <li><a href="bamboo-enquiries.php" class="nav-item"><i class="fa-solid fa-user-shield"></i> Bamboo Trading</a></li>
-        <li><a href="roles.php" class="nav-item"><i class="fa-solid fa-key"></i> Roles &amp; Permissions</a></li>
-        <li><a href="content.php" class="nav-item"><i class="fa-solid fa-layer-group"></i> Content</a></li>
-        <li><a href="billing.php" class="nav-item"><i class="fa-solid fa-credit-card"></i> Billing</a></li>
-        <li><a href="blog_manage.php" class="nav-item"><i class="fa-solid fa-newspaper"></i> Blog Posts</a></li>
-        <li><a href="transport_manage.php" class="nav-item active"><i class="fa-solid fa-truck-fast"></i> Transport Bookings</a></li>
-      </ul>
-
-      <div class="sidebar-section-label">System</div>
-      <ul>
-        <li><a href="logs.php" class="nav-item"><i class="fa-solid fa-clock-rotate-left"></i> Activity Logs</a></li>
-        <li><a href="notifications.php" class="nav-item"><i class="fa-solid fa-bell"></i> Notifications</a></li>
-        <li><a href="security.php" class="nav-item"><i class="fa-solid fa-shield-halved"></i> Security</a></li>
-        <li><a href="settings.php" class="nav-item"><i class="fa-solid fa-gear"></i> Settings</a></li>
-      </ul>
-    </nav>
-
-    <div class="sidebar-foot">
-      <div class="sidebar-upgrade">
-        <div class="label">System status</div>
-        <p>All services operational. Last checked just now.</p>
-        <a href="security.php" class="btn btn-outline-accent" style="width:100%;justify-content:center;">
-          <i class="fa-solid fa-circle-check"></i> View status page
-        </a>
-      </div>
-    </div>
-  </aside>
+  <?php require __DIR__ . '/includes/sidebar.php'; ?>
 
   <!-- ===================== MAIN COLUMN ===================== -->
   <div class="main-col">
@@ -511,35 +500,18 @@ function fclass(array $errors, string $key): string
             <div><h3>Customer information</h3><span class="sub">Who this booking is for</span></div>
           </div>
           <div class="form-grid">
-            <div class="field span-2">
-              <label>Existing customer <span class="opt">(optional — autofills the fields below)</span></label>
-              <select id="customerSelect">
-                <option value="">— Select a saved customer —</option>
-                <?php foreach ($customers as $c): ?>
-                  <option value="<?= (int) $c['id'] ?>"
-                          data-name="<?= e($c['contact_person']) ?>"
-                          data-company="<?= e($c['company_name']) ?>"
-                          data-phone="<?= e($c['phone']) ?>"
-                          data-email="<?= e($c['email']) ?>">
-                    <?= e($c['company_name'] ?: $c['contact_person']) ?> <?= $c['customer_code'] ? '(' . e($c['customer_code']) . ')' : '' ?>
-                  </option>
-                <?php endforeach; ?>
-              </select>
-              <input type="hidden" name="customer_id" id="customer_id" value="<?= fval($data, 'customer_id') ?>">
-            </div>
-
             <div class="field <?= fclass($errors, 'customer_name') ?>">
               <label>Customer name *</label>
-              <input type="text" name="customer_name" id="customer_name" value="<?= fval($data, 'customer_name') ?>" maxlength="150" required>
+              <input type="text" name="customer_name" value="<?= fval($data, 'customer_name') ?>" maxlength="150" required>
               <?= ferr($errors, 'customer_name') ?>
             </div>
             <div class="field">
               <label>Company name <span class="opt">(optional)</span></label>
-              <input type="text" name="company_name" id="company_name" value="<?= fval($data, 'company_name') ?>" maxlength="150">
+              <input type="text" name="company_name" value="<?= fval($data, 'company_name') ?>" maxlength="150">
             </div>
             <div class="field <?= fclass($errors, 'phone') ?>">
               <label>Phone *</label>
-              <input type="text" name="phone" id="phone" value="<?= fval($data, 'phone') ?>" maxlength="20" required>
+              <input type="text" name="phone" value="<?= fval($data, 'phone') ?>" maxlength="20" required>
               <?= ferr($errors, 'phone') ?>
             </div>
             <div class="field">
@@ -548,8 +520,12 @@ function fclass(array $errors, string $key): string
             </div>
             <div class="field <?= fclass($errors, 'email') ?>">
               <label>Email <span class="opt">(optional)</span></label>
-              <input type="email" name="email" id="email" value="<?= fval($data, 'email') ?>" maxlength="150">
+              <input type="email" name="email" value="<?= fval($data, 'email') ?>" maxlength="150">
               <?= ferr($errors, 'email') ?>
+            </div>
+            <div class="field">
+              <label>Service type <span class="opt">(optional)</span></label>
+              <input type="text" name="service_type" value="<?= fval($data, 'service_type') ?>" maxlength="100" placeholder="e.g. Full truck load, Part load">
             </div>
           </div>
         </div>
@@ -562,12 +538,12 @@ function fclass(array $errors, string $key): string
           </div>
           <div class="form-grid">
             <div class="field">
-              <label>Pickup contact name <span class="opt">(optional)</span></label>
-              <input type="text" name="pickup_contact_name" value="<?= fval($data, 'pickup_contact_name') ?>" maxlength="100">
+              <label>Pickup contact person <span class="opt">(optional)</span></label>
+              <input type="text" name="pickup_contact_person" value="<?= fval($data, 'pickup_contact_person') ?>" maxlength="100">
             </div>
             <div class="field">
-              <label>Pickup contact phone <span class="opt">(optional)</span></label>
-              <input type="text" name="pickup_contact_phone" value="<?= fval($data, 'pickup_contact_phone') ?>" maxlength="20">
+              <label>Pickup contact number <span class="opt">(optional)</span></label>
+              <input type="text" name="pickup_contact_number" value="<?= fval($data, 'pickup_contact_number') ?>" maxlength="20">
             </div>
             <div class="field span-2 <?= fclass($errors, 'pickup_address') ?>">
               <label>Pickup address *</label>
@@ -598,30 +574,30 @@ function fclass(array $errors, string $key): string
           </div>
           <div class="form-grid">
             <div class="field">
-              <label>Delivery contact name <span class="opt">(optional)</span></label>
-              <input type="text" name="delivery_contact_name" value="<?= fval($data, 'delivery_contact_name') ?>" maxlength="100">
+              <label>Delivery contact person <span class="opt">(optional)</span></label>
+              <input type="text" name="drop_contact_person" value="<?= fval($data, 'drop_contact_person') ?>" maxlength="100">
             </div>
             <div class="field">
-              <label>Delivery contact phone <span class="opt">(optional)</span></label>
-              <input type="text" name="delivery_contact_phone" value="<?= fval($data, 'delivery_contact_phone') ?>" maxlength="20">
+              <label>Delivery contact number <span class="opt">(optional)</span></label>
+              <input type="text" name="drop_contact_number" value="<?= fval($data, 'drop_contact_number') ?>" maxlength="20">
             </div>
-            <div class="field span-2 <?= fclass($errors, 'delivery_address') ?>">
+            <div class="field span-2 <?= fclass($errors, 'drop_address') ?>">
               <label>Delivery address *</label>
-              <textarea name="delivery_address" required><?= fval($data, 'delivery_address') ?></textarea>
-              <?= ferr($errors, 'delivery_address') ?>
+              <textarea name="drop_address" required><?= fval($data, 'drop_address') ?></textarea>
+              <?= ferr($errors, 'drop_address') ?>
             </div>
-            <div class="field <?= fclass($errors, 'delivery_city') ?>">
+            <div class="field <?= fclass($errors, 'drop_city') ?>">
               <label>Delivery city *</label>
-              <input type="text" name="delivery_city" value="<?= fval($data, 'delivery_city') ?>" maxlength="100" required>
-              <?= ferr($errors, 'delivery_city') ?>
+              <input type="text" name="drop_city" value="<?= fval($data, 'drop_city') ?>" maxlength="100" required>
+              <?= ferr($errors, 'drop_city') ?>
             </div>
             <div class="field">
               <label>Delivery state <span class="opt">(optional)</span></label>
-              <input type="text" name="delivery_state" value="<?= fval($data, 'delivery_state') ?>" maxlength="100">
+              <input type="text" name="drop_state" value="<?= fval($data, 'drop_state') ?>" maxlength="100">
             </div>
             <div class="field">
               <label>Delivery pincode <span class="opt">(optional)</span></label>
-              <input type="text" name="delivery_pincode" value="<?= fval($data, 'delivery_pincode') ?>" maxlength="10">
+              <input type="text" name="drop_pincode" value="<?= fval($data, 'drop_pincode') ?>" maxlength="10">
             </div>
           </div>
         </div>
@@ -639,8 +615,8 @@ function fclass(array $errors, string $key): string
               <?= ferr($errors, 'cargo_type') ?>
             </div>
             <div class="field">
-              <label>Package count <span class="opt">(optional)</span></label>
-              <input type="number" name="package_count" value="<?= fval($data, 'package_count') ?>" min="0">
+              <label>Number of packages <span class="opt">(optional)</span></label>
+              <input type="number" name="number_of_packages" value="<?= fval($data, 'number_of_packages') ?>" min="0">
             </div>
             <div class="field">
               <label>Cargo value (₹) <span class="opt">(optional)</span></label>
@@ -652,21 +628,17 @@ function fclass(array $errors, string $key): string
             </div>
             <div class="field">
               <label>Weight unit</label>
-              <select name="cargo_weight_unit">
-                <?php foreach ($CARGO_WEIGHT_UNITS as $k => $lbl): ?>
-                  <option value="<?= e($k) ?>" <?= $data['cargo_weight_unit'] === $k ? 'selected' : '' ?>><?= e($lbl) ?></option>
+              <select name="cargo_unit">
+                <?php foreach ($CARGO_UNITS as $k => $lbl): ?>
+                  <option value="<?= e($k) ?>" <?= $data['cargo_unit'] === $k ? 'selected' : '' ?>><?= e($lbl) ?></option>
                 <?php endforeach; ?>
               </select>
-            </div>
-            <div class="field">
-              <label>Volume (cbm) <span class="opt">(optional)</span></label>
-              <input type="number" step="0.01" name="cargo_volume" value="<?= fval($data, 'cargo_volume') ?>" min="0">
             </div>
             <div class="field span-2">
               <label>Cargo description <span class="opt">(optional)</span></label>
               <textarea name="cargo_description"><?= fval($data, 'cargo_description') ?></textarea>
             </div>
-            <div class="field">
+            <div class="field span-2">
               <label>Special handling</label>
               <div class="checkbox-row" style="margin-top:6px;">
                 <label><input type="checkbox" name="fragile" value="1" <?= $data['fragile'] ? 'checked' : '' ?>> Fragile</label>
@@ -684,10 +656,10 @@ function fclass(array $errors, string $key): string
             <div><h3>Vehicle, driver &amp; schedule</h3><span class="sub">Assignment and timing</span></div>
           </div>
           <div class="form-grid cols-3">
-            <div class="field <?= fclass($errors, 'vehicle_type_requested') ?>">
+            <div class="field <?= fclass($errors, 'vehicle_type') ?>">
               <label>Vehicle type requested *</label>
-              <input type="text" name="vehicle_type_requested" value="<?= fval($data, 'vehicle_type_requested') ?>" maxlength="100" placeholder="e.g. 14ft Tempo" required>
-              <?= ferr($errors, 'vehicle_type_requested') ?>
+              <input type="text" name="vehicle_type" value="<?= fval($data, 'vehicle_type') ?>" maxlength="100" placeholder="e.g. 14ft Tempo" required>
+              <?= ferr($errors, 'vehicle_type') ?>
             </div>
             <div class="field">
               <label>Truck type <span class="opt">(optional)</span></label>
@@ -751,8 +723,12 @@ function fclass(array $errors, string $key): string
               <input type="time" name="expected_delivery_time" value="<?= fval($data, 'expected_delivery_time') ?>">
             </div>
             <div class="field">
-              <label>Estimated distance (km) <span class="opt">(optional)</span></label>
-              <input type="number" step="0.1" name="estimated_distance" value="<?= fval($data, 'estimated_distance') ?>" min="0">
+              <label>Distance (km) <span class="opt">(optional)</span></label>
+              <input type="number" step="0.1" name="distance_km" value="<?= fval($data, 'distance_km') ?>" min="0">
+            </div>
+            <div class="field">
+              <label>Expected transit (days) <span class="opt">(optional)</span></label>
+              <input type="number" name="expected_days" value="<?= fval($data, 'expected_days') ?>" min="0">
             </div>
             <div class="field">
               <label>Estimated duration (mins) <span class="opt">(optional)</span></label>
@@ -802,6 +778,14 @@ function fclass(array $errors, string $key): string
               </select>
             </div>
             <div class="field">
+              <label>Payment mode <span class="opt">(optional)</span></label>
+              <select name="payment_mode">
+                <?php foreach ($PAYMENT_MODES as $k => $lbl): ?>
+                  <option value="<?= e($k) ?>" <?= $data['payment_mode'] === $k ? 'selected' : '' ?>><?= e($lbl) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="field">
               <label>Customer tracking</label>
               <div class="checkbox-row" style="margin-top:6px;">
                 <label><input type="checkbox" name="tracking_enabled" value="1" <?= $data['tracking_enabled'] ? 'checked' : '' ?>> Enable customer tracking page</label>
@@ -811,22 +795,40 @@ function fclass(array $errors, string $key): string
 
           <div class="amount-summary">
             <div class="item"><span>GST amount</span><strong id="sumGst">₹0.00</strong></div>
-            <div class="item"><span>Net amount</span><strong id="sumNet">₹0.00</strong></div>
+            <div class="item"><span>Grand total</span><strong id="sumNet">₹0.00</strong></div>
             <div class="item balance"><span>Balance due</span><strong id="sumBalance">₹0.00</strong></div>
           </div>
         </div>
 
-        <!-- ============ 7. Notes ============ -->
+        <!-- ============ 7. Reference numbers ============ -->
         <div class="panel">
           <div class="panel-head">
             <div class="n">7</div>
-            <div><h3>Notes &amp; instructions</h3><span class="sub">Internal notes are never shown to the customer</span></div>
+            <div><h3>Reference numbers</h3><span class="sub">Optional — fill in once available</span></div>
+          </div>
+          <div class="form-grid cols-3">
+            <div class="field">
+              <label>Quotation number <span class="opt">(optional)</span></label>
+              <input type="text" name="quotation_number" value="<?= fval($data, 'quotation_number') ?>" maxlength="60">
+            </div>
+            <div class="field">
+              <label>Invoice number <span class="opt">(optional)</span></label>
+              <input type="text" name="invoice_number" value="<?= fval($data, 'invoice_number') ?>" maxlength="60">
+            </div>
+            <div class="field">
+              <label>LR number <span class="opt">(optional)</span></label>
+              <input type="text" name="lr_number" value="<?= fval($data, 'lr_number') ?>" maxlength="60">
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ 8. Notes ============ -->
+        <div class="panel">
+          <div class="panel-head">
+            <div class="n">8</div>
+            <div><h3>Notes</h3><span class="sub">Internal notes are never shown to the customer</span></div>
           </div>
           <div class="form-grid">
-            <div class="field span-2">
-              <label>Special instruction <span class="opt">(customer-visible, optional)</span></label>
-              <textarea name="special_instruction"><?= fval($data, 'special_instruction') ?></textarea>
-            </div>
             <div class="field span-2">
               <label>Customer notes <span class="opt">(customer-visible, optional)</span></label>
               <textarea name="customer_notes"><?= fval($data, 'customer_notes') ?></textarea>
@@ -856,22 +858,7 @@ function fclass(array $errors, string $key): string
     toggle.addEventListener('click', function () { sidebar.classList.toggle('open'); });
   }
 
-  // Autofill customer fields when an existing customer is picked
-  const customerSelect = document.getElementById('customerSelect');
-  if (customerSelect) {
-    customerSelect.addEventListener('change', function () {
-      const opt = customerSelect.options[customerSelect.selectedIndex];
-      document.getElementById('customer_id').value = customerSelect.value;
-      if (customerSelect.value) {
-        document.getElementById('customer_name').value = opt.dataset.name || '';
-        document.getElementById('company_name').value = opt.dataset.company || '';
-        document.getElementById('phone').value = opt.dataset.phone || '';
-        document.getElementById('email').value = opt.dataset.email || '';
-      }
-    });
-  }
-
-  // Live GST / net / balance calculation
+  // Live GST / grand total / balance calculation
   const ids = ['total_amount', 'gst_percentage', 'discount_amount', 'other_charges', 'paid_amount'];
   const fmt = (n) => '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -883,14 +870,13 @@ function fclass(array $errors, string $key): string
     const paid     = parseFloat(document.getElementById('paid_amount').value) || 0;
 
     const gstAmount = total * gstPct / 100;
-    const net       = total + gstAmount - discount + other;
-    const balance   = net - paid;
+    const grandTotal = total + gstAmount - discount + other;
+    const balance   = grandTotal - paid;
 
     document.getElementById('sumGst').textContent = fmt(gstAmount);
-    document.getElementById('sumNet').textContent = fmt(net);
+    document.getElementById('sumNet').textContent = fmt(grandTotal);
     document.getElementById('sumBalance').textContent = fmt(balance);
 
-    // Auto-suggest a payment status (admin can still override manually)
     const statusEl = document.getElementById('payment_status');
     if (statusEl) {
       if (paid <= 0) statusEl.value = 'unpaid';

@@ -36,7 +36,7 @@ $STATUS_LABELS = [
 
 if ($trackingId !== '') {
     $stmt = $pdo->prepare(
-        "SELECT tb.*, d.driver_name, d.phone AS driver_phone, v.registration_number, v.vehicle_type AS vehicle_type_actual
+        "SELECT tb.*, d.full_name AS driver_name, d.mobile AS driver_phone, v.registration_number, v.vehicle_type AS vehicle_type_actual
          FROM transport_bookings tb
          LEFT JOIN transport_drivers d ON d.id = tb.driver_id
          LEFT JOIN transport_vehicles v ON v.id = tb.vehicle_id
@@ -49,7 +49,7 @@ if ($trackingId !== '') {
     if ($booking) {
         $tlStmt = $pdo->prepare(
             'SELECT * FROM transport_booking_timeline
-             WHERE booking_id = :bid AND is_customer_visible = 1
+             WHERE booking_id = :bid AND customer_visible = 1
              ORDER BY created_at ASC, id ASC'
         );
         $tlStmt->execute([':bid' => $booking['id']]);
@@ -377,7 +377,7 @@ $pageTitle = 'Track Your Shipment';
         <div class="route-divider"><i class="fa-solid fa-arrow-right-long"></i></div>
         <div class="route-point dest">
           <div class="label">To</div>
-          <div class="city"><?= e($booking['delivery_city']) ?></div>
+          <div class="city"><?= e($booking['drop_city']) ?></div>
         </div>
       </div>
     </div>
@@ -428,7 +428,7 @@ $pageTitle = 'Track Your Shipment';
             <div class="tl-time"><?= e(date('d M Y, h:i A', strtotime((string) $ev['created_at']))) ?></div>
             <div class="tl-title"><?= e($ev['title']) ?></div>
             <?php if ($ev['description']): ?><div class="tl-desc"><?= e($ev['description']) ?></div><?php endif; ?>
-            <?php if ($ev['location']): ?><div class="tl-loc"><i class="fa-solid fa-location-dot"></i><?= e($ev['location']) ?></div><?php endif; ?>
+            <?php if ($ev['current_location']): ?><div class="tl-loc"><i class="fa-solid fa-location-dot"></i><?= e($ev['current_location']) ?></div><?php endif; ?>
           </div>
         <?php endforeach; ?>
       </div>
@@ -441,7 +441,7 @@ $pageTitle = 'Track Your Shipment';
         <div class="label">Cargo</div>
         <div class="value"><?= e($booking['cargo_type'] ?: '—') ?></div>
         <?php if ($booking['cargo_weight']): ?>
-          <div class="sub"><?= e(rtrim(rtrim((string) $booking['cargo_weight'], '0'), '.')) ?> <?= e($booking['cargo_weight_unit']) ?><?= $booking['package_count'] ? ' · ' . (int) $booking['package_count'] . ' pkg' : '' ?></div>
+          <div class="sub"><?= e(rtrim(rtrim((string) $booking['cargo_weight'], '0'), '.')) ?> <?= e($booking['cargo_unit']) ?><?= $booking['number_of_packages'] ? ' · ' . (int) $booking['number_of_packages'] . ' pkg' : '' ?></div>
         <?php endif; ?>
       </div>
       <div class="detail-card">
@@ -456,18 +456,18 @@ $pageTitle = 'Track Your Shipment';
       </div>
       <div class="detail-card">
         <div class="label">Pickup date</div>
-        <div class="value"><?= e($booking['pickup_date'] ? date('d M Y', strtotime((string) $booking['pickup_date'])) : '—') ?></div>
-        <?php if ($booking['pickup_time']): ?><div class="sub"><?= e(date('h:i A', strtotime((string) $booking['pickup_time']))) ?></div><?php endif; ?>
+        <div class="value"><?= e($booking['scheduled_pickup'] ? date('d M Y', strtotime((string) $booking['scheduled_pickup'])) : '—') ?></div>
+        <?php if ($booking['scheduled_pickup']): ?><div class="sub"><?= e(date('h:i A', strtotime((string) $booking['scheduled_pickup']))) ?></div><?php endif; ?>
       </div>
       <div class="detail-card">
         <div class="label">Expected delivery</div>
-        <div class="value"><?= e($booking['expected_delivery_date'] ? date('d M Y', strtotime((string) $booking['expected_delivery_date'])) : 'TBD') ?></div>
-        <?php if ($booking['expected_delivery_time']): ?><div class="sub"><?= e(date('h:i A', strtotime((string) $booking['expected_delivery_time']))) ?></div><?php endif; ?>
+        <div class="value"><?= e($booking['expected_delivery'] ? date('d M Y', strtotime((string) $booking['expected_delivery'])) : 'TBD') ?></div>
+        <?php if ($booking['expected_delivery']): ?><div class="sub"><?= e(date('h:i A', strtotime((string) $booking['expected_delivery']))) ?></div><?php endif; ?>
       </div>
-      <?php if ($booking['special_instruction']): ?>
+      <?php if ($booking['customer_notes']): ?>
         <div class="detail-card">
-          <div class="label">Special instruction</div>
-          <div class="value" style="font-weight:500;font-size:.87rem;"><?= e($booking['special_instruction']) ?></div>
+          <div class="label">Notes</div>
+          <div class="value" style="font-weight:500;font-size:.87rem;"><?= e($booking['customer_notes']) ?></div>
         </div>
       <?php endif; ?>
     </div>
@@ -476,8 +476,8 @@ $pageTitle = 'Track Your Shipment';
     <div class="section-title"><i class="fa-solid fa-receipt"></i> Payment summary</div>
     <div class="payment-strip">
       <div class="item">
-        <div class="label">Net amount</div>
-        <div class="value"><?= e(inr_track((float) $booking['net_amount'])) ?></div>
+        <div class="label">Grand total</div>
+        <div class="value"><?= e(inr_track((float) $booking['grand_total'])) ?></div>
       </div>
       <div class="item">
         <div class="label">Paid</div>
