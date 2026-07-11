@@ -160,6 +160,7 @@ require __DIR__ . '/includes/header.php';
 ?>
 
 <link rel="stylesheet" href="assets/css/dashboard.css">
+<link rel="stylesheet" href="assets/css/admin-theme-green.css">
 
 <style>
   .tl-grid { display: grid; grid-template-columns: 1fr 1.3fr; gap: 20px; align-items: start; }

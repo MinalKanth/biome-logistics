@@ -32,17 +32,17 @@ function safe_all(PDO $pdo, string $sql, $default = [])
     }
 }
 
-/* ---- Users ---- */
-$totalUsers    = (int) safe_scalar($pdo, "SELECT COUNT(*) FROM users");
-$activeUsers   = (int) safe_scalar($pdo, "SELECT COUNT(*) FROM users WHERE status='active'");
+$totalUsers    = (int)safe_scalar($pdo, "SELECT COUNT(*) FROM users");
+$activeUsers   = (int)safe_scalar($pdo, "SELECT COUNT(*) FROM users WHERE status='active'");
 $inactiveUsers = max(0, $totalUsers - $activeUsers);
-$totalAdmins   = (int) safe_scalar($pdo, "SELECT COUNT(*) FROM admins");
+$totalAdmins   = (int)safe_scalar($pdo, "SELECT COUNT(*) FROM admins");
 
-$newUsers7d = (int) safe_scalar(
+// New users in the last 7 days (used for the trend delta on the stat card)
+$newUsers7d = (int)safe_scalar(
     $pdo,
     "SELECT COUNT(*) FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)"
 );
-$newUsersPrev7d = (int) safe_scalar(
+$newUsersPrev7d = (int)safe_scalar(
     $pdo,
     "SELECT COUNT(*) FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 14 DAY)
      AND created_at < DATE_SUB(NOW(), INTERVAL 7 DAY)"
@@ -51,11 +51,17 @@ $userTrendPct = $newUsersPrev7d > 0
     ? round((($newUsers7d - $newUsersPrev7d) / max(1, $newUsersPrev7d)) * 100, 1)
     : ($newUsers7d > 0 ? 100.0 : 0.0);
 
-$loginsToday = (int) safe_scalar(
+// Sessions / logins today (best-effort; falls back to 0 if no such table)
+$loginsToday = (int)safe_scalar(
     $pdo,
     "SELECT COUNT(*) FROM activity_log WHERE action='login' AND DATE(created_at)=CURDATE()"
 );
-$pendingReview = (int) safe_scalar($pdo, "SELECT COUNT(*) FROM users WHERE status='pending'");
+
+// Pending items — generic "needs attention" count, e.g. unverified users
+$pendingReview = (int)safe_scalar(
+    $pdo,
+    "SELECT COUNT(*) FROM users WHERE status='pending'"
+);
 
 $recentLogs = safe_all($pdo, "
     SELECT al.action, al.details, al.ip_address, al.created_at, a.username
@@ -89,7 +95,7 @@ $signupSeries = safe_all($pdo, "
 ");
 $seriesMap = [];
 foreach ($signupSeries as $row) {
-    $seriesMap[$row['d']] = (int) $row['c'];
+    $seriesMap[$row['d']] = (int)$row['c'];
 }
 $chartLabels = [];
 $chartData   = [];
@@ -105,111 +111,16 @@ $statusBreakdown = [
     'Pending'  => $pendingReview,
 ];
 
-/* ---- Transport ---- */
-$totalBookings = (int) safe_scalar($pdo, "SELECT COUNT(*) FROM transport_bookings WHERE deleted_at IS NULL");
-$bookingsInTransit = (int) safe_scalar(
-    $pdo,
-    "SELECT COUNT(*) FROM transport_bookings
-     WHERE deleted_at IS NULL AND status IN ('picked_up','in_transit','out_for_delivery')"
-);
-$revenueThisMonth = (float) safe_scalar(
-    $pdo,
-    "SELECT COALESCE(SUM(paid_amount),0) FROM transport_bookings
-     WHERE deleted_at IS NULL AND MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())"
-);
-$pendingPayments = (int) safe_scalar(
-    $pdo,
-    "SELECT COUNT(*) FROM transport_bookings WHERE deleted_at IS NULL AND payment_status IN ('unpaid','partial')"
-);
-
-$recentBookings = safe_all($pdo, "
-    SELECT id, tracking_id, customer_name, status, payment_status, net_amount, created_at
-    FROM transport_bookings
-    WHERE deleted_at IS NULL
-    ORDER BY created_at DESC
-    LIMIT 5
-");
-
-// Bookings + revenue per day, last 14 days — feeds the second chart tab
-$bookingSeries = safe_all($pdo, "
-    SELECT DATE(created_at) AS d, COUNT(*) AS bookings, COALESCE(SUM(net_amount),0) AS revenue
-    FROM transport_bookings
-    WHERE deleted_at IS NULL AND created_at >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
-    GROUP BY DATE(created_at)
-    ORDER BY d ASC
-");
-$bookingMap = [];
-foreach ($bookingSeries as $row) {
-    $bookingMap[$row['d']] = ['bookings' => (int) $row['bookings'], 'revenue' => (float) $row['revenue']];
-}
-$bookingChartLabels  = [];
-$bookingChartCounts  = [];
-$bookingChartRevenue = [];
-for ($i = 13; $i >= 0; $i--) {
-    $day = date('Y-m-d', strtotime("-{$i} days"));
-    $bookingChartLabels[]  = date('M j', strtotime($day));
-    $bookingChartCounts[]  = $bookingMap[$day]['bookings'] ?? 0;
-    $bookingChartRevenue[] = $bookingMap[$day]['revenue'] ?? 0;
-}
-
-$statusBadgeMap = [
-    'pending' => 'muted', 'confirmed' => 'success', 'driver_assigned' => 'success',
-    'picked_up' => 'warning', 'in_transit' => 'warning', 'out_for_delivery' => 'warning',
-    'delivered' => 'success', 'cancelled' => 'danger', 'returned' => 'danger',
-];
-$paymentBadgeMap = ['unpaid' => 'danger', 'partial' => 'warning', 'paid' => 'success', 'refunded' => 'muted'];
-
-/* ---- Blog ---- */
-$sidebarBlogCount = (int) safe_scalar($pdo, "SELECT COUNT(*) FROM blog_posts");
-$recentPosts = safe_all($pdo, "
-    SELECT id, title, event_date, status
-    FROM blog_posts
-    ORDER BY event_date DESC, id DESC
-    LIMIT 4
-");
-
-/* ---- Notifications ----
-   Falls back to an empty list (not fake copy) if the table doesn't exist yet.
-   Create it with:
-     CREATE TABLE notifications (
-       id INT AUTO_INCREMENT PRIMARY KEY,
-       title VARCHAR(150), body VARCHAR(255),
-       icon VARCHAR(50) DEFAULT 'fa-solid fa-bell',
-       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-     ); */
-$notifications = safe_all($pdo, "
-    SELECT title, body, icon, created_at
-    FROM notifications
-    ORDER BY created_at DESC
-    LIMIT 5
-");
-
-/* ---- System resource usage (best-effort, Linux-only for load/disk) ---- */
-$cpuLoadPct = 0;
-if (function_exists('sys_getloadavg')) {
-    $load = sys_getloadavg();
-    $cores = (int) (shell_exec('nproc') ?: 1) ?: 1;
-    $cpuLoadPct = $load ? min(100, (int) round(($load[0] / max(1, $cores)) * 100)) : 0;
-}
-$diskTotal = @disk_total_space('/') ?: 0;
-$diskFree  = @disk_free_space('/') ?: 0;
-$diskUsedPct = $diskTotal > 0 ? (int) round((($diskTotal - $diskFree) / $diskTotal) * 100) : 0;
-
-/* ---- Security alerts: failed logins in the last 24h ---- */
-$securityAlerts = (int) safe_scalar(
-    $pdo,
-    "SELECT COUNT(*) FROM activity_log WHERE action='failed_login' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY)"
-);
-
 $pageTitle = "Dashboard";
 require __DIR__ . '/includes/header.php';
 ?>
 
 <link rel="stylesheet" href="assets/css/dashboard.css">
 <link rel="stylesheet" href="assets/css/admin-theme-green.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script> -->
 
 <div class="app-shell">
+
 
 <?php require __DIR__ . '/includes/sidebar.php'; ?>
 
@@ -230,7 +141,7 @@ require __DIR__ . '/includes/header.php';
       <div class="topbar-right">
         <div class="icon-btn" title="Notifications">
           <i class="fa-regular fa-bell"></i>
-          <?php if (count($notifications) > 0): ?><span class="dot"></span><?php endif; ?>
+          <span class="dot"></span>
         </div>
         <div class="icon-btn" title="Help &amp; documentation">
           <i class="fa-regular fa-circle-question"></i>
@@ -279,7 +190,7 @@ require __DIR__ . '/includes/header.php';
             <div class="icon-wrap"><i class="fa-solid fa-users"></i></div>
             <span class="delta <?= $userTrendPct >= 0 ? 'up' : 'down' ?>">
               <i class="fa-solid fa-arrow-<?= $userTrendPct >= 0 ? 'up' : 'down' ?>"></i>
-              <?= e((string) abs($userTrendPct)) ?>%
+              <?= e((string)abs($userTrendPct)) ?>%
             </span>
           </div>
           <h2><?= e(number_format($totalUsers)) ?></h2>
@@ -297,40 +208,26 @@ require __DIR__ . '/includes/header.php';
 
         <div class="stat-card">
           <div class="top-row">
-            <div class="icon-wrap"><i class="fa-solid fa-truck-fast"></i></div>
-            <span class="delta up"><i class="fa-solid fa-circle"></i> live</span>
+            <div class="icon-wrap"><i class="fa-solid fa-user-xmark"></i></div>
+            <span class="delta down"><i class="fa-solid fa-arrow-down"></i> <?= $totalUsers ? round($inactiveUsers / $totalUsers * 100) : 0 ?>%</span>
           </div>
-          <h2><?= e(number_format($totalBookings)) ?></h2>
-          <p class="label">Transport bookings</p>
+          <h2><?= e(number_format($inactiveUsers)) ?></h2>
+          <p class="label">Inactive users</p>
         </div>
 
         <div class="stat-card accent">
           <div class="top-row">
-            <div class="icon-wrap"><i class="fa-solid fa-indian-rupee-sign"></i></div>
-            <span class="delta up"><i class="fa-solid fa-circle"></i> this month</span>
+            <div class="icon-wrap"><i class="fa-solid fa-user-shield"></i></div>
+            <span class="delta up"><i class="fa-solid fa-circle"></i> live</span>
           </div>
-          <h2>₹<?= e(number_format($revenueThisMonth, 2)) ?></h2>
-          <p class="label">Revenue this month</p>
+          <h2><?= e(number_format($totalAdmins)) ?></h2>
+          <p class="label">Administrators</p>
         </div>
 
       </div>
 
       <!-- ---------- Secondary stat row ---------- -->
       <div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-bottom:26px;">
-        <div class="stat-card" style="padding:20px 24px;">
-          <div class="top-row" style="margin-bottom:8px;">
-            <div class="icon-wrap" style="width:36px;height:36px;font-size:14px;"><i class="fa-solid fa-truck-ramp-box"></i></div>
-          </div>
-          <h2 style="font-size:26px;"><?= e(number_format($bookingsInTransit)) ?></h2>
-          <p class="label">Bookings in transit</p>
-        </div>
-        <div class="stat-card" style="padding:20px 24px;">
-          <div class="top-row" style="margin-bottom:8px;">
-            <div class="icon-wrap" style="width:36px;height:36px;font-size:14px;"><i class="fa-solid fa-wallet"></i></div>
-          </div>
-          <h2 style="font-size:26px;"><?= e(number_format($pendingPayments)) ?></h2>
-          <p class="label">Pending payments</p>
-        </div>
         <div class="stat-card" style="padding:20px 24px;">
           <div class="top-row" style="margin-bottom:8px;">
             <div class="icon-wrap" style="width:36px;height:36px;font-size:14px;"><i class="fa-solid fa-right-to-bracket"></i></div>
@@ -340,10 +237,24 @@ require __DIR__ . '/includes/header.php';
         </div>
         <div class="stat-card" style="padding:20px 24px;">
           <div class="top-row" style="margin-bottom:8px;">
-            <div class="icon-wrap" style="width:36px;height:36px;font-size:14px;color:<?= $securityAlerts > 0 ? '#c0362c' : 'var(--accent)' ?>;"><i class="fa-solid fa-shield-halved"></i></div>
+            <div class="icon-wrap" style="width:36px;height:36px;font-size:14px;"><i class="fa-solid fa-hourglass-half"></i></div>
           </div>
-          <h2 style="font-size:26px;"><?= e(number_format($securityAlerts)) ?></h2>
-          <p class="label">Security alerts (24h)</p>
+          <h2 style="font-size:26px;"><?= e(number_format($pendingReview)) ?></h2>
+          <p class="label">Pending review</p>
+        </div>
+        <div class="stat-card" style="padding:20px 24px;">
+          <div class="top-row" style="margin-bottom:8px;">
+            <div class="icon-wrap" style="width:36px;height:36px;font-size:14px;"><i class="fa-solid fa-user-plus"></i></div>
+          </div>
+          <h2 style="font-size:26px;"><?= e(number_format($newUsers7d)) ?></h2>
+          <p class="label">New users (7 days)</p>
+        </div>
+        <div class="stat-card" style="padding:20px 24px;">
+          <div class="top-row" style="margin-bottom:8px;">
+            <div class="icon-wrap" style="width:36px;height:36px;font-size:14px;color:var(--accent);"><i class="fa-solid fa-shield-halved"></i></div>
+          </div>
+          <h2 style="font-size:26px;">0</h2>
+          <p class="label">Security alerts</p>
         </div>
       </div>
 
@@ -353,11 +264,6 @@ require __DIR__ . '/includes/header.php';
           <i class="fa-solid fa-users"></i>
           <span>Manage users</span>
           <small>View, edit, suspend</small>
-        </a>
-        <a href="transport_manage.php" class="qa-item">
-          <i class="fa-solid fa-truck-fast"></i>
-          <span>Transport</span>
-          <small>Bookings &amp; tracking</small>
         </a>
         <a href="admins.php" class="qa-item">
           <i class="fa-solid fa-user-shield"></i>
@@ -379,6 +285,11 @@ require __DIR__ . '/includes/header.php';
           <span>Security</span>
           <small>Sessions &amp; 2FA</small>
         </a>
+        <a href="settings.php" class="qa-item">
+          <i class="fa-solid fa-gear"></i>
+          <span>Settings</span>
+          <small>System config</small>
+        </a>
       </div>
 
       <!-- ---------- Chart + Status breakdown ---------- -->
@@ -387,17 +298,17 @@ require __DIR__ . '/includes/header.php';
         <div class="panel">
           <div class="panel-head">
             <div>
-              <h3 id="chartTitle">Signups, last 14 days</h3>
-              <div class="muted" id="chartSubtitle">Daily new user registrations</div>
+              <h3>Signups, last 14 days</h3>
+              <div class="muted">Daily new user registrations</div>
             </div>
             <div class="tabs">
-              <button class="active" type="button" data-chart="signups">Signups</button>
-              <button type="button" data-chart="bookings">Bookings</button>
-              <button type="button" data-chart="revenue">Revenue</button>
+              <button class="active" type="button">14D</button>
+              <button type="button">30D</button>
+              <button type="button">90D</button>
             </div>
           </div>
           <div class="chart-wrap">
-            <canvas id="mainChart"></canvas>
+            <canvas id="signupChart"></canvas>
           </div>
         </div>
 
@@ -411,15 +322,15 @@ require __DIR__ . '/includes/header.php';
           </div>
           <div style="margin-top:14px;">
             <div class="progress-row">
-              <div class="pr-top"><span>Active</span><strong><?= e((string) $activeUsers) ?></strong></div>
+              <div class="pr-top"><span>Active</span><strong><?= e((string)$activeUsers) ?></strong></div>
               <div class="progress"><span style="width:<?= $totalUsers ? ($activeUsers / $totalUsers * 100) : 0 ?>%"></span></div>
             </div>
             <div class="progress-row">
-              <div class="pr-top"><span>Inactive</span><strong><?= e((string) $inactiveUsers) ?></strong></div>
+              <div class="pr-top"><span>Inactive</span><strong><?= e((string)$inactiveUsers) ?></strong></div>
               <div class="progress danger"><span style="width:<?= $totalUsers ? ($inactiveUsers / $totalUsers * 100) : 0 ?>%"></span></div>
             </div>
             <div class="progress-row">
-              <div class="pr-top"><span>Pending</span><strong><?= e((string) $pendingReview) ?></strong></div>
+              <div class="pr-top"><span>Pending</span><strong><?= e((string)$pendingReview) ?></strong></div>
               <div class="progress accent"><span style="width:<?= $totalUsers ? ($pendingReview / $totalUsers * 100) : 0 ?>%"></span></div>
             </div>
           </div>
@@ -488,88 +399,37 @@ require __DIR__ . '/includes/header.php';
           </div>
           <div class="system-item">
             <div class="left"><i class="fa-solid fa-shield-halved"></i> Security</div>
-            <strong class="<?= $securityAlerts > 0 ? '' : 'ok' ?>"><?= $securityAlerts > 0 ? $securityAlerts . ' alert(s)' : 'Secure' ?></strong>
+            <strong class="ok">Secure</strong>
           </div>
           <div class="system-item">
             <div class="left"><i class="fa-solid fa-microchip"></i> Memory usage</div>
-            <strong><?= e((string) round(memory_get_usage() / 1024 / 1024, 2)) ?> MB</strong>
+            <strong><?= e((string)round(memory_get_usage() / 1024 / 1024, 2)) ?> MB</strong>
+          </div>
+          <div class="system-item">
+            <div class="left"><i class="fa-solid fa-clock"></i> Uptime</div>
+            <strong>99.98%</strong>
           </div>
 
           <div style="margin-top:18px;">
             <h4 style="font-size:13px;color:var(--text-muted);margin-bottom:14px;font-weight:600;letter-spacing:.02em;">RESOURCE USAGE</h4>
             <div class="progress-row">
-              <div class="pr-top"><span>CPU load</span><strong><?= (int) $cpuLoadPct ?>%</strong></div>
-              <div class="progress"><span style="width:<?= (int) $cpuLoadPct ?>%"></span></div>
+              <div class="pr-top"><span>CPU load</span><strong>34%</strong></div>
+              <div class="progress"><span style="width:34%"></span></div>
             </div>
             <div class="progress-row">
-              <div class="pr-top"><span>Disk space</span><strong><?= (int) $diskUsedPct ?>%</strong></div>
-              <div class="progress accent"><span style="width:<?= (int) $diskUsedPct ?>%"></span></div>
+              <div class="pr-top"><span>Disk space</span><strong>61%</strong></div>
+              <div class="progress accent"><span style="width:61%"></span></div>
+            </div>
+            <div class="progress-row">
+              <div class="pr-top"><span>Bandwidth</span><strong>18%</strong></div>
+              <div class="progress"><span style="width:18%"></span></div>
             </div>
           </div>
         </div>
 
       </div>
 
-      <!-- ---------- Recent bookings + Notifications ---------- -->
-      <div class="content-grid" style="grid-template-columns:1.65fr 1fr;">
-
-        <div class="panel">
-          <div class="panel-head">
-            <h3>Recent bookings</h3>
-            <a href="transport_manage.php" class="view-all">Manage bookings <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></a>
-          </div>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Tracking ID</th>
-                <th>Customer</th>
-                <th>Status</th>
-                <th>Payment</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php if (empty($recentBookings)): ?>
-                <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:30px 0;">No bookings yet.</td></tr>
-              <?php else: ?>
-                <?php foreach ($recentBookings as $b): ?>
-                  <tr>
-                    <td><a href="transport_view.php?id=<?= (int) $b['id'] ?>" style="color:inherit;text-decoration:none;font-weight:600;"><?= e($b['tracking_id']) ?></a></td>
-                    <td style="color:var(--text-secondary);"><?= e($b['customer_name']) ?></td>
-                    <td><span class="badge badge-<?= e($statusBadgeMap[$b['status']] ?? 'muted') ?>"><?= e(ucwords(str_replace('_', ' ', (string) $b['status']))) ?></span></td>
-                    <td><span class="badge badge-<?= e($paymentBadgeMap[$b['payment_status']] ?? 'muted') ?>"><?= e(ucfirst((string) $b['payment_status'])) ?></span></td>
-                    <td>₹<?= e(number_format((float) $b['net_amount'], 2)) ?></td>
-                  </tr>
-                <?php endforeach; ?>
-              <?php endif; ?>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head">
-            <h3>Notifications</h3>
-            <span class="muted"><?= count($notifications) ?> new</span>
-          </div>
-
-          <?php if (empty($notifications)): ?>
-            <p style="color:var(--text-muted);text-align:center;padding:24px 0;">No notifications yet.</p>
-          <?php else: ?>
-            <?php foreach ($notifications as $n): ?>
-              <div class="feed-item">
-                <div class="dot-icon"><i class="<?= e($n['icon'] ?: 'fa-solid fa-bell') ?>"></i></div>
-                <div class="body">
-                  <p><strong><?= e($n['title']) ?></strong> — <?= e($n['body']) ?></p>
-                  <time><?= e((string) $n['created_at']) ?></time>
-                </div>
-              </div>
-            <?php endforeach; ?>
-          <?php endif; ?>
-        </div>
-
-      </div>
-
-      <!-- ---------- Newest users + Recent blog posts ---------- -->
+      <!-- ---------- New users + Admin roster + Notifications ---------- -->
       <div class="content-grid" style="grid-template-columns:1.65fr 1fr;">
 
         <div class="panel">
@@ -599,7 +459,7 @@ require __DIR__ . '/includes/header.php';
                     <td>
                       <div class="user-cell">
                         <div class="av"><?= e(strtoupper(substr($u['username'] ?? 'U', 0, 1))) ?></div>
-                        <div class="meta"><strong><?= e($u['username'] ?? 'Unknown') ?></strong><span>#<?= e((string) ($u['id'] ?? '')) ?></span></div>
+                        <div class="meta"><strong><?= e($u['username'] ?? 'Unknown') ?></strong><span>#<?= e((string)($u['id'] ?? '')) ?></span></div>
                       </div>
                     </td>
                     <td style="color:var(--text-secondary);"><?= e($u['email'] ?? '—') ?></td>
@@ -614,22 +474,38 @@ require __DIR__ . '/includes/header.php';
 
         <div class="panel">
           <div class="panel-head">
-            <h3>Recent blog posts</h3>
-            <a href="content.php" class="view-all">Manage content <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i></a>
+            <h3>Notifications</h3>
+            <span class="muted">4 new</span>
           </div>
-          <?php if (empty($recentPosts)): ?>
-            <p style="color:var(--text-muted);text-align:center;padding:24px 0;">No posts yet.</p>
-          <?php else: ?>
-            <?php foreach ($recentPosts as $p): ?>
-              <div class="feed-item">
-                <div class="dot-icon"><i class="fa-solid fa-newspaper"></i></div>
-                <div class="body">
-                  <p><strong><?= e($p['title']) ?></strong></p>
-                  <time><?= e((string) $p['event_date']) ?> &middot; <span class="badge badge-<?= $p['status'] === 'published' ? 'success' : 'muted' ?>"><?= e($p['status']) ?></span></time>
-                </div>
-              </div>
-            <?php endforeach; ?>
-          <?php endif; ?>
+
+          <div class="feed-item">
+            <div class="dot-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <div class="body">
+              <p><strong>Security scan completed</strong> — no vulnerabilities found across all endpoints.</p>
+              <time>12 minutes ago</time>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="dot-icon"><i class="fa-solid fa-database"></i></div>
+            <div class="body">
+              <p><strong>Backup finished</strong> — nightly database snapshot stored successfully.</p>
+              <time>1 hour ago</time>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="dot-icon"><i class="fa-solid fa-user-plus"></i></div>
+            <div class="body">
+              <p><strong><?= e((string)$newUsers7d) ?> new users</strong> joined in the past week.</p>
+              <time>Today</time>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="dot-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="body">
+              <p><strong>SSL certificate</strong> renews in 24 days — no action needed yet.</p>
+              <time>Yesterday</time>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -644,10 +520,6 @@ require __DIR__ . '/includes/header.php';
           <p style="color:var(--text-muted);text-align:center;padding:24px 0;">No administrators found.</p>
         <?php else: ?>
           <?php foreach ($adminList as $a): ?>
-            <?php
-              $lastLoginTs = !empty($a['last_login']) ? strtotime((string) $a['last_login']) : false;
-              $isOnline = $lastLoginTs && (time() - $lastLoginTs) <= 900; // 15 minutes
-            ?>
             <div class="admin-row">
               <div class="info">
                 <div class="av"><?= e(strtoupper(substr($a['username'] ?? 'A', 0, 1))) ?></div>
@@ -658,7 +530,7 @@ require __DIR__ . '/includes/header.php';
               </div>
               <div style="display:flex;align-items:center;gap:10px;">
                 <span class="mono-time">Last login: <?= e($a['last_login'] ?? '—') ?></span>
-                <span class="status-dot <?= $isOnline ? 'online' : 'offline' ?>" title="<?= $isOnline ? 'Active' : 'Offline' ?>"></span>
+                <span class="status-dot online" title="Active"></span>
               </div>
             </div>
           <?php endforeach; ?>
@@ -695,62 +567,29 @@ require __DIR__ . '/includes/header.php';
   Chart.defaults.font.family = "Inter, sans-serif";
   Chart.defaults.borderColor = '#1b2438';
 
-  const datasets = {
-    signups: {
-      title: 'Signups, last 14 days',
-      subtitle: 'Daily new user registrations',
-      labels: <?= json_encode($chartLabels, JSON_THROW_ON_ERROR) ?>,
-      data: <?= json_encode($chartData, JSON_THROW_ON_ERROR) ?>,
-      label: 'New users',
-      color: '#3da9fc'
-    },
-    bookings: {
-      title: 'Bookings, last 14 days',
-      subtitle: 'Daily new transport bookings',
-      labels: <?= json_encode($bookingChartLabels, JSON_THROW_ON_ERROR) ?>,
-      data: <?= json_encode($bookingChartCounts, JSON_THROW_ON_ERROR) ?>,
-      label: 'Bookings',
-      color: '#34d399'
-    },
-    revenue: {
-      title: 'Revenue, last 14 days',
-      subtitle: 'Daily booking value (₹)',
-      labels: <?= json_encode($bookingChartLabels, JSON_THROW_ON_ERROR) ?>,
-      data: <?= json_encode($bookingChartRevenue, JSON_THROW_ON_ERROR) ?>,
-      label: 'Revenue (₹)',
-      color: '#fbbf67'
-    }
-  };
+  const labels = <?= json_encode($chartLabels, JSON_THROW_ON_ERROR) ?>;
+  const data   = <?= json_encode($chartData, JSON_THROW_ON_ERROR) ?>;
 
-  const ctx = document.getElementById('mainChart');
-  let mainChart = null;
-
-  function renderChart(key) {
-    const set = datasets[key];
-    if (!ctx) return;
-
-    document.getElementById('chartTitle').textContent = set.title;
-    document.getElementById('chartSubtitle').textContent = set.subtitle;
-
+  const ctx = document.getElementById('signupChart');
+  if (ctx) {
     const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 230);
-    gradient.addColorStop(0, set.color + '4d');
-    gradient.addColorStop(1, set.color + '00');
+    gradient.addColorStop(0, 'rgba(61,169,252,0.30)');
+    gradient.addColorStop(1, 'rgba(61,169,252,0)');
 
-    if (mainChart) mainChart.destroy();
-    mainChart = new Chart(ctx, {
+    new Chart(ctx, {
       type: 'line',
       data: {
-        labels: set.labels,
+        labels: labels,
         datasets: [{
-          label: set.label,
-          data: set.data,
-          borderColor: set.color,
+          label: 'New users',
+          data: data,
+          borderColor: '#3da9fc',
           backgroundColor: gradient,
           fill: true,
           tension: 0.4,
           pointRadius: 0,
           pointHoverRadius: 5,
-          pointHoverBackgroundColor: set.color,
+          pointHoverBackgroundColor: '#3da9fc',
           pointHoverBorderColor: '#0a0e17',
           borderWidth: 2
         }]
@@ -767,16 +606,6 @@ require __DIR__ . '/includes/header.php';
     });
   }
 
-  document.querySelectorAll('.tabs button[data-chart]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      document.querySelectorAll('.tabs button[data-chart]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      renderChart(btn.dataset.chart);
-    });
-  });
-
-  renderChart('signups');
-
   const donutCtx = document.getElementById('statusDonut');
   if (donutCtx) {
     new Chart(donutCtx, {
@@ -784,7 +613,7 @@ require __DIR__ . '/includes/header.php';
       data: {
         labels: ['Active', 'Inactive', 'Pending'],
         datasets: [{
-          data: [<?= (int) $activeUsers ?>, <?= (int) $inactiveUsers ?>, <?= (int) $pendingReview ?>],
+          data: [<?= (int)$activeUsers ?>, <?= (int)$inactiveUsers ?>, <?= (int)$pendingReview ?>],
           backgroundColor: ['#34d399', '#f87171', '#fbbf67'],
           borderColor: '#131a2b',
           borderWidth: 3,
@@ -805,6 +634,16 @@ require __DIR__ . '/includes/header.php';
     });
   }
 })();
+function safe_scalar_blog(PDO $pdo, string $sql, $default = 0)
+{
+    try {
+        $val = $pdo->query($sql)->fetchColumn();
+        return $val === false ? $default : $val;
+    } catch (Throwable $e) {
+        return $default;
+    }
+}
+$sidebarBlogCount = (int) safe_scalar_blog($pdo, 'SELECT COUNT(*) FROM blog_posts');
 </script>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>

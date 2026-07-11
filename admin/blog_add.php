@@ -193,6 +193,7 @@ require __DIR__ . '/includes/header.php';
 ?>
 
 <link rel="stylesheet" href="assets/css/dashboard.css">
+<link rel="stylesheet" href="assets/css/admin-theme-green.css">
 
 <style>
   /* Scoped additions for the blog form — reuses the dashboard.css design tokens

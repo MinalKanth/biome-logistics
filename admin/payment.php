@@ -246,6 +246,7 @@ require __DIR__ . '/includes/header.php';
 ?>
 
 <link rel="stylesheet" href="assets/css/dashboard.css">
+<link rel="stylesheet" href="assets/css/admin-theme-green.css">
 
 <style>
   .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }

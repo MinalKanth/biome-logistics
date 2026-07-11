@@ -249,6 +249,7 @@ require __DIR__ . '/includes/header.php';
 ?>
 
 <link rel="stylesheet" href="assets/css/dashboard.css">
+<link rel="stylesheet" href="assets/css/admin-theme-green.css">
 
 <style>
   /* ---- Additions specific to the Transport module (kept local so
@@ -630,7 +631,7 @@ require __DIR__ . '/includes/header.php';
                     <td><span class="mono-time"><?= e((string) $b['scheduled_pickup']) ?></span></td>
                     <td class="actions">
                       <a href="transport_track.php?tracking_id=<?= urlencode($b['tracking_id']) ?>" class="btn btn-small btn-ghost" title="Timeline / tracking" target="_blank">
-                        <i class="fa-solid fa-timeline"></i>
+                        <i class="fa-solid fa-timeline"></i> Track
                       </a>
                       <a href="transport_edit.php?id=<?= (int) $b['id'] ?>" class="btn btn-small btn-secondary">
                         <i class="fa-solid fa-pen"></i> Edit
@@ -641,7 +642,7 @@ require __DIR__ . '/includes/header.php';
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="id" value="<?= (int) $b['id'] ?>">
                         <button type="submit" class="btn btn-small btn-danger">
-                          <i class="fa-solid fa-trash"></i>
+                          <i class="fa-solid fa-trash"></i> Delete
                         </button>
                       </form>
                     </td>

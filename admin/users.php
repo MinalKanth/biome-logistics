@@ -80,6 +80,7 @@ require __DIR__ . '/includes/header.php';
 ?>
 
 <link rel="stylesheet" href="assets/css/dashboard.css">
+<link rel="stylesheet" href="assets/css/admin-theme-green.css">
 
 <div class="app-shell">
 

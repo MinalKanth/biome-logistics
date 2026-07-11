@@ -42,8 +42,7 @@ $navActive = static fn(string ...$pages): string => in_array($currentPage, $page
       <ul>
         <li><a href="dashboard.php" class="nav-item<?= $navActive('dashboard.php') ?>"><i class="fa-solid fa-grid-2"></i> Dashboard</a></li>
         <li><a href="analytics.php" class="nav-item<?= $navActive('analytics.php') ?>"><i class="fa-solid fa-chart-line"></i> Analytics</a></li>
-        <li><a href="reports.php" class="nav-item<?= $navActive('reports.php') ?>"><i class="fa-solid fa-file-lines"></i> Reports</a></li>
-      </ul>
+        </ul>
 
       <div class="sidebar-section-label">Manage</div>
       <ul>
@@ -93,23 +92,15 @@ $navActive = static fn(string ...$pages): string => in_array($currentPage, $page
           </a>
         </li>
       </ul>
-
-      <div class="sidebar-section-label">System</div>
-      <ul>
-        <li><a href="logs.php" class="nav-item<?= $navActive('logs.php') ?>"><i class="fa-solid fa-clock-rotate-left"></i> Activity Logs</a></li>
-        <li><a href="notifications.php" class="nav-item<?= $navActive('notifications.php') ?>"><i class="fa-solid fa-bell"></i> Notifications</a></li>
-        <li><a href="security.php" class="nav-item<?= $navActive('security.php') ?>"><i class="fa-solid fa-shield-halved"></i> Security</a></li>
-        <li><a href="settings.php" class="nav-item<?= $navActive('settings.php') ?>"><i class="fa-solid fa-gear"></i> Settings</a></li>
-      </ul>
     </nav>
 
     <div class="sidebar-foot">
       <div class="sidebar-upgrade">
         <div class="label">System status</div>
         <p>All services operational. Last checked just now.</p>
-        <a href="security.php" class="btn btn-outline-accent" style="width:100%;justify-content:center;">
+        <!-- <a href="security.php" class="btn btn-outline-accent" style="width:100%;justify-content:center;">
           <i class="fa-solid fa-circle-check"></i> View status page
-        </a>
+        </a> -->
       </div>
     </div>
 </aside>

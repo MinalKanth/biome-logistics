@@ -1,0 +1,225 @@
+/* =====================================================================
+   admin-theme-green.css
+   Overrides the dark/navy admin theme with a green palette matching the
+   biomeenterprises.com frontend. Load AFTER dashboard.css so these rules
+   win the cascade — nothing in dashboard.css needs to be deleted.
+   ===================================================================== */
+
+:root {
+  /* ---- Core palette ---- */
+  --bg:              #f4f8f4;   /* page background */
+  --surface:         #ffffff;   /* cards, panels, sidebar */
+  --surface-muted:   #eef5ee;   /* subtle fills, hover rows */
+  --border:          #dfeadf;
+
+  --accent:          #1b7a34;   /* primary brand green */
+  --accent-dark:     #145226;   /* sidebar / hover / active states */
+  --accent-light:    #e6f4ea;   /* pill / badge backgrounds */
+
+  --text-primary:    #16281c;
+  --text-secondary:  #33463a;
+  --text-muted:      #6b7d6f;
+
+  --success:         #1b7a34;
+  --warning:         #b3791b;
+  --danger:          #c0362c;
+  --info:            #2f6f8f;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+}
+
+/* ---------------------------------------------------------------------
+   Sidebar — was near-black/navy, now deep forest green
+--------------------------------------------------------------------- */
+.sidebar {
+  background: var(--accent-dark) !important;
+  border-right: 1px solid #0d3a1b;
+}
+.sidebar-brand .name,
+.sidebar-brand small { color: #eafaf0 !important; }
+.sidebar-brand .mark {
+  background: #ffffff;
+  color: var(--accent-dark);
+  font-weight: 800;
+}
+.sidebar-section-label {
+  color: #9fd6b0 !important;
+}
+.sidebar .nav-item {
+  color: #d6ecdc !important;
+}
+.sidebar .nav-item i { color: #a9d9b6 !important; }
+.sidebar .nav-item:hover,
+.sidebar .nav-item.active {
+  background: rgba(255,255,255,.10) !important;
+  color: #ffffff !important;
+}
+.sidebar .nav-item.active i { color: #ffffff !important; }
+.sidebar .pill {
+  background: rgba(255,255,255,.16);
+  color: #ffffff;
+}
+.sidebar-upgrade {
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.14);
+}
+.sidebar-upgrade .label { color: #eafaf0; }
+.sidebar-upgrade p { color: #bfe3c9; }
+
+/* ---------------------------------------------------------------------
+   Topbar
+--------------------------------------------------------------------- */
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.topbar-search {
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.icon-btn {
+  color: var(--text-secondary);
+}
+.icon-btn .dot {
+  background: var(--danger);
+}
+.profile-chip .avatar {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+/* ---------------------------------------------------------------------
+   Buttons
+--------------------------------------------------------------------- */
+.btn-primary {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #ffffff !important;
+}
+.btn-primary:hover { background: var(--accent-dark) !important; }
+.btn-secondary {
+  background: var(--surface-muted) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-primary) !important;
+}
+.btn-ghost {
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+.btn-ghost:hover { background: var(--surface-muted) !important; }
+.btn-outline-accent {
+  border: 1px solid var(--accent) !important;
+  color: var(--accent) !important;
+  background: transparent !important;
+}
+
+/* ---------------------------------------------------------------------
+   Stat cards / panels
+--------------------------------------------------------------------- */
+.stat-card, .panel, .card-panel {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+}
+.stat-card .icon-wrap {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+.stat-card.accent {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%) !important;
+  border: none !important;
+}
+.stat-card.accent .icon-wrap { background: rgba(255,255,255,.18); color: #fff; }
+.stat-card.accent h2,
+.stat-card.accent .label,
+.stat-card.accent .delta { color: #ffffff !important; }
+
+.delta.up { color: var(--success); }
+.delta.down { color: var(--danger); }
+
+/* ---------------------------------------------------------------------
+   Badges
+--------------------------------------------------------------------- */
+.badge-success { background: var(--accent-light); color: var(--accent-dark); }
+.badge-warning { background: #fdf0da; color: var(--warning); }
+.badge-danger  { background: #fbe6e4; color: var(--danger); }
+.badge-muted   { background: var(--surface-muted); color: var(--text-muted); }
+
+/* ---------------------------------------------------------------------
+   Tabs / quick actions / progress bars
+--------------------------------------------------------------------- */
+.tabs button.active {
+  background: var(--accent) !important;
+  color: #ffffff !important;
+  border-color: var(--accent) !important;
+}
+.qa-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+.qa-item i { color: var(--accent); }
+.qa-item:hover { border-color: var(--accent); background: var(--accent-light); }
+
+.progress { background: var(--surface-muted) !important; }
+.progress span { background: var(--accent) !important; }
+.progress.danger span { background: var(--danger) !important; }
+.progress.accent span { background: #2e9e4f !important; }
+
+/* ---------------------------------------------------------------------
+   Tables
+--------------------------------------------------------------------- */
+.data-table th {
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.data-table td { border-bottom: 1px solid var(--border); }
+.data-table tr:hover { background: var(--surface-muted); }
+.user-cell .av {
+  background: var(--accent-light);
+  color: var(--accent-dark);
+}
+.ip-tag {
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+}
+
+/* ---------------------------------------------------------------------
+   Feed items / notifications / admin roster
+--------------------------------------------------------------------- */
+.feed-item .dot-icon {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+.status-dot.online { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+.status-dot.offline { background: #c9d3ca; box-shadow: 0 0 0 3px var(--surface-muted); }
+.admin-row { border-bottom: 1px solid var(--border); }
+.admin-row .av { background: var(--accent-light); color: var(--accent-dark); }
+
+/* ---------------------------------------------------------------------
+   Forms (add/edit pages)
+--------------------------------------------------------------------- */
+.field input:focus, .field select:focus, .field textarea:focus,
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+.panel-head .n {
+  background: var(--accent-light) !important;
+  color: var(--accent-dark) !important;
+}
+
+/* ---------------------------------------------------------------------
+   Misc
+--------------------------------------------------------------------- */
+.pulse-divider path { stroke: var(--border); }
+.pulse-divider .live { stroke: var(--accent); }
+.mono-time { color: var(--text-muted); }
+.view-all { color: var(--accent); }
+.dash-footer { color: var(--text-muted); border-top: 1px solid var(--border); }
+.dash-footer a { color: var(--accent); }

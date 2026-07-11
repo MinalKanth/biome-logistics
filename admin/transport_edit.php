@@ -305,6 +305,7 @@ function fclass(array $errors, string $key): string
 ?>
 
 <link rel="stylesheet" href="assets/css/dashboard.css">
+<link rel="stylesheet" href="assets/css/admin-theme-green.css">
 
 <style>
   .panel {
