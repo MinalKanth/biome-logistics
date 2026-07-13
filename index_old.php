@@ -178,48 +178,9 @@ function qf_e(string $value): string
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta name="keywords" content="Biome Enterprises, transportation, logistics, bamboo trading, legal services, compliance, accounting, hospitality, cab booking, North-East India, Assam">
     <meta name="description" content="Biome Enterprises provides reliable transportation, bamboo trading, legal & compliance services, accounting, hospitality, and cab booking solutions across North-East India.">
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://biomeenterprises.com/">
 
-    <!-- Open Graph (social share / rich preview) -->
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="Biome Enterprises | Logistics, Bamboo Trading & Compliance Services">
-    <meta property="og:description" content="Reliable transportation, bamboo trading, legal & compliance services, accounting, hospitality, and cab booking across North-East India.">
-    <meta property="og:image" content="https://biomeenterprises.com/img/logo-og.png">
-    <meta property="og:url" content="https://biomeenterprises.com/">
-    <meta property="og:site_name" content="Biome Enterprises">
-
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Biome Enterprises">
-    <meta name="twitter:description" content="Reliable transportation, bamboo trading, legal & compliance services across North-East India.">
-    <meta name="twitter:image" content="https://biomeenterprises.com/img/logo-og.png">
-
-    <!-- Organization structured data — main signal Google uses for the search-result logo -->
-    <script type="application/ld+json">
-    {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "Biome Enterprises",
-    "url": "https://biomeenterprises.com",
-    "logo": "https://biomeenterprises.com/img/logo.png",
-    "description": "Transportation, bamboo trading, legal & compliance, accounting, hospitality, and cab booking solutions across North-East India.",
-    "telephone": "+91-96784-31656",
-    "address": {
-        "@type": "PostalAddress",
-        "addressRegion": "Assam",
-        "addressCountry": "IN"
-    },
-    "sameAs": []
-    }
-    </script>
     <!-- Favicon -->
-    <link rel="icon" href="img/favicon.ico" type="image/x-icon">
-    
-    <!-- Favicons -->
-    <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
 
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -496,17 +457,17 @@ function qf_e(string $value): string
         }
         .back-to-top {
 
-                position: fixed !important;
+    position: fixed !important;
 
-                right: 24px !important;
+    right: 24px !important;
 
-                bottom: 20px !important;
+    bottom: 20px !important;
 
-                left: auto !important;
+    left: auto !important;
 
-                z-index: 1501;
+    z-index: 1501;
 
-            }
+}
 
         /* ---- Navbar premium ---- */
         .navbar.be-scrolled {

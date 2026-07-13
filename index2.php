@@ -1,225 +1,24 @@
-<?php
-
-
-declare(strict_types=1);
-
-
-require_once __DIR__ . '/admin/config/database.php';
-
-
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    session_start();
-}
-if (empty($_SESSION['quote_csrf_token'])) {
-    $_SESSION['quote_csrf_token'] = bin2hex(random_bytes(32));
-}
-$quoteCsrfToken = $_SESSION['quote_csrf_token'];
-
-$quoteFormErrors = [];
-$quoteFormSuccess = false;
-if (!empty($_SESSION['quote_flash_success'])) {
-    $quoteFormSuccess = true;
-    unset($_SESSION['quote_flash_success']);
-}
-
-// Keep submitted values so the form can be re-filled if validation fails.
-$quoteFormValues = [
-    'full_name'         => '',
-    'mobile_number'     => '',
-    'email'             => '',
-    'city_state'        => '',
-    'service_required'  => '',
-    'company_name'       => '',
-    'message'            => '',
-];
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quote_form_submit'])) {
-
-    // ---- CSRF check ----
-    $postedToken = $_POST['csrf_token'] ?? '';
-    if (!hash_equals($_SESSION['quote_csrf_token'], $postedToken)) {
-        $quoteFormErrors[] = 'Your session expired. Please refresh the page and try again.';
-    } else {
-
-        // ---- Collect + sanitize input ----
-        $fullName  = trim((string) ($_POST['full_name'] ?? ''));
-        $mobile    = trim((string) ($_POST['mobile_number'] ?? ''));
-        $email     = trim((string) ($_POST['email'] ?? ''));
-        $cityState = trim((string) ($_POST['city_state'] ?? ''));
-        $service   = trim((string) ($_POST['service_required'] ?? ''));
-        $company   = trim((string) ($_POST['company_name'] ?? ''));
-        $message   = trim((string) ($_POST['message'] ?? ''));
-
-        $quoteFormValues = compact(
-            'fullName', 'mobile', 'email', 'cityState', 'service', 'company', 'message'
-        );
-        // also keep snake_case keys for the HTML below
-        $quoteFormValues = [
-            'full_name'        => $fullName,
-            'mobile_number'    => $mobile,
-            'email'            => $email,
-            'city_state'       => $cityState,
-            'service_required' => $service,
-            'company_name'     => $company,
-            'message'          => $message,
-        ];
-
-        // ---- Validation ----
-        if ($fullName === '' || mb_strlen($fullName) > 150) {
-            $quoteFormErrors[] = 'Full name is required (max 150 characters).';
-        }
-
-        // Accepts digits, spaces, +, -, ( ) — 7 to 20 chars total
-        if ($mobile === '' || !preg_match('/^[0-9+\-\s()]{7,20}$/', $mobile)) {
-            $quoteFormErrors[] = 'Please enter a valid mobile number.';
-        }
-
-        if ($email !== '' && (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 150)) {
-            $quoteFormErrors[] = 'Please enter a valid email address.';
-        }
-
-        if (mb_strlen($cityState) > 150) {
-            $quoteFormErrors[] = 'City/State is too long.';
-        }
-
-        $allowedServices = [
-            'Transportation & Logistics', 'Bamboo Trading', 'Legal & Compliance',
-            'GST Registration', 'FSSAI Registration', 'MSME Registration',
-            'Company Registration', 'Accounting & Taxation', 'Cab Rental',
-        ];
-        if ($service !== '' && !in_array($service, $allowedServices, true)) {
-            $quoteFormErrors[] = 'Please select a valid service from the list.';
-        }
-
-        if (mb_strlen($company) > 150) {
-            $quoteFormErrors[] = 'Company/Business name is too long.';
-        }
-
-        if (mb_strlen($message) > 2000) {
-            $quoteFormErrors[] = 'Message is too long (max 2000 characters).';
-        }
-
-        // ---- Basic spam throttle: max 3 submissions per 10 minutes per session ----
-        $now = time();
-        $bucket = $_SESSION['quote_rate_limit'] ?? ['count' => 0, 'start' => $now];
-        if ($now - $bucket['start'] > 600) {
-            $bucket = ['count' => 0, 'start' => $now];
-        }
-        $bucket['count']++;
-        $_SESSION['quote_rate_limit'] = $bucket;
-        if ($bucket['count'] > 3) {
-            $quoteFormErrors[] = 'Too many submissions. Please wait a few minutes and try again.';
-        }
-
-        // ---- Insert into DB if everything is valid ----
-        if (!$quoteFormErrors) {
-            try {
-                $pdo = get_db();
-                $stmt = $pdo->prepare(
-                    'INSERT INTO quote_requests
-                        (full_name, mobile_number, email, city_state, service_required, company_name, message, ip_address)
-                     VALUES
-                        (:full_name, :mobile_number, :email, :city_state, :service_required, :company_name, :message, :ip)'
-                );
-                $stmt->execute([
-                    ':full_name'        => $fullName,
-                    ':mobile_number'    => $mobile,
-                    ':email'            => $email !== '' ? $email : null,
-                    ':city_state'       => $cityState !== '' ? $cityState : null,
-                    ':service_required' => $service !== '' ? $service : null,
-                    ':company_name'     => $company !== '' ? $company : null,
-                    ':message'          => $message !== '' ? $message : null,
-                    ':ip'               => $_SERVER['REMOTE_ADDR'] ?? null,
-                ]);
-
-                // the page never resubmits the form.
-                $_SESSION['quote_flash_success'] = true;
-                $_SESSION['quote_csrf_token'] = bin2hex(random_bytes(32));
-                header('Location: ' . $_SERVER['PHP_SELF']);
-                exit;
-
-            } catch (PDOException $e) {
-                error_log('Quote form insert failed: ' . $e->getMessage());
-                $quoteFormErrors[] = 'Something went wrong on our end. Please try again later.';
-            }
-        }
-    }
-}
-
-/** Small escaping helper for use in the HTML below. */
-function qf_e(string $value): string
-{
-    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
-}
-?>
-
-<?php if ($quoteFormSuccess): ?>
-    <div class="alert alert-success">
-        Thank you! Your request has been received. Our team will contact you shortly.
-    </div>
-<?php endif; ?>
-
-<?php if ($quoteFormErrors): ?>
-    <div class="alert alert-danger">
-        <ul class="mb-0">
-            <?php foreach ($quoteFormErrors as $err): ?>
-                <li><?= qf_e($err) ?></li>
-            <?php endforeach; ?>
-        </ul>
-    </div>
-<?php endif; ?>
-
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
+<meta charset="utf-8">
+<title>Biome Enterprises — The Journey (Scroll Animation Preview)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Scroll-driven animation: bamboo's journey from forest to warehouse — Biome Enterprises.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto:wght@500;700;800&display=swap" rel="stylesheet">
+<link href="css/bootstrap.min.css" rel="stylesheet" onerror="this.remove()">
+<link rel="stylesheet" href="style.css">
+<!-- Favicon -->
     <meta charset="utf-8">
     <title>Biome Enterprises | Reliable Transportation, Bamboo Trading, Legal & Compliance Services</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta name="keywords" content="Biome Enterprises, transportation, logistics, bamboo trading, legal services, compliance, accounting, hospitality, cab booking, North-East India, Assam">
     <meta name="description" content="Biome Enterprises provides reliable transportation, bamboo trading, legal & compliance services, accounting, hospitality, and cab booking solutions across North-East India.">
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://biomeenterprises.com/">
 
-    <!-- Open Graph (social share / rich preview) -->
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="Biome Enterprises | Logistics, Bamboo Trading & Compliance Services">
-    <meta property="og:description" content="Reliable transportation, bamboo trading, legal & compliance services, accounting, hospitality, and cab booking across North-East India.">
-    <meta property="og:image" content="https://biomeenterprises.com/img/logo-og.png">
-    <meta property="og:url" content="https://biomeenterprises.com/">
-    <meta property="og:site_name" content="Biome Enterprises">
-
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Biome Enterprises">
-    <meta name="twitter:description" content="Reliable transportation, bamboo trading, legal & compliance services across North-East India.">
-    <meta name="twitter:image" content="https://biomeenterprises.com/img/logo-og.png">
-
-    <!-- Organization structured data — main signal Google uses for the search-result logo -->
-    <script type="application/ld+json">
-    {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "Biome Enterprises",
-    "url": "https://biomeenterprises.com",
-    "logo": "https://biomeenterprises.com/img/logo.png",
-    "description": "Transportation, bamboo trading, legal & compliance, accounting, hospitality, and cab booking solutions across North-East India.",
-    "telephone": "+91-96784-31656",
-    "address": {
-        "@type": "PostalAddress",
-        "addressRegion": "Assam",
-        "addressCountry": "IN"
-    },
-    "sameAs": []
-    }
-    </script>
     <!-- Favicon -->
-    <link rel="icon" href="img/favicon.ico" type="image/x-icon">
-    
-    <!-- Favicons -->
-    <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
 
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -239,6 +38,31 @@ function qf_e(string $value): string
 
     <!-- Template Stylesheet -->
     <link href="css/style.css" rel="stylesheet">
+
+    <!-- Template Stylesheet -->
+    <link href="css/style2.css" rel="stylesheet">
+<style>
+  /* Minimal page chrome for preview purposes only — remove when embedding
+     into the real Biome Enterprises site, which already provides these. */
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:'Inter',sans-serif; background:#0d0d0d;}
+  .preview-note{
+    background:#111; color:#d8d0b8; padding:.9rem 1.4rem; font-size:.85rem;
+    text-align:center; letter-spacing:.02em; border-bottom:1px solid #2a2a2a;
+  }
+  .preview-note strong{color:#ffc107;}
+  .preview-filler{
+    padding: 5rem 1.5rem; text-align:center; color:#eee; background:#141414;
+    font-family:'Roboto',sans-serif;
+  }
+  .preview-filler h2{font-weight:800; margin-bottom:.6rem;}
+  .preview-filler p{color:#9a9a9a; max-width:560px; margin:0 auto;}
+  #quote{scroll-margin-top:2rem;}
+  .btn{display:inline-block; padding:.85rem 2rem; border-radius:50px; font-weight:600; text-decoration:none;}
+  .btn-primary{background:linear-gradient(135deg,#ffc107,#bf9107); color:#271e01;}
+  .btn-lg{font-size:1.05rem;}
+</style>
+
 
     <style>
         :root {
@@ -496,17 +320,17 @@ function qf_e(string $value): string
         }
         .back-to-top {
 
-                position: fixed !important;
+    position: fixed !important;
 
-                right: 24px !important;
+    right: 24px !important;
 
-                bottom: 20px !important;
+    bottom: 20px !important;
 
-                left: auto !important;
+    left: auto !important;
 
-                z-index: 1501;
+    z-index: 1501;
 
-            }
+}
 
         /* ---- Navbar premium ---- */
         .navbar.be-scrolled {
@@ -738,17 +562,13 @@ function qf_e(string $value): string
         }
     </style>
 </head>
-
-
 <body>
 
-    <div id="scrollProgress"></div>
-    <div id="cursorGlow"></div>
+  <div class="preview-note">
+    Standalone preview of <strong>“The Journey”</strong> — scroll to watch the bamboo truck travel from forest to warehouse. Built with SVG + GSAP ScrollTrigger, ready to drop into the Biome Enterprises site.
+  </div>
 
-    <!-- Navbar -->
-     <?php include __DIR__ . '/navbar.php'; ?>
-    <!-- Navbar End -->
-
+  <div class="preview-filler">
     <!-- ===================== Bootstrap Carousel Start ===================== -->
     <div id="heroCarousel" class="carousel slide mb-5" data-bs-ride="carousel" data-bs-interval="5000">
 
@@ -926,8 +746,147 @@ function qf_e(string $value): string
     </div>
 
     <!-- ===================== Fact / Counter End ===================== -->
+  </div>
 
+  <!-- =====================================================================
+       PASTE FROM journey-section.html — the section is included here so this
+       file previews as a complete, working page.
+       ===================================================================== -->
+  <section class="bamboo-journey" id="bambooJourney" aria-label="Biome Enterprises: from forest to warehouse, an animated journey">
+    <div class="bj-stage" id="bjStage">
+      <div class="bj-sun" id="bjSun" aria-hidden="true"></div>
+      <svg class="bj-clouds" id="bjClouds" aria-hidden="true" preserveAspectRatio="none"></svg>
+      <svg class="bj-layer" id="bjMountains" aria-hidden="true" preserveAspectRatio="none"></svg>
+      <svg class="bj-layer" id="bjTreesFar" aria-hidden="true" preserveAspectRatio="none"></svg>
 
+      <div class="bj-world-clip">
+        <svg class="bj-world" id="bjWorld" viewBox="0 0 6200 900" preserveAspectRatio="xMinYMax slice" aria-hidden="true">
+          <defs>
+            <linearGradient id="bjRoadGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="var(--bj-road-edge)"/>
+              <stop offset=".2" stop-color="var(--bj-road)"/>
+              <stop offset="1" stop-color="var(--bj-road)"/>
+            </linearGradient>
+          </defs>
+          <rect class="bj-ground-rect" x="0" y="620" width="6200" height="280" fill="url(#bjRoadGrad)"></rect>
+          <g id="bjRoadLines"></g>
+          <g id="bjSceneForest"></g>
+          <g id="bjSceneHighway1"></g>
+          <g id="bjSceneBridge"></g>
+          <g id="bjSceneMountainRoad"></g>
+          <g id="bjSceneVillage"></g>
+          <g id="bjSceneWarehouse"></g>
+        </svg>
+      </div>
+
+      <svg class="bj-grass-fore" id="bjGrassFore" aria-hidden="true" preserveAspectRatio="none"></svg>
+
+      <div class="bj-caption" id="bjCaption">
+        <span class="eyebrow" id="bjCaptionEyebrow">Chapter 01</span>
+        <h2 id="bjCaptionTitle">The Bamboo Forest</h2>
+        <p id="bjCaptionBody">Deep in North-East India, mature bamboo is hand-selected and readied for its journey.</p>
+      </div>
+
+      <div class="bj-workers" id="bjWorkers" aria-hidden="true"></div>
+
+      <div class="bj-truck-anchor" id="bjTruckAnchor" aria-hidden="true">
+        <svg viewBox="0 0 460 240" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bjTruckBodyGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#ffd65c"/>
+              <stop offset="1" stop-color="#e8a800"/>
+            </linearGradient>
+            <linearGradient id="bjCabGlassGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#eafbff"/>
+              <stop offset="1" stop-color="#8fd3ea"/>
+            </linearGradient>
+            <radialGradient id="bjWheelGrad" cx="0.5" cy="0.35" r="0.7">
+              <stop offset="0" stop-color="#4a4a4a"/>
+              <stop offset="1" stop-color="#161616"/>
+            </radialGradient>
+          </defs>
+
+          <g class="bj-exhaust" id="bjExhaust">
+            <circle cx="46" cy="150" r="9" fill="#cfcfcf" opacity=".5"/>
+            <circle cx="34" cy="140" r="13" fill="#cfcfcf" opacity=".35"/>
+            <circle cx="18" cy="130" r="17" fill="#cfcfcf" opacity=".2"/>
+          </g>
+          <g class="bj-dust" id="bjDust">
+            <ellipse cx="120" cy="222" rx="70" ry="10" fill="#b39a6a" opacity=".45"/>
+            <ellipse cx="300" cy="224" rx="80" ry="11" fill="#b39a6a" opacity=".4"/>
+          </g>
+
+          <ellipse cx="235" cy="222" rx="205" ry="12" fill="#000" opacity=".22"/>
+
+          <g class="bj-truck-body-grp" id="bjTruckBody">
+            <rect x="150" y="88" width="270" height="86" rx="6" fill="url(#bjTruckBodyGrad)" stroke="#7a5a00" stroke-width="2"/>
+            <rect x="150" y="82" width="270" height="12" rx="4" fill="#7a5a00"/>
+            <g id="bjBundleBay" clip-path="url(#bjBayClip)"></g>
+            <clipPath id="bjBayClip"><rect x="156" y="60" width="258" height="80" rx="4"/></clipPath>
+            <g stroke="#a97a00" stroke-width="2" opacity=".5">
+              <line x1="150" y1="108" x2="420" y2="108"/>
+              <line x1="150" y1="128" x2="420" y2="128"/>
+              <line x1="150" y1="148" x2="420" y2="148"/>
+            </g>
+            <g id="bjCab">
+              <path d="M20 174 L20 122 Q20 108 34 108 L96 108 Q112 108 120 122 L150 174 Z" fill="#ffc107"/>
+              <path d="M38 118 L96 118 Q104 118 108 126 L120 154 L34 154 Z" fill="url(#bjCabGlassGrad)" stroke="#7a5a00" stroke-width="2"/>
+              <rect x="18" y="174" width="134" height="14" rx="3" fill="#3a2c00"/>
+              <circle cx="40" cy="150" r="4" fill="#ffe9a8" opacity=".9"/>
+              <rect x="16" y="150" width="10" height="8" rx="2" fill="#fff6d8"/>
+            </g>
+            <rect class="bj-mirror" id="bjMirror" x="10" y="120" width="6" height="20" rx="2" fill="#3a2c00"/>
+            <rect x="60" y="188" width="330" height="8" rx="3" fill="#4a3a10"/>
+          </g>
+
+          <g class="bj-wheel" id="bjWheelFront" style="transform-origin:80px 205px;">
+            <circle cx="80" cy="205" r="24" fill="url(#bjWheelGrad)"/>
+            <circle cx="80" cy="205" r="9" fill="#ddd"/>
+            <g stroke="#888" stroke-width="2">
+              <line x1="80" y1="188" x2="80" y2="222"/>
+              <line x1="63" y1="205" x2="97" y2="205"/>
+              <line x1="68" y1="193" x2="92" y2="217"/>
+              <line x1="92" y1="193" x2="68" y2="217"/>
+            </g>
+          </g>
+          <g class="bj-wheel" id="bjWheelRear1" style="transform-origin:300px 205px;">
+            <circle cx="300" cy="205" r="24" fill="url(#bjWheelGrad)"/>
+            <circle cx="300" cy="205" r="9" fill="#ddd"/>
+            <g stroke="#888" stroke-width="2">
+              <line x1="300" y1="188" x2="300" y2="222"/>
+              <line x1="283" y1="205" x2="317" y2="205"/>
+              <line x1="288" y1="193" x2="312" y2="217"/>
+              <line x1="312" y1="193" x2="288" y2="217"/>
+            </g>
+          </g>
+          <g class="bj-wheel" id="bjWheelRear2" style="transform-origin:368px 205px;">
+            <circle cx="368" cy="205" r="24" fill="url(#bjWheelGrad)"/>
+            <circle cx="368" cy="205" r="9" fill="#ddd"/>
+            <g stroke="#888" stroke-width="2">
+              <line x1="368" y1="188" x2="368" y2="222"/>
+              <line x1="351" y1="205" x2="385" y2="205"/>
+              <line x1="356" y1="193" x2="380" y2="217"/>
+              <line x1="380" y1="193" x2="356" y2="217"/>
+            </g>
+          </g>
+        </svg>
+      </div>
+
+      <div class="bj-branding" id="bjBranding">
+        <p class="bj-branding-logo">BIOME <span>ENTERPRISES</span></p>
+        <p class="bj-branding-tag">From forest to your factory floor — reliable bamboo trading and Pan-India logistics, delivered on time, every time.</p>
+        <a href="#quote" class="btn btn-primary btn-lg">Request a Free Quote</a>
+      </div>
+
+      <div class="bj-hint" id="bjHint">
+        <span>Scroll to begin the journey</span>
+        <svg viewBox="0 0 18 26" fill="none"><rect x="1" y="1" width="16" height="24" rx="8" stroke="white" stroke-width="1.5"/><circle cx="9" cy="8" r="2" fill="white"/></svg>
+      </div>
+    </div>
+  </section>
+  <!-- ===================================================================== -->
+
+  <div class="preview-filler" id="quote">
     <!-- Service Start -->
 
     <div class="container py-5 reveal">
@@ -1363,10 +1322,6 @@ function qf_e(string $value): string
             </button>
         </div>
     </div>
-
-    <!-- ===================== Bootstrap Testimonial Carousel End ===================== -->
-
-
     <!-- Floating WhatsApp Button -->
     <a href="https://wa.me/919678431656" target="_blank" class="whatsapp-float" aria-label="Chat on WhatsApp">
         <i class="fab fa-whatsapp"></i>
@@ -1387,7 +1342,15 @@ function qf_e(string $value): string
     <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded-0 back-to-top"><i class="bi bi-arrow-up"></i></a>
 
 
-    <!-- JavaScript Libraries -->
+    
+
+    <!-- ===================== Bootstrap Testimonial Carousel End ===================== -->
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="script.js"></script>
+  <!-- JavaScript Libraries -->
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="lib/wow/wow.min.js"></script>
@@ -1396,6 +1359,7 @@ function qf_e(string $value): string
 
     <!-- Template Javascript -->
     <script src="js/main.js"></script>
+    <script src="js/script.js"></script>
 
     <!-- ===================== Counter Animation (vanilla JS, 0 -> target) ===================== -->
     <script>
@@ -1519,7 +1483,5 @@ function qf_e(string $value): string
         }
     })();
     </script>
-
 </body>
-
 </html>

@@ -1,0 +1,325 @@
+/* =========================================================================
+   BIOME ENTERPRISES — "THE JOURNEY" SCROLL-DRIVEN ANIMATION
+   Forest → Loading → Highway → Bridge/River → Mountains → Village → Warehouse
+   Built with SVG + CSS3 + GSAP ScrollTrigger. No video/GIF/canvas.
+   ========================================================================= */
+
+:root{
+  /* ---- Brand-derived design tokens (matches Biome Enterprises site) ---- */
+  --bj-amber:        #ffc107;
+  --bj-amber-dark:   #bf9107;
+  --bj-emerald:      #198754;
+  --bj-emerald-deep: #0e4a2e;
+  --bj-soil:         #271e01;
+
+  /* ---- Journey-specific extended palette ---- */
+  --bj-sky-dawn-top:     #bfe3f7;
+  --bj-sky-dawn-bottom:  #ffe8b8;
+  --bj-sky-day-top:      #7fc4ec;
+  --bj-sky-day-bottom:   #eaf6ff;
+  --bj-sky-dusk-top:     #2b3a55;
+  --bj-sky-dusk-bottom:  #6b4a3a;
+
+  --bj-bamboo-1:  #3f6b32;
+  --bj-bamboo-2:  #5c8f45;
+  --bj-bamboo-3:  #86b95f;
+  --bj-bamboo-node: #2c4d24;
+
+  --bj-mountain-far:  #9fb4c9;
+  --bj-mountain-mid:  #7d97ad;
+  --bj-road:          #3a3630;
+  --bj-road-edge:     #57503f;
+  --bj-river:         #5eaed1;
+  --bj-warehouse:     #8a94a3;
+  --bj-warehouse-dk:  #5b6472;
+
+  --bj-truck-body:  #ffc107;
+  --bj-truck-dark:  #241b02;
+  --bj-truck-glass: #cfefff;
+
+  --bj-ease-smooth: cubic-bezier(.25,.8,.25,1);
+}
+
+/* ------------------------------------------------------------------------
+   STAGE
+   ------------------------------------------------------------------------ */
+.bamboo-journey{
+  position: relative;
+  width: 100%;
+  background: var(--bj-soil);
+  isolation: isolate;
+}
+
+.bj-stage{
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--bj-sky-dawn-top) 0%, var(--bj-sky-dawn-bottom) 100%);
+  transition: background 1.2s ease;
+}
+
+.bj-stage svg{ display:block; overflow: visible; }
+
+/* Layers stack — back to front */
+.bj-layer{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: translate3d(0,0,0);
+  will-change: transform;
+}
+
+.bj-sun{
+  position: absolute;
+  top: 8%;
+  left: 12%;
+  width: min(14vw, 160px);
+  height: min(14vw, 160px);
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff6d8 0%, #ffdf8a 45%, rgba(255,223,138,0) 72%);
+  filter: blur(1px);
+  will-change: transform, opacity;
+}
+
+.bj-clouds{ position:absolute; inset:0; }
+.bj-cloud{
+  position:absolute;
+  opacity:.85;
+  will-change: transform;
+}
+
+/* World strip — the long horizontal environment the truck travels through */
+.bj-world-clip{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+}
+.bj-world{
+  position:absolute;
+  top:0; left:0;
+  height:100%;
+  width: 6200px;
+  will-change: transform;
+  transform: translate3d(0,0,0);
+}
+
+.bj-parallax{
+  position:absolute;
+  top:0; left:0;
+  height:100%;
+  will-change: transform;
+}
+
+/* Ground / road base that runs the entire world width */
+.bj-ground{
+  position:absolute;
+  left:0; right:0; bottom:0;
+  height: 34%;
+  background: linear-gradient(180deg, var(--bj-road-edge) 0%, var(--bj-road) 18%, var(--bj-road) 100%);
+}
+.bj-road-line{
+  position:absolute;
+  left:0; width: 6200px; top: 50%;
+  height: 6px;
+  background-image: repeating-linear-gradient(90deg, #f4e7b8 0 60px, transparent 60px 130px);
+  opacity:.55;
+  will-change: transform;
+}
+
+/* Foreground grass — fastest parallax layer */
+.bj-grass-fore{
+  position:absolute;
+  left:0; right:0; bottom:0;
+  height: 9%;
+  z-index: 40;
+  will-change: transform;
+}
+
+/* ------------------------------------------------------------------------
+   BAMBOO STALK (reused across forest + roadside clusters)
+   ------------------------------------------------------------------------ */
+.bj-bamboo{ transform-origin: bottom center; will-change: transform; }
+.bj-bamboo .stalk{ transform-origin: bottom center; }
+.bj-leaf-cluster{ transform-origin: bottom center; will-change: transform; }
+
+/* ------------------------------------------------------------------------
+   TRUCK — pinned near-left of viewport, all motion is secondary (no travel)
+   ------------------------------------------------------------------------ */
+.bj-truck-anchor{
+  position:absolute;
+  left: 22%;
+  bottom: 18%;
+  width: min(34vw, 460px);
+  z-index: 60;
+  transform: translate3d(0,0,0);
+  will-change: transform;
+}
+.bj-truck-anchor svg{ width:100%; height:auto; overflow: visible; }
+
+.bj-wheel{ transform-origin: center; will-change: transform; }
+.bj-truck-body-grp{ will-change: transform; }
+.bj-mirror{ transform-origin: top center; }
+
+.bj-dust{ opacity:0; will-change: transform, opacity; }
+.bj-exhaust{ opacity:0; will-change: transform, opacity; }
+
+/* Loading dock helpers */
+.bj-worker{ transform-origin: bottom center; will-change: transform, opacity; opacity:0; }
+.bj-bundle{ will-change: transform, opacity; }
+
+/* ------------------------------------------------------------------------
+   WAREHOUSE SCENE
+   ------------------------------------------------------------------------ */
+.bj-gate-door{ transform-origin: top center; will-change: transform; }
+.bj-warehouse-light{ opacity:.08; transition: opacity .6s ease; }
+.bj-warehouse-light.is-lit{ opacity: 1; }
+.bj-forklift{ will-change: transform; }
+
+/* ------------------------------------------------------------------------
+   BRANDING FADE
+   ------------------------------------------------------------------------ */
+.bj-branding{
+  position:absolute;
+  inset:0;
+  z-index: 90;
+  display:flex;
+  flex-direction: column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  background: radial-gradient(circle at 50% 50%, rgba(39,30,1,.55), rgba(20,15,0,.92));
+  opacity:0;
+  pointer-events:none;
+  will-change: opacity;
+}
+.bj-branding.is-active{ pointer-events:auto; }
+.bj-branding-logo{
+  font-family:'Roboto', sans-serif;
+  font-weight:800;
+  letter-spacing:.06em;
+  font-size: clamp(1.8rem, 4vw, 3.4rem);
+  color:#fff;
+  margin:0 0 .5rem;
+}
+.bj-branding-logo span{
+  background: linear-gradient(135deg, var(--bj-amber), var(--bj-emerald));
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.bj-branding-tag{
+  font-family:'Inter', sans-serif;
+  color:#e9e4d2;
+  font-size: clamp(.9rem, 1.4vw, 1.15rem);
+  max-width: 520px;
+  margin: 0 auto 1.5rem;
+  opacity:.9;
+}
+.bj-branding .btn{ pointer-events:auto; }
+
+/* ------------------------------------------------------------------------
+   SCROLL HINT
+   ------------------------------------------------------------------------ */
+.bj-hint{
+  position:absolute;
+  left:50%; bottom: 26px;
+  transform: translateX(-50%);
+  z-index: 95;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:.35rem;
+  color:#fff;
+  font-family:'Inter', sans-serif;
+  font-size:.72rem;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  opacity:.85;
+  text-shadow: 0 2px 10px rgba(0,0,0,.35);
+}
+.bj-hint svg{ width:18px; height:26px; animation: bj-hint-bounce 1.8s ease-in-out infinite; }
+@keyframes bj-hint-bounce{
+  0%,100%{ transform: translateY(0); opacity:.9; }
+  50%{ transform: translateY(8px); opacity:.4; }
+}
+
+/* ------------------------------------------------------------------------
+   INTRO CAPTION (scene 1 label)
+   ------------------------------------------------------------------------ */
+.bj-caption{
+  position:absolute;
+  left: 6%;
+  top: 12%;
+  z-index: 70;
+  max-width: 420px;
+  color:#26310f;
+  will-change: transform, opacity;
+}
+.bj-caption .eyebrow{
+  display:inline-block;
+  font-family:'Inter', sans-serif;
+  font-weight:600;
+  font-size:.72rem;
+  letter-spacing:.22em;
+  text-transform:uppercase;
+  padding:.3rem .8rem;
+  border-radius:50px;
+  background: rgba(255,255,255,.55);
+  backdrop-filter: blur(4px);
+  margin-bottom:.6rem;
+}
+.bj-caption h2{
+  font-family:'Roboto', sans-serif;
+  font-weight:800;
+  font-size: clamp(1.4rem, 2.6vw, 2.1rem);
+  margin:0 0 .4rem;
+  color:#20280d;
+  text-shadow: 0 1px 0 rgba(255,255,255,.25);
+}
+.bj-caption p{
+  font-family:'Inter', sans-serif;
+  font-size:.95rem;
+  color:#2c3517;
+  margin:0;
+}
+
+/* ------------------------------------------------------------------------
+   RESPONSIVE
+   ------------------------------------------------------------------------ */
+@media (max-width: 991px){
+  .bj-stage{ height: 82vh; }
+  .bj-truck-anchor{ width: min(46vw, 380px); left: 16%; bottom: 16%; }
+  .bj-caption{ max-width: 300px; top:10%; }
+}
+
+@media (max-width: 576px){
+  .bj-stage{ height: 72vh; }
+  .bj-truck-anchor{ width: min(58vw, 300px); left: 10%; bottom: 15%; }
+  .bj-caption{ display:none; } /* full illustration takes priority on small screens */
+  .bj-branding-tag{ padding: 0 1.2rem; }
+}
+
+/* ------------------------------------------------------------------------
+   ACCESSIBILITY: REDUCED MOTION
+   ------------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce){
+  .bj-stage{ height: auto; min-height: 60vh; }
+  .bj-world, .bj-parallax, .bj-wheel, .bj-truck-anchor, .bj-cloud, .bj-sun,
+  .bj-dust, .bj-exhaust, .bj-worker, .bj-forklift, .bj-gate-door{
+    animation: none !important;
+    transition: none !important;
+  }
+  .bj-hint{ display:none; }
+}
+
+/* ------------------------------------------------------------------------
+   LOW-END DEVICE / MOBILE PERFORMANCE MODE
+   Applied via JS (adds .bj-lite to root) — trims expensive layers
+   ------------------------------------------------------------------------ */
+.bj-lite .bj-dust,
+.bj-lite .bj-exhaust,
+.bj-lite .bj-cloud:nth-child(n+3){
+  display:none;
+}
