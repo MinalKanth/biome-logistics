@@ -379,6 +379,10 @@ function qf_e(string $value): string
         .card img { transition: transform .6s ease; }
         .card:hover img { transform: scale(1.08); }
 
+
+        .card img.card-img-top { aspect-ratio: 1/1; object-fit: cover; object-position: top center; }
+
+        
         /* Buttons with premium hover */
         .btn {
             border-radius: 50px;
@@ -1199,7 +1203,7 @@ function qf_e(string $value): string
             <h6 class="text-secondary text-uppercase">Our Team</h6>
             <h1 class="mb-0">Experienced Professionals Behind Every Successful Project</h1>
         </div>
-        <div class="row g-4 reveal reveal-stagger">
+        <div class="row g-4 reveal reveal-stagger justify-content-center">
             <div class="col-lg-3 col-md-6">
                 <div class="card border-0 shadow-sm text-center p-3 h-100">
                     <img class="card-img-top rounded" src="img/team-1.jpeg" alt="" loading="lazy">
