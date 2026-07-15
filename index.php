@@ -1214,7 +1214,7 @@ function qf_e(string $value): string
                     </div>
                 </div>
             </div>
-            <div class="col-lg-3 col-md-6">
+            <!-- <div class="col-lg-3 col-md-6">
                 <div class="card border-0 shadow-sm text-center p-3 h-100">
                     <img class="card-img-top rounded" src="img/team-2.jpg" alt="" loading="lazy">
                     <div class="card-body">
@@ -1227,13 +1227,13 @@ function qf_e(string $value): string
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> -->
             <div class="col-lg-3 col-md-6">
                 <div class="card border-0 shadow-sm text-center p-3 h-100">
-                    <img class="card-img-top rounded" src="img/team-4.jpg" alt="" loading="lazy">
+                    <img class="card-img-top rounded" src="img/team-4.png" alt="" loading="lazy">
                     <div class="card-body">
-                        <h5 class="mb-0">Full Name</h5>
-                        <p class="text-muted">Customer Success Manager</p>
+                        <h5 class="mb-0">Pinku Sawra</h5>
+                        <p class="text-muted">Data Entry Operator</p>
                         <div>
                             <a href="" class="btn btn-sm btn-outline-primary rounded-circle me-1"><i class="fab fa-facebook-f"></i></a>
                             <a href="" class="btn btn-sm btn-outline-primary rounded-circle me-1"><i class="fab fa-twitter"></i></a>
