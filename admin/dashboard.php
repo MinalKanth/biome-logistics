@@ -123,7 +123,7 @@ $pendingPayments = (int) safe_scalar(
 );
 
 $recentBookings = safe_all($pdo, "
-    SELECT id, tracking_id, customer_name, status, payment_status, net_amount, created_at
+    SELECT id, tracking_id, customer_name, status, payment_status, grand_total, created_at
     FROM transport_bookings
     WHERE deleted_at IS NULL
     ORDER BY created_at DESC
@@ -132,7 +132,7 @@ $recentBookings = safe_all($pdo, "
 
 // Bookings + revenue per day, last 14 days — feeds the second chart tab
 $bookingSeries = safe_all($pdo, "
-    SELECT DATE(created_at) AS d, COUNT(*) AS bookings, COALESCE(SUM(net_amount),0) AS revenue
+    SELECT DATE(created_at) AS d, COUNT(*) AS bookings, COALESCE(SUM(grand_total),0) AS revenue
     FROM transport_bookings
     WHERE deleted_at IS NULL AND created_at >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
     GROUP BY DATE(created_at)
@@ -538,7 +538,7 @@ require __DIR__ . '/includes/header.php';
                     <td style="color:var(--text-secondary);"><?= e($b['customer_name']) ?></td>
                     <td><span class="badge badge-<?= e($statusBadgeMap[$b['status']] ?? 'muted') ?>"><?= e(ucwords(str_replace('_', ' ', (string) $b['status']))) ?></span></td>
                     <td><span class="badge badge-<?= e($paymentBadgeMap[$b['payment_status']] ?? 'muted') ?>"><?= e(ucfirst((string) $b['payment_status'])) ?></span></td>
-                    <td>₹<?= e(number_format((float) $b['net_amount'], 2)) ?></td>
+                    <td>₹<?= e(number_format((float) $b['grand_total'], 2)) ?></td>
                   </tr>
                 <?php endforeach; ?>
               <?php endif; ?>

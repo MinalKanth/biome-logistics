@@ -5,8 +5,8 @@ require_once __DIR__ . '/includes/bootstrap.php';
 require_admin();
 
 $pdo = get_db();
-
-/* =========================================================================
+  
+/* ============================================ =============================
    DATA LAYER — every query is defensive: missing table/column => safe default,
    so this page always renders regardless of which parts of the schema exist.
    ========================================================================= */
@@ -71,10 +71,10 @@ $bookingGrowthPct = $bookingsPrev > 0 ? round((($bookingsRange - $bookingsPrev) 
 $totalRevenue    = (float) safe_scalar($pdo, "SELECT COALESCE(SUM(paid_amount),0) FROM transport_bookings WHERE deleted_at IS NULL");
 $revenueRange    = (float) safe_scalar($pdo, "SELECT COALESCE(SUM(paid_amount),0) FROM transport_bookings WHERE deleted_at IS NULL AND created_at >= DATE_SUB(NOW(), INTERVAL {$range} DAY)");
 $outstandingAmt  = (float) safe_scalar($pdo, "SELECT COALESCE(SUM(balance_amount),0) FROM transport_bookings WHERE deleted_at IS NULL AND payment_status IN ('unpaid','partial')");
-$avgBookingValue = (float) safe_scalar($pdo, "SELECT COALESCE(AVG(net_amount),0) FROM transport_bookings WHERE deleted_at IS NULL");
+$avgBookingValue = (float) safe_scalar($pdo, "SELECT COALESCE(AVG(grand_total),0) FROM transport_bookings WHERE deleted_at IS NULL");
 
 $bookingSeries = safe_all($pdo, "
-    SELECT DATE(created_at) AS d, COUNT(*) AS bookings, COALESCE(SUM(net_amount),0) AS revenue
+    SELECT DATE(created_at) AS d, COUNT(*) AS bookings, COALESCE(SUM(grand_total),0) AS revenue
     FROM transport_bookings
     WHERE deleted_at IS NULL AND created_at >= DATE_SUB(CURDATE(), INTERVAL " . ($range - 1) . " DAY)
     GROUP BY DATE(created_at) ORDER BY d ASC
@@ -104,7 +104,7 @@ $cargoBreakdown = safe_all($pdo, "
 ");
 
 $topRoutes = safe_all($pdo, "
-    SELECT pickup_city, drop_city, COUNT(*) AS trips, COALESCE(SUM(net_amount),0) AS revenue
+    SELECT pickup_city, drop_city, COUNT(*) AS trips, COALESCE(SUM(grand_total),0) AS revenue
     FROM transport_bookings
     WHERE deleted_at IS NULL AND pickup_city IS NOT NULL AND drop_city IS NOT NULL
     GROUP BY pickup_city, drop_city
@@ -112,7 +112,7 @@ $topRoutes = safe_all($pdo, "
 ");
 
 $topCustomers = safe_all($pdo, "
-    SELECT customer_name, COUNT(*) AS bookings, COALESCE(SUM(net_amount),0) AS revenue
+    SELECT customer_name, COUNT(*) AS bookings, COALESCE(SUM(grand_total),0) AS revenue
     FROM transport_bookings
     WHERE deleted_at IS NULL
     GROUP BY customer_name
@@ -120,12 +120,12 @@ $topCustomers = safe_all($pdo, "
 ");
 
 $driverPerformance = safe_all($pdo, "
-    SELECT d.driver_name,
+    SELECT d.full_name AS driver_name,
            COUNT(tb.id) AS bookings,
            SUM(CASE WHEN tb.status = 'delivered' THEN 1 ELSE 0 END) AS delivered
     FROM transport_drivers d
     LEFT JOIN transport_bookings tb ON tb.driver_id = d.id AND tb.deleted_at IS NULL
-    GROUP BY d.id, d.driver_name
+    GROUP BY d.id, d.full_name
     ORDER BY bookings DESC LIMIT 6
 ");
 

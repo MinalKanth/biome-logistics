@@ -1,475 +1,260 @@
 <?php
+/**
+ * admin/transport_view.php?id=BOOKING_ID
+ * REWRITTEN: the old version joined a non-existent table (transport_customers) and read ~30 columns
+ * that do not exist (booking_reference, delivery_city ...), so it crashed. This one reads the real columns
+ * and adds a "Quick update" box: change status + location in one click, and the customer sees it on /track.
+ */
 declare(strict_types=1);
 require_once __DIR__ . '/includes/bootstrap.php';
+require_once __DIR__ . '/includes/transport_lib.php';
+require_once __DIR__ . '/includes/transport_shell.php';
 require_admin();
 
 $pdo = get_db();
-
-$bookingId = (int) ($_GET['id'] ?? 0);
-if ($bookingId <= 0) {
-    $_SESSION['flash_error'] = 'Invalid booking.';
+$id = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
+if ($id <= 0) {
     header('Location: transport_manage.php');
     exit;
 }
 
+$STATUS = tl_statuses();
+
+/* ---------------- Quick status update ---------------- */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'quick_update') {
+    csrf_require_valid();
+    $newStatus = (string) ($_POST['status'] ?? '');
+    $location  = mb_substr(trim((string) ($_POST['location'] ?? '')), 0, 200);
+    $note      = mb_substr(trim((string) ($_POST['note'] ?? '')), 0, 500);
+    $notify    = isset($_POST['notify']);
+    $receiver  = mb_substr(trim((string) ($_POST['received_by'] ?? '')), 0, 150);
+
+    if (!isset($STATUS[$newStatus])) {
+        $_SESSION['flash_error_page'] = 'Choose a valid status.';
+    } else {
+        try {
+            $pdo->beginTransaction();
+            $q = $pdo->prepare('SELECT * FROM transport_bookings WHERE id = :id AND deleted_at IS NULL FOR UPDATE');
+            $q->execute([':id' => $id]);
+            $cur = $q->fetch();
+            if (!$cur) {
+                throw new RuntimeException('booking missing');
+            }
+            $pdo->prepare(
+                "UPDATE transport_bookings SET status = :s,
+                    delivered_at = IF(:s2 = 'delivered', COALESCE(delivered_at, NOW()), delivered_at),
+                    received_by = IF(:s3 = 'delivered' AND :r <> '', :r2, received_by),
+                    updated_by = :a, updated_at = NOW() WHERE id = :id"
+            )->execute([':s' => $newStatus, ':s2' => $newStatus, ':s3' => $newStatus, ':r' => $receiver, ':r2' => $receiver, ':a' => $_SESSION['admin_id'], ':id' => $id]);
+
+            tl_add_timeline($pdo, $id, (string) $cur['tracking_id'], $newStatus, $STATUS[$newStatus]['label'],
+                $note !== '' ? $note : $STATUS[$newStatus]['msg'], $location, true, (int) $_SESSION['admin_id']);
+            $pdo->commit();
+
+            log_activity((int) $_SESSION['admin_id'], 'transport_status_updated', "booking_id={$id} status={$newStatus}");
+            $_SESSION['flash_success_page'] = 'Status updated to "' . $STATUS[$newStatus]['label'] . '". The customer can see it on the tracking page.';
+
+            if ($notify && !empty($cur['email']) && $newStatus !== (string) $cur['status']) {
+                $inner = '<p>Hi ' . tl_e($cur['customer_name']) . ',</p><p>Update on your shipment <strong>' . tl_e($cur['tracking_id']) . '</strong> ('
+                    . tl_e($cur['pickup_city']) . ' &rarr; ' . tl_e($cur['drop_city']) . '):</p>'
+                    . '<p style="font-size:18px;font-weight:700;color:#0f4c2d">' . tl_e($STATUS[$newStatus]['label']) . '</p>'
+                    . ($location !== '' ? '<p>Location: ' . tl_e($location) . '</p>' : '')
+                    . ($note !== '' ? '<p>' . tl_e($note) . '</p>' : '');
+                $sent = tl_send_mail((string) $cur['email'], (string) $cur['customer_name'], 'Shipment ' . $cur['tracking_id'] . ' - ' . $STATUS[$newStatus]['label'],
+                    tl_mail_shell('Shipment update', $inner, tl_track_url((string) $cur['tracking_id']), 'Track shipment'));
+                if ($sent) {
+                    $_SESSION['flash_success_page'] .= ' E-mail sent.';
+                }
+            }
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log('Quick update failed: ' . $e->getMessage());
+            $_SESSION['flash_error_page'] = 'Could not update the status. Please try again.';
+        }
+    }
+    header('Location: transport_view.php?id=' . $id);
+    exit;
+}
+
+/* ---------------- Load ---------------- */
 $stmt = $pdo->prepare(
-    "SELECT tb.*,
-            d.driver_name, d.phone AS driver_phone, d.license_number,
-            v.registration_number, v.vehicle_type AS vehicle_type_actual, v.brand, v.model,
-            c.customer_code, c.gstin AS customer_gstin
+    'SELECT tb.*, d.full_name AS driver_name, d.mobile AS driver_phone, d.license_number,
+            v.registration_number, v.vehicle_type AS vehicle_type_actual
      FROM transport_bookings tb
      LEFT JOIN transport_drivers d ON d.id = tb.driver_id
      LEFT JOIN transport_vehicles v ON v.id = tb.vehicle_id
-     LEFT JOIN transport_customers c ON c.id = tb.customer_id
-     WHERE tb.id = :id AND tb.deleted_at IS NULL"
+     WHERE tb.id = :id AND tb.deleted_at IS NULL'
 );
-$stmt->execute([':id' => $bookingId]);
-$booking = $stmt->fetch();
-
-if (!$booking) {
+$stmt->execute([':id' => $id]);
+$b = $stmt->fetch();
+if (!$b) {
     $_SESSION['flash_error'] = 'Booking not found or has been deleted.';
     header('Location: transport_manage.php');
     exit;
 }
 
-$STATUS_LIST = [
-    'pending'          => ['label' => 'Pending',          'class' => 'muted'],
-    'confirmed'        => ['label' => 'Confirmed',        'class' => 'info'],
-    'driver_assigned'  => ['label' => 'Driver Assigned',  'class' => 'info'],
-    'picked_up'        => ['label' => 'Picked Up',        'class' => 'warning'],
-    'in_transit'       => ['label' => 'In Transit',       'class' => 'warning'],
-    'out_for_delivery' => ['label' => 'Out For Delivery', 'class' => 'warning'],
-    'delivered'        => ['label' => 'Delivered',        'class' => 'success'],
-    'cancelled'        => ['label' => 'Cancelled',        'class' => 'danger'],
-    'returned'         => ['label' => 'Returned',         'class' => 'danger'],
-];
-$PAYMENT_STATUS_LIST = [
-    'unpaid'   => ['label' => 'Unpaid',        'class' => 'danger'],
-    'partial'  => ['label' => 'Partially Paid','class' => 'warning'],
-    'paid'     => ['label' => 'Paid',          'class' => 'success'],
-    'refunded' => ['label' => 'Refunded',      'class' => 'muted'],
-];
-$PRIORITY_LIST = [
-    'low'    => ['label' => 'Low',    'class' => 'muted'],
-    'normal' => ['label' => 'Normal', 'class' => 'info'],
-    'high'   => ['label' => 'High',   'class' => 'warning'],
-    'urgent' => ['label' => 'Urgent', 'class' => 'danger'],
-];
+$tl = $pdo->prepare('SELECT * FROM transport_booking_timeline WHERE booking_id = :id ORDER BY created_at DESC, id DESC LIMIT 8');
+$tl->execute([':id' => $id]);
+$timeline = $tl->fetchAll();
 
-function status_badge_view(string $value, array $map): string
-{
-    $meta = $map[$value] ?? ['label' => ucfirst(str_replace('_', ' ', $value ?: 'N/A')), 'class' => 'muted'];
-    return '<span class="badge badge-' . e($meta['class']) . '">' . e($meta['label']) . '</span>';
-}
-function inr_view(float $amount): string { return '₹' . number_format($amount, 2); }
-function dt_view(?string $v, string $fmt = 'd M Y, h:i A'): string
-{
-    if (!$v || $v === '0000-00-00' || $v === '0000-00-00 00:00:00') return '—';
-    $ts = strtotime($v);
-    return $ts ? date($fmt, $ts) : '—';
-}
+$ph = $pdo->prepare('SELECT * FROM transport_payment_history WHERE booking_id = :id ORDER BY payment_date DESC, id DESC');
+$ph->execute([':id' => $id]);
+$payments = $ph->fetchAll();
 
-/* ---- Recent timeline preview (last 6 entries, newest first) ---- */
-$tlStmt = $pdo->prepare(
-    'SELECT * FROM transport_booking_timeline WHERE booking_id = :id ORDER BY created_at DESC, id DESC LIMIT 6'
-);
-$tlStmt->execute([':id' => $bookingId]);
-$timelinePreview = $tlStmt->fetchAll();
+$t = tl_compute_totals($b);
+$weight = ($b['cargo_weight'] !== null && $b['cargo_weight'] !== '')
+    ? rtrim(rtrim(number_format((float) $b['cargo_weight'], 2, '.', ''), '0'), '.') . ' ' . ($b['cargo_unit'] ?: 'kg') : '—';
+$isNew = ($b['status'] === 'pending' && ($b['source'] ?? '') === 'website');
 
-$tlCountStmt = $pdo->prepare('SELECT COUNT(*) FROM transport_booking_timeline WHERE booking_id = :id');
-$tlCountStmt->execute([':id' => $bookingId]);
-$timelineTotal = (int) $tlCountStmt->fetchColumn();
-
-/* ---- Payment history (if the table has rows for this booking) ---- */
-$payments = [];
-try {
-    $pStmt = $pdo->prepare('SELECT * FROM transport_payment_history WHERE booking_id = :id ORDER BY payment_date DESC, id DESC');
-    $pStmt->execute([':id' => $bookingId]);
-    $payments = $pStmt->fetchAll();
-} catch (Throwable $e) {
-    $payments = [];
-}
-
-/* ---- Documents (if any) ---- */
-$documents = [];
-try {
-    $docStmt = $pdo->prepare('SELECT * FROM transport_documents WHERE booking_id = :id ORDER BY created_at DESC');
-    $docStmt->execute([':id' => $bookingId]);
-    $documents = $docStmt->fetchAll();
-} catch (Throwable $e) {
-    $documents = [];
-}
-
-function safe_scalar_transport(PDO $pdo, string $sql, $default = 0)
-{
-    try {
-        $val = $pdo->query($sql)->fetchColumn();
-        return $val === false ? $default : $val;
-    } catch (Throwable $e) {
-        return $default;
-    }
-}
-$sidebarUserCount = (int) safe_scalar_transport($pdo, 'SELECT COUNT(*) FROM users');
-
-$pageTitle = 'Booking Details';
-require __DIR__ . '/includes/header.php';
+$actions = '<a href="transport_manage.php" class="btn btn-ghost"><i class="fa-solid fa-arrow-left"></i> All bookings</a>';
+tl_shell_top('Booking ' . $b['tracking_id'], 'Booking overview', ['Transport' => 'transport_manage.php'], $actions);
 ?>
 
-<link rel="stylesheet" href="assets/css/dashboard.css">
-<link rel="stylesheet" href="assets/css/admin-theme-green.css">
+<?php if ($isNew): ?>
+  <div class="tx-flash err" style="background:#fff8e1;border-color:#ffe08a;color:#7a5b00">
+    <i class="fa-solid fa-bell"></i> <strong>New online request.</strong> Call the customer, then click <em>Edit</em> to enter the freight amount, assign a driver and vehicle, and set the status to Confirmed.
+  </div>
+<?php endif; ?>
 
-<style>
-  .panel {
-    background: var(--surface, #fff);
-    border: 1px solid var(--border, #eee);
-    border-radius: 12px;
-    padding: 20px 22px;
-    margin-bottom: 18px;
-  }
-  .panel-head {
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    margin-bottom: 16px; padding-bottom: 12px;
-    border-bottom: 1px solid var(--border, #eee);
-  }
-  .panel-head h3 { margin: 0; font-size: 1rem; display:flex; align-items:center; gap:8px; }
-  .panel-head h3 i { color: #4b5fd6; font-size: .85rem; }
-  .panel-head .sub { font-size: .78rem; color: var(--text-muted); }
-
-  .info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px 18px;
-  }
-  .info-item .label { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 4px; }
-  .info-item .value { font-size: .92rem; font-weight: 600; color: #1c2540; }
-  .info-item .value.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85rem; }
-  .info-item .value.muted { font-weight: 400; color: var(--text-muted); }
-
-  .badge-info    { background:#e7f0ff; color:#2f6fed; }
-  .badge-warning { background:#fff4e0; color:#c8790a; }
-  .badge-danger  { background:#fdecea; color:#c0362c; }
-
-  .hero-head {
-    display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;
-    background: linear-gradient(135deg, #12213d, #1c2f52);
-    color: #fff; border-radius: 14px; padding: 24px 26px; margin-bottom: 20px;
-  }
-  .hero-head .tid { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1.3rem; font-weight: 700; letter-spacing: .03em; }
-  .hero-head .ref { font-size: .78rem; color: #a7b0c6; margin-top: 4px; }
-  .hero-head .route { font-size: .95rem; margin-top: 12px; display: flex; align-items: center; gap: 10px; }
-  .hero-head .route .city { font-weight: 700; }
-  .hero-head .route i { color: #f2a93b; }
-  .hero-head .badges { display: flex; gap: 8px; flex-wrap: wrap; }
-  .hero-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-
-  .amount-strip {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 12px; margin-top: 6px;
-  }
-  .amount-strip .item {
-    background: #f7f9fd; border: 1px solid #e4e8f2; border-radius: 10px; padding: 12px 14px;
-  }
-  .amount-strip .item .label { font-size: .7rem; text-transform: uppercase; color: var(--text-muted); }
-  .amount-strip .item .value { font-weight: 700; font-size: 1.02rem; margin-top: 3px; }
-  .amount-strip .item.due .value { color: #c0362c; }
-
-  .mini-timeline { position: relative; padding-left: 22px; }
-  .mini-timeline::before { content:''; position:absolute; left:5px; top:4px; bottom:4px; width:2px; background:var(--border,#eee); }
-  .mini-tl-event { position: relative; padding-bottom: 18px; }
-  .mini-tl-event:last-child { padding-bottom: 0; }
-  .mini-tl-event::before {
-    content:''; position:absolute; left:-22px; top:3px; width:10px; height:10px; border-radius:50%;
-    background:#4b5fd6; border:2px solid #fff; box-shadow:0 0 0 2px #4b5fd6;
-  }
-  .mini-tl-event:first-child::before { background:#1b7a34; box-shadow:0 0 0 2px #1b7a34; }
-  .mini-tl-time { font-size: .72rem; color: var(--text-muted); font-family: ui-monospace, monospace; }
-  .mini-tl-title { font-weight: 700; font-size: .87rem; margin: 2px 0; }
-  .mini-tl-desc { font-size: .8rem; color: var(--text-muted); }
-
-  .empty-mini { font-size: .85rem; color: var(--text-muted); padding: 8px 0; }
-</style>
-
-<div class="app-shell">
-
-  <!-- ===================== SIDEBAR ===================== -->
-  <?php require __DIR__ . '/includes/sidebar.php'; ?>
-
-  <!-- ===================== MAIN COLUMN ===================== -->
-  <div class="main-col">
-
-    <header class="topbar">
-      <div style="display:flex;align-items:center;gap:14px;">
-        <div class="menu-toggle" id="menuToggle"><i class="fa-solid fa-bars"></i></div>
-        <div class="topbar-search">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" placeholder="Search users, logs, settings…">
-          <kbd>⌘K</kbd>
-        </div>
-      </div>
-      <div class="topbar-right">
-        <div class="icon-btn" title="Notifications"><i class="fa-regular fa-bell"></i><span class="dot"></span></div>
-        <div class="icon-btn" title="Help &amp; documentation"><i class="fa-regular fa-circle-question"></i></div>
-        <div class="topbar-divider"></div>
-        <div class="profile-chip">
-          <div class="avatar"><?= e(strtoupper(substr($_SESSION['admin_name'] ?? $_SESSION['admin_username'] ?? 'A', 0, 1))) ?></div>
-          <div class="who">
-            <strong><?= e($_SESSION['admin_name'] ?? $_SESSION['admin_username'] ?? 'Administrator') ?></strong>
-            <span><?= e($_SESSION['admin_role'] ?? 'Super Admin') ?></span>
-          </div>
-          <i class="fa-solid fa-chevron-down" style="font-size:10px;color:var(--text-muted);"></i>
-        </div>
-      </div>
-    </header>
-
-    <main class="content">
-
-      <div class="page-head">
-        <div>
-          <div class="breadcrumb">Biome <span class="sep">/</span> <a href="transport_manage.php" class="current" style="text-decoration:none;">Transport Bookings</a> <span class="sep">/</span> <span class="current">Booking Details</span></div>
-          <h1>Booking overview</h1>
-        </div>
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-          <a href="transport_manage.php" class="btn btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back to list</a>
-        </div>
-      </div>
-
-      <?php if (!empty($_SESSION['flash_success'])): ?>
-        <div class="flash-success" style="background:#e6f4ea;border:1px solid #bfe4c9;color:#1b7a34;padding:12px 16px;border-radius:8px;margin-bottom:18px;font-size:.9rem;">
-          <?= e($_SESSION['flash_success']) ?>
-        </div>
-        <?php unset($_SESSION['flash_success']); ?>
-      <?php endif; ?>
-
-      <!-- ===================== Hero header ===================== -->
-      <div class="hero-head">
-        <div>
-          <div class="tid"><i class="fa-solid fa-barcode"></i> <?= e($booking['tracking_id']) ?></div>
-          <div class="ref">Ref: <?= e($booking['booking_reference'] ?: '—') ?> &nbsp;·&nbsp; Created <?= e(dt_view($booking['created_at'])) ?></div>
-          <div class="route">
-            <span class="city"><?= e($booking['pickup_city']) ?></span>
-            <i class="fa-solid fa-arrow-right-long"></i>
-            <span class="city"><?= e($booking['delivery_city']) ?></span>
-          </div>
-          <div class="badges" style="margin-top:12px;">
-            <?= status_badge_view($booking['status'], $STATUS_LIST) ?>
-            <?= status_badge_view($booking['payment_status'], $PAYMENT_STATUS_LIST) ?>
-            <?= status_badge_view($booking['priority'], $PRIORITY_LIST) ?>
-          </div>
-        </div>
-        <div class="hero-actions">
-          <a href="transport_edit.php?id=<?= $bookingId ?>" class="btn btn-primary"><i class="fa-solid fa-pen"></i> Edit</a>
-          <a href="transport_timeline.php?id=<?= $bookingId ?>" class="btn btn-secondary"><i class="fa-solid fa-timeline"></i> Manage timeline</a>
-          <a href="transport_payment.php?id=<?= $bookingId ?>" class="btn btn-secondary"><i class="fa-solid fa-sack-dollar"></i> Record payment</a>
-          <a href="transport_invoice.php?id=<?= $bookingId ?>" class="btn btn-secondary"><i class="fa-solid fa-file-invoice"></i> Invoice</a>
-          <a href="transport_track.php?tracking_id=<?= urlencode($booking['tracking_id']) ?>" class="btn btn-ghost" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> Public view</a>
-          <form method="post" action="transport_delete.php" style="display:inline;"
-                onsubmit="return confirm('Delete this booking? It will be moved to trash.');">
-            <?= csrf_field() ?>
-            <input type="hidden" name="id" value="<?= $bookingId ?>">
-            <input type="hidden" name="redirect" value="transport_manage.php">
-            <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash"></i> Delete</button>
-          </form>
-        </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:2fr 1fr;gap:18px;align-items:start;">
-        <div>
-
-          <!-- ============ Customer ============ -->
-          <div class="panel">
-            <div class="panel-head"><h3><i class="fa-solid fa-user"></i> Customer information</h3></div>
-            <div class="info-grid">
-              <div class="info-item"><div class="label">Customer name</div><div class="value"><?= e($booking['customer_name']) ?></div></div>
-              <div class="info-item"><div class="label">Company</div><div class="value <?= $booking['company_name'] ? '' : 'muted' ?>"><?= e($booking['company_name'] ?: 'Not provided') ?></div></div>
-              <div class="info-item"><div class="label">Phone</div><div class="value mono"><?= e($booking['phone']) ?></div></div>
-              <div class="info-item"><div class="label">Alternate phone</div><div class="value mono <?= $booking['alternate_phone'] ? '' : 'muted' ?>"><?= e($booking['alternate_phone'] ?: '—') ?></div></div>
-              <div class="info-item"><div class="label">Email</div><div class="value <?= $booking['email'] ? '' : 'muted' ?>"><?= e($booking['email'] ?: '—') ?></div></div>
-              <div class="info-item"><div class="label">Customer code</div><div class="value mono <?= $booking['customer_code'] ? '' : 'muted' ?>"><?= e($booking['customer_code'] ?: 'Walk-in / one-off') ?></div></div>
-            </div>
-          </div>
-
-          <!-- ============ Route ============ -->
-          <div class="panel">
-            <div class="panel-head"><h3><i class="fa-solid fa-route"></i> Pickup &amp; delivery</h3></div>
-            <div class="info-grid">
-              <div class="info-item">
-                <div class="label">Pickup address</div>
-                <div class="value" style="font-weight:500;"><?= nl2br(e($booking['pickup_address'])) ?></div>
-              </div>
-              <div class="info-item">
-                <div class="label">Pickup contact</div>
-                <div class="value"><?= e($booking['pickup_contact_name'] ?: $booking['customer_name']) ?></div>
-                <div class="value mono muted" style="font-size:.8rem;"><?= e($booking['pickup_contact_phone'] ?: $booking['phone']) ?></div>
-              </div>
-              <div class="info-item">
-                <div class="label">Delivery address</div>
-                <div class="value" style="font-weight:500;"><?= nl2br(e($booking['delivery_address'])) ?></div>
-              </div>
-              <div class="info-item">
-                <div class="label">Delivery contact</div>
-                <div class="value"><?= e($booking['delivery_contact_name'] ?: '—') ?></div>
-                <div class="value mono muted" style="font-size:.8rem;"><?= e($booking['delivery_contact_phone'] ?: '—') ?></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ============ Cargo ============ -->
-          <div class="panel">
-            <div class="panel-head"><h3><i class="fa-solid fa-box"></i> Cargo details</h3></div>
-            <div class="info-grid">
-              <div class="info-item"><div class="label">Cargo type</div><div class="value"><?= e($booking['cargo_type'] ?: '—') ?></div></div>
-              <div class="info-item"><div class="label">Weight</div><div class="value"><?= $booking['cargo_weight'] ? e(rtrim(rtrim((string) $booking['cargo_weight'], '0'), '.') . ' ' . $booking['cargo_weight_unit']) : '—' ?></div></div>
-              <div class="info-item"><div class="label">Volume</div><div class="value"><?= $booking['cargo_volume'] ? e((string) $booking['cargo_volume']) . ' cbm' : '—' ?></div></div>
-              <div class="info-item"><div class="label">Package count</div><div class="value"><?= $booking['package_count'] ? (int) $booking['package_count'] : '—' ?></div></div>
-              <div class="info-item"><div class="label">Declared value</div><div class="value"><?= $booking['cargo_value'] ? inr_view((float) $booking['cargo_value']) : '—' ?></div></div>
-              <div class="info-item">
-                <div class="label">Handling flags</div>
-                <div class="value" style="display:flex;gap:6px;flex-wrap:wrap;">
-                  <?php if ($booking['fragile']): ?><span class="badge badge-warning">Fragile</span><?php endif; ?>
-                  <?php if ($booking['hazardous']): ?><span class="badge badge-danger">Hazardous</span><?php endif; ?>
-                  <?php if ($booking['temperature_controlled']): ?><span class="badge badge-info">Temp-controlled</span><?php endif; ?>
-                  <?php if (!$booking['fragile'] && !$booking['hazardous'] && !$booking['temperature_controlled']): ?><span class="value muted" style="font-weight:400;">None</span><?php endif; ?>
-                </div>
-              </div>
-              <?php if ($booking['cargo_description']): ?>
-                <div class="info-item" style="grid-column: 1 / -1;"><div class="label">Description</div><div class="value" style="font-weight:500;"><?= nl2br(e($booking['cargo_description'])) ?></div></div>
-              <?php endif; ?>
-            </div>
-          </div>
-
-          <!-- ============ Vehicle / Driver / Schedule ============ -->
-          <div class="panel">
-            <div class="panel-head"><h3><i class="fa-solid fa-truck"></i> Vehicle, driver &amp; schedule</h3></div>
-            <div class="info-grid">
-              <div class="info-item"><div class="label">Vehicle requested</div><div class="value"><?= e($booking['vehicle_type_requested'] ?: '—') ?></div></div>
-              <div class="info-item"><div class="label">Assigned vehicle</div><div class="value mono <?= $booking['registration_number'] ? '' : 'muted' ?>"><?= e($booking['registration_number'] ?: 'Unassigned') ?></div></div>
-              <div class="info-item"><div class="label">Assigned driver</div><div class="value <?= $booking['driver_name'] ? '' : 'muted' ?>"><?= e($booking['driver_name'] ?: 'Unassigned') ?></div></div>
-              <div class="info-item"><div class="label">Driver phone</div><div class="value mono <?= $booking['driver_phone'] ? '' : 'muted' ?>"><?= e($booking['driver_phone'] ?: '—') ?></div></div>
-              <div class="info-item"><div class="label">Pickup scheduled</div><div class="value"><?= e(dt_view($booking['pickup_date'], 'd M Y')) ?><?= $booking['pickup_time'] ? ' · ' . e(dt_view($booking['pickup_time'], 'h:i A')) : '' ?></div></div>
-              <div class="info-item"><div class="label">Expected delivery</div><div class="value"><?= $booking['expected_delivery_date'] ? e(dt_view($booking['expected_delivery_date'], 'd M Y')) : 'TBD' ?><?= $booking['expected_delivery_time'] ? ' · ' . e(dt_view($booking['expected_delivery_time'], 'h:i A')) : '' ?></div></div>
-              <div class="info-item"><div class="label">Actual pickup</div><div class="value <?= $booking['actual_pickup_time'] ? '' : 'muted' ?>"><?= e(dt_view($booking['actual_pickup_time'])) ?></div></div>
-              <div class="info-item"><div class="label">Actual delivery</div><div class="value <?= $booking['actual_delivery_time'] ? '' : 'muted' ?>"><?= e(dt_view($booking['actual_delivery_time'])) ?></div></div>
-              <div class="info-item"><div class="label">Est. distance / duration</div><div class="value"><?= $booking['estimated_distance'] ? e((string) $booking['estimated_distance']) . ' km' : '—' ?><?= $booking['estimated_duration'] ? ' · ' . (int) $booking['estimated_duration'] . ' min' : '' ?></div></div>
-            </div>
-          </div>
-
-          <!-- ============ Notes ============ -->
-          <?php if ($booking['special_instruction'] || $booking['customer_notes'] || $booking['internal_notes']): ?>
-          <div class="panel">
-            <div class="panel-head"><h3><i class="fa-solid fa-note-sticky"></i> Notes &amp; instructions</h3></div>
-            <div class="info-grid">
-              <?php if ($booking['special_instruction']): ?>
-                <div class="info-item" style="grid-column:1/-1;"><div class="label">Special instruction <span class="badge badge-info" style="margin-left:4px;">Customer-visible</span></div><div class="value" style="font-weight:500;"><?= nl2br(e($booking['special_instruction'])) ?></div></div>
-              <?php endif; ?>
-              <?php if ($booking['customer_notes']): ?>
-                <div class="info-item" style="grid-column:1/-1;"><div class="label">Customer notes <span class="badge badge-info" style="margin-left:4px;">Customer-visible</span></div><div class="value" style="font-weight:500;"><?= nl2br(e($booking['customer_notes'])) ?></div></div>
-              <?php endif; ?>
-              <?php if ($booking['internal_notes']): ?>
-                <div class="info-item" style="grid-column:1/-1;"><div class="label">Internal notes <span class="badge badge-muted" style="margin-left:4px;">Admin only</span></div><div class="value" style="font-weight:500;"><?= nl2br(e($booking['internal_notes'])) ?></div></div>
-              <?php endif; ?>
-            </div>
-          </div>
-          <?php endif; ?>
-
-          <!-- ============ Documents ============ -->
-          <?php if ($documents): ?>
-          <div class="panel">
-            <div class="panel-head"><h3><i class="fa-solid fa-paperclip"></i> Documents</h3><span class="sub"><?= count($documents) ?> file(s)</span></div>
-            <div class="table-scroll">
-              <table class="data-table">
-                <thead><tr><th>Type</th><th>Title</th><th>Uploaded</th><th></th></tr></thead>
-                <tbody>
-                  <?php foreach ($documents as $doc): ?>
-                    <tr>
-                      <td><?= e($doc['document_type'] ?: '—') ?></td>
-                      <td><?= e($doc['document_title'] ?: $doc['file_name']) ?></td>
-                      <td><span class="mono-time"><?= e(dt_view($doc['created_at'])) ?></span></td>
-                      <td><a href="../<?= e($doc['file_path']) ?>" target="_blank" class="btn btn-small btn-ghost"><i class="fa-solid fa-download"></i></a></td>
-                    </tr>
-                  <?php endforeach; ?>
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <?php endif; ?>
-
-        </div>
-
-        <div>
-          <!-- ============ Pricing summary ============ -->
-          <div class="panel">
-            <div class="panel-head"><h3><i class="fa-solid fa-sack-dollar"></i> Pricing</h3></div>
-            <div class="amount-strip">
-              <div class="item"><div class="label">Total</div><div class="value"><?= inr_view((float) $booking['total_amount']) ?></div></div>
-              <div class="item"><div class="label">GST (<?= e((string) $booking['gst_percentage']) ?>%)</div><div class="value"><?= inr_view((float) $booking['gst_amount']) ?></div></div>
-              <div class="item"><div class="label">Discount</div><div class="value">-<?= inr_view((float) $booking['discount_amount']) ?></div></div>
-              <div class="item"><div class="label">Other charges</div><div class="value">+<?= inr_view((float) $booking['other_charges']) ?></div></div>
-              <div class="item"><div class="label">Net amount</div><div class="value" style="color:#1b7a34;"><?= inr_view((float) $booking['net_amount']) ?></div></div>
-              <div class="item"><div class="label">Advance</div><div class="value"><?= inr_view((float) $booking['advance_amount']) ?></div></div>
-              <div class="item"><div class="label">Paid</div><div class="value"><?= inr_view((float) $booking['paid_amount']) ?></div></div>
-              <div class="item due"><div class="label">Balance due</div><div class="value"><?= inr_view((float) $booking['balance_amount']) ?></div></div>
-            </div>
-            <div style="margin-top:14px;">
-              <a href="transport_payment.php?id=<?= $bookingId ?>" class="btn btn-primary" style="width:100%;justify-content:center;"><i class="fa-solid fa-plus"></i> Record a payment</a>
-            </div>
-          </div>
-
-          <!-- ============ Payment history ============ -->
-          <?php if ($payments): ?>
-          <div class="panel">
-            <div class="panel-head"><h3><i class="fa-solid fa-receipt"></i> Payment history</h3></div>
-            <?php foreach ($payments as $p): ?>
-              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border,#eee);font-size:.85rem;">
-                <div>
-                  <strong><?= inr_view((float) $p['amount']) ?></strong><br>
-                  <span style="color:var(--text-muted);font-size:.76rem;"><?= e(ucfirst((string) ($p['payment_method'] ?: 'N/A'))) ?> · <?= e(dt_view($p['payment_date'], 'd M Y')) ?></span>
-                </div>
-                <span class="badge badge-<?= $p['payment_status'] === 'success' || $p['payment_status'] === 'completed' ? 'success' : 'muted' ?>"><?= e(ucfirst((string) ($p['payment_status'] ?: '—'))) ?></span>
-              </div>
-            <?php endforeach; ?>
-          </div>
-          <?php endif; ?>
-
-          <!-- ============ Timeline preview ============ -->
-          <div class="panel">
-            <div class="panel-head">
-              <h3><i class="fa-solid fa-timeline"></i> Recent activity</h3>
-              <a href="transport_timeline.php?id=<?= $bookingId ?>" class="btn btn-small btn-ghost">Manage <i class="fa-solid fa-arrow-right"></i></a>
-            </div>
-            <?php if (!$timelinePreview): ?>
-              <div class="empty-mini">No timeline events yet.</div>
-            <?php else: ?>
-              <div class="mini-timeline">
-                <?php foreach ($timelinePreview as $ev): ?>
-                  <div class="mini-tl-event">
-                    <div class="mini-tl-time"><?= e(dt_view($ev['created_at'])) ?></div>
-                    <div class="mini-tl-title"><?= e($ev['title']) ?></div>
-                    <?php if ($ev['description']): ?><div class="mini-tl-desc"><?= e($ev['description']) ?></div><?php endif; ?>
-                  </div>
-                <?php endforeach; ?>
-              </div>
-              <?php if ($timelineTotal > count($timelinePreview)): ?>
-                <div style="text-align:center;margin-top:10px;">
-                  <a href="transport_timeline.php?id=<?= $bookingId ?>" class="btn btn-small btn-ghost">View all <?= $timelineTotal ?> events</a>
-                </div>
-              <?php endif; ?>
-            <?php endif; ?>
-          </div>
-        </div>
-      </div>
-
-    </main>
+<div class="tx-hero">
+  <div>
+    <div class="tid"><i class="fa-solid fa-barcode"></i> <?= e($b['tracking_id']) ?></div>
+    <div class="ref">Enquiry: <?= e($b['enquiry_reference'] ?: '—') ?> &nbsp;·&nbsp; Created <?= e(tl_dt($b['created_at'])) ?> &nbsp;·&nbsp; Source: <?= e(ucfirst((string) ($b['source'] ?: 'admin'))) ?></div>
+    <div class="route"><span><?= e($b['pickup_city']) ?></span><i class="fa-solid fa-arrow-right-long"></i><span><?= e($b['drop_city']) ?></span></div>
+    <div class="badges"><?= tl_status_badge((string) $b['status']) ?> <?= tl_payment_badge((string) $b['payment_status']) ?> <?= tl_badge(ucfirst((string) $b['priority']), 'info') ?></div>
+  </div>
+  <div class="tx-hero-actions">
+    <a href="transport_edit.php?id=<?= $id ?>" class="btn btn-primary"><i class="fa-solid fa-pen"></i> Edit</a>
+    <a href="timeline.php?id=<?= $id ?>" class="btn btn-secondary"><i class="fa-solid fa-timeline"></i> Timeline</a>
+    <a href="payment.php?id=<?= $id ?>" class="btn btn-secondary"><i class="fa-solid fa-wallet"></i> Payments</a>
+    <a href="invoice.php?id=<?= $id ?>" class="btn btn-secondary"><i class="fa-solid fa-file-invoice"></i> Invoice</a>
+    <a href="../track?id=<?= rawurlencode((string) $b['tracking_id']) ?>" target="_blank" rel="noopener" class="btn btn-ghost" style="background:#fff"><i class="fa-solid fa-arrow-up-right-from-square"></i> Customer view</a>
   </div>
 </div>
 
-<script>
-(function () {
-  const toggle = document.getElementById('menuToggle');
-  const sidebar = document.getElementById('sidebar');
-  if (toggle && sidebar) {
-    toggle.addEventListener('click', function () { sidebar.classList.toggle('open'); });
-  }
-})();
-</script>
+<div class="tx-grid">
+  <div>
+    <div class="panel">
+      <div class="panel-head"><h3><i class="fa-solid fa-user"></i> Customer</h3></div>
+      <div class="info-grid">
+        <div class="info-item"><div class="label">Name</div><div class="value"><?= e($b['customer_name']) ?></div></div>
+        <div class="info-item"><div class="label">Company</div><div class="value <?= $b['company_name'] ? '' : 'muted' ?>"><?= e($b['company_name'] ?: 'Not provided') ?></div></div>
+        <div class="info-item"><div class="label">Phone</div><div class="value mono"><a href="tel:<?= e($b['phone']) ?>"><?= e($b['phone']) ?></a></div></div>
+        <div class="info-item"><div class="label">Alternate</div><div class="value mono <?= $b['alternate_phone'] ? '' : 'muted' ?>"><?= e($b['alternate_phone'] ?: '—') ?></div></div>
+        <div class="info-item"><div class="label">E-mail</div><div class="value <?= $b['email'] ? '' : 'muted' ?>"><?= e($b['email'] ?: '—') ?></div></div>
+        <div class="info-item"><div class="label">Service</div><div class="value"><?= e($b['service_type'] ?: '—') ?></div></div>
+      </div>
+      <?php if (!empty($b['customer_notes'])): ?>
+        <div class="info-item" style="margin-top:16px"><div class="label">Customer notes</div><div class="value" style="font-weight:500"><?= nl2br(e($b['customer_notes'])) ?></div></div>
+      <?php endif; ?>
+    </div>
 
-<?php require __DIR__ . '/includes/footer.php'; ?>
+    <div class="panel">
+      <div class="panel-head"><h3><i class="fa-solid fa-route"></i> Pickup &amp; delivery</h3></div>
+      <div class="info-grid">
+        <div class="info-item"><div class="label">Pickup address</div><div class="value" style="font-weight:500"><?= nl2br(e($b['pickup_address'])) ?><br><span class="muted"><?= e(trim(($b['pickup_city'] ?? '') . ', ' . ($b['pickup_state'] ?? '') . ' ' . ($b['pickup_pincode'] ?? ''), ' ,')) ?></span></div></div>
+        <div class="info-item"><div class="label">Pickup contact</div><div class="value"><?= e($b['pickup_contact_person'] ?: $b['customer_name']) ?></div><div class="value mono muted"><?= e($b['pickup_contact_number'] ?: $b['phone']) ?></div></div>
+        <div class="info-item"><div class="label">Delivery address</div><div class="value" style="font-weight:500"><?= nl2br(e($b['drop_address'])) ?><br><span class="muted"><?= e(trim(($b['drop_city'] ?? '') . ', ' . ($b['drop_state'] ?? '') . ' ' . ($b['drop_pincode'] ?? ''), ' ,')) ?></span></div></div>
+        <div class="info-item"><div class="label">Receiver</div><div class="value <?= $b['drop_contact_person'] ? '' : 'muted' ?>"><?= e($b['drop_contact_person'] ?: '—') ?></div><div class="value mono muted"><?= e($b['drop_contact_number'] ?: '—') ?></div></div>
+        <div class="info-item"><div class="label">Scheduled pickup</div><div class="value"><?= e(tl_dt($b['scheduled_pickup'])) ?></div></div>
+        <div class="info-item"><div class="label">Expected delivery</div><div class="value"><?= e(tl_dt($b['expected_delivery'])) ?></div></div>
+        <div class="info-item"><div class="label">Distance</div><div class="value"><?= $b['distance_km'] ? e((string) $b['distance_km']) . ' km' : '—' ?></div></div>
+        <?php if ($b['delivered_at']): ?><div class="info-item"><div class="label">Delivered at</div><div class="value"><?= e(tl_dt($b['delivered_at'])) ?><?= $b['received_by'] ? ' · ' . e($b['received_by']) : '' ?></div></div><?php endif; ?>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3><i class="fa-solid fa-box"></i> Cargo &amp; vehicle</h3></div>
+      <div class="info-grid">
+        <div class="info-item"><div class="label">Cargo type</div><div class="value"><?= e($b['cargo_type'] ?: '—') ?></div></div>
+        <div class="info-item"><div class="label">Weight</div><div class="value"><?= e($weight) ?></div></div>
+        <div class="info-item"><div class="label">Packages</div><div class="value"><?= $b['number_of_packages'] ? (int) $b['number_of_packages'] : '—' ?></div></div>
+        <div class="info-item"><div class="label">Declared value</div><div class="value"><?= $b['cargo_value'] ? e(tl_inr($b['cargo_value'])) : '—' ?></div></div>
+        <div class="info-item"><div class="label">Handling</div><div class="value">
+          <?= $b['fragile'] ? tl_badge('Fragile', 'warning') : '' ?> <?= $b['hazardous'] ? tl_badge('Hazardous', 'danger') : '' ?> <?= $b['temperature_controlled'] ? tl_badge('Temp-controlled', 'info') : '' ?>
+          <?= (!$b['fragile'] && !$b['hazardous'] && !$b['temperature_controlled']) ? '<span class="muted">Standard</span>' : '' ?></div></div>
+        <div class="info-item"><div class="label">Requested vehicle</div><div class="value"><?= e($b['vehicle_type'] ?: '—') ?></div></div>
+        <div class="info-item"><div class="label">Assigned vehicle</div><div class="value mono <?= $b['registration_number'] ? '' : 'muted' ?>"><?= e($b['registration_number'] ?: 'Not assigned') ?></div></div>
+        <div class="info-item"><div class="label">Driver</div><div class="value <?= $b['driver_name'] ? '' : 'muted' ?>"><?= e($b['driver_name'] ?: 'Not assigned') ?></div><div class="value mono muted"><?= e($b['driver_phone'] ?: '') ?></div></div>
+        <div class="info-item"><div class="label">LR number</div><div class="value mono <?= $b['lr_number'] ? '' : 'muted' ?>"><?= e($b['lr_number'] ?: '—') ?></div></div>
+      </div>
+      <?php if (!empty($b['cargo_description'])): ?>
+        <div class="info-item" style="margin-top:16px"><div class="label">Description</div><div class="value" style="font-weight:500"><?= nl2br(e($b['cargo_description'])) ?></div></div>
+      <?php endif; ?>
+      <?php if (!empty($b['internal_notes'])): ?>
+        <div class="info-item" style="margin-top:16px"><div class="label">Internal notes (not shown to customer)</div><div class="value" style="font-weight:500"><?= nl2br(e($b['internal_notes'])) ?></div></div>
+      <?php endif; ?>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <div class="panel-head"><h3><i class="fa-solid fa-bolt"></i> Quick update</h3></div>
+      <form method="post" class="tx-form" style="grid-template-columns:1fr">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="quick_update">
+        <input type="hidden" name="id" value="<?= $id ?>">
+        <div><label for="qu_status">New status</label>
+          <select name="status" id="qu_status" required>
+            <?php foreach ($STATUS as $k => $m): ?><option value="<?= e($k) ?>"<?= $k === $b['status'] ? ' selected' : '' ?>><?= e($m['label']) ?></option><?php endforeach; ?>
+          </select></div>
+        <div><label for="qu_loc">Current location</label><input name="location" id="qu_loc" maxlength="200" placeholder="e.g. Nagaon bypass"></div>
+        <div><label for="qu_note">Note for customer (optional)</label><textarea name="note" id="qu_note" rows="2" maxlength="500"></textarea></div>
+        <div><label for="qu_recv">Received by (when delivered)</label><input name="received_by" id="qu_recv" maxlength="150"></div>
+        <label style="text-transform:none;letter-spacing:0;font-size:.85rem;display:flex;gap:8px;align-items:center">
+          <input type="checkbox" name="notify" value="1" style="width:auto" <?= $b['email'] ? 'checked' : 'disabled' ?>> E-mail the customer<?= $b['email'] ? '' : ' (no e-mail on file)' ?></label>
+        <button class="btn btn-primary" type="submit" style="justify-content:center"><i class="fa-solid fa-paper-plane"></i> Update &amp; notify</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3><i class="fa-solid fa-indian-rupee-sign"></i> Billing</h3>
+        <a class="btn btn-small btn-primary" href="payment.php?id=<?= $id ?>">Record payment</a></div>
+      <?php if ($t['grand'] <= 0): ?>
+        <p class="muted" style="font-size:.88rem">No amount entered yet. <a href="transport_edit.php?id=<?= $id ?>">Edit booking</a> to set the freight amount.</p>
+      <?php endif; ?>
+      <div class="amount-strip">
+        <div class="item"><div class="label">Freight</div><div class="value"><?= e(tl_inr($t['total'])) ?></div></div>
+        <div class="item"><div class="label">GST</div><div class="value"><?= e(tl_inr($t['gst'])) ?></div></div>
+        <div class="item"><div class="label">Grand total</div><div class="value"><?= e(tl_inr($t['grand'])) ?></div></div>
+        <div class="item ok"><div class="label">Paid</div><div class="value"><?= e(tl_inr($t['paid'])) ?></div></div>
+        <div class="item due"><div class="label">Balance</div><div class="value"><?= e(tl_inr(max(0, $t['balance']))) ?></div></div>
+      </div>
+      <div style="margin-top:12px;font-size:.82rem" class="muted">
+        Invoice: <?= $b['invoice_number'] ? '<strong>' . e($b['invoice_number']) . '</strong>' : 'not generated yet' ?>
+        &nbsp;·&nbsp; <a href="invoice.php?id=<?= $id ?>"><?= $b['invoice_number'] ? 'Open' : 'Generate' ?></a>
+      </div>
+      <?php if ($payments): ?>
+        <div style="margin-top:14px;font-size:.82rem">
+          <?php foreach (array_slice($payments, 0, 4) as $p): ?>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px dashed #e3ece7">
+              <span><?= e(tl_dt($p['payment_date'], 'd M')) ?> · <?= e(ucfirst((string) $p['payment_type'])) ?></span>
+              <strong><?= ($p['payment_type'] ?? '') === 'refund' ? '-' : '' ?><?= e(tl_inr($p['amount'])) ?></strong>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3><i class="fa-solid fa-timeline"></i> Recent activity</h3><a class="btn btn-small btn-ghost" href="timeline.php?id=<?= $id ?>">Manage</a></div>
+      <?php if (!$timeline): ?><p class="muted" style="font-size:.86rem">No events yet.</p>
+      <?php else: ?>
+        <div class="mini-timeline">
+          <?php foreach ($timeline as $ev): ?>
+            <div class="mini-tl-event">
+              <div class="mini-tl-time"><?= e(tl_dt($ev['created_at'])) ?><?= (int) $ev['customer_visible'] === 0 ? ' · internal' : '' ?></div>
+              <div class="mini-tl-title"><?= e($ev['title']) ?></div>
+              <?php if ($ev['current_location']): ?><div class="mini-tl-desc"><i class="fa-solid fa-location-dot"></i> <?= e($ev['current_location']) ?></div><?php endif; ?>
+              <?php if ($ev['description']): ?><div class="mini-tl-desc"><?= e($ev['description']) ?></div><?php endif; ?>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </div>
+  </div>
+</div>
+
+<?php tl_shell_bottom(); ?>

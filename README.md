@@ -68,48 +68,48 @@ We are:
 ### 🌐 Website Features
 
 #### Homepage
-- ✅ Hero banner with animated text
-- ✅ Service showcase grid (6 services)
-- ✅ Live statistics counters
-- ✅ Fleet preview section
-- ✅ Quote calculator
-- ✅ Why choose us section
-- ✅ CTA sections with smooth scroll
+-  Hero banner with animated text
+-  Service showcase grid (6 services)
+-  Live statistics counters
+-  Fleet preview section
+-  Quote calculator
+-  Why choose us section
+-  CTA sections with smooth scroll
 
 #### Bamboo Trading
-- ✅ Product marketplace (20+ items)
-- ✅ Category filters
-- ✅ Advanced search
-- ✅ Product ratings & reviews
-- ✅ Bulk order support
+-  Product marketplace (20+ items)
+-  Category filters
+-  Advanced search
+-  Product ratings & reviews
+-  Bulk order support
 
 #### Transport Services
-- ✅ Fleet options (HCV, MCV, Vans)
-- ✅ Service type selection
-- ✅ Coverage map
-- ✅ Real-time booking form
-- ✅ Pricing calculator
+-  Fleet options (HCV, MCV, Vans)
+-  Service type selection
+-  Coverage map
+-  Real-time booking form
+-  Pricing calculator
 
 #### Fleet Management
-- ✅ Vehicle inventory grid
-- ✅ Advanced filtering
-- ✅ Detailed specifications
-- ✅ Availability status
-- ✅ Fleet statistics
+-  Vehicle inventory grid
+-  Advanced filtering
+-  Detailed specifications
+-  Availability status
+-  Fleet statistics
 
 #### Shipment Tracking
-- ✅ Real-time GPS tracking
-- ✅ Delivery timeline
-- ✅ Status notifications
-- ✅ Driver contact
-- ✅ Route visualization
+-  Real-time GPS tracking
+-  Delivery timeline
+-  Status notifications
+-  Driver contact
+-  Route visualization
 
 #### Cab Services
-- ✅ Self-drive rentals
-- ✅ Premium cab with driver
-- ✅ Long-term rentals
-- ✅ Vehicle selection
-- ✅ Instant booking
+-  Self-drive rentals
+-  Premium cab with driver
+-  Long-term rentals
+-  Vehicle selection
+-  Instant booking
 
 ### 🎨 Design Highlights
 
@@ -117,7 +117,7 @@ We are:
 - 🎨 **Color Theme**: Professional green & gold palette
 - 📱 **Responsive**: Mobile-first design (375px - 1920px)
 - ⚡ **Performance**: Optimized loading & animations
-- ✅ **Accessibility**: WCAG compliant
+-  **Accessibility**: WCAG compliant
 
 ---
 
@@ -322,7 +322,7 @@ Text White:       #FFFFFF
 2. Click "New site from Git"
 3. Select your GitHub repository
 4. Click "Deploy"
-✅ Done! Your site is live
+ Done! Your site is live
 ```
 
 ### Deploy on Vercel
@@ -331,7 +331,7 @@ Text White:       #FFFFFF
 2. Click "New Project"
 3. Import GitHub repository
 4. Click "Deploy"
-✅ Done! Your site is live
+ Done! Your site is live
 ```
 
 ### Deploy on GitHub Pages
@@ -340,7 +340,7 @@ Text White:       #FFFFFF
 2. Find "Pages" section
 3. Select "main" branch as source
 4. Save
-✅ Live at: https://username.github.io/biome-logistics
+ Live at: https://username.github.io/biome-logistics
 ```
 
 ---
@@ -382,25 +382,25 @@ NE LOGISTICS → Your Company Name
 ## 🔒 Security & Performance
 
 ### Security Measures
-- ✅ No hardcoded sensitive data
-- ✅ HTTPS ready (enable on hosting)
-- ✅ Input validation on forms
-- ✅ XSS protection
-- ✅ CSRF tokens ready
+-  No hardcoded sensitive data
+-  HTTPS ready (enable on hosting)
+-  Input validation on forms
+-  XSS protection
+-  CSRF tokens ready
 
 ### Performance Optimizations
-- ✅ Minified CSS & JavaScript
-- ✅ Optimized images (compressed)
-- ✅ Lazy loading support
-- ✅ Fast GSAP animations
-- ✅ Efficient Bootstrap grid
+-  Minified CSS & JavaScript
+-  Optimized images (compressed)
+-  Lazy loading support
+-  Fast GSAP animations
+-  Efficient Bootstrap grid
 
 ### SEO Ready
-- ✅ Meta tags for each page
-- ✅ Semantic HTML structure
-- ✅ Mobile responsive
-- ✅ Fast loading time
-- ✅ Schema markup ready
+-  Meta tags for each page
+-  Semantic HTML structure
+-  Mobile responsive
+-  Fast loading time
+-  Schema markup ready
 
 ---
 
@@ -438,10 +438,10 @@ We welcome contributions! Here's how:
 This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file for details.
 
 You are free to:
-- ✅ Use this for commercial projects
-- ✅ Modify the code
-- ✅ Distribute copies
-- ✅ Include in your portfolio
+-  Use this for commercial projects
+-  Modify the code
+-  Distribute copies
+-  Include in your portfolio
 
 You must:
 - ⚠️ Include license copy
@@ -490,7 +490,7 @@ For issues, questions, or suggestions:
 |--------|---------|
 | **Version** | 1.0.0 |
 | **Last Updated** | 2024 |
-| **Maintenance** | ✅ Active |
+| **Maintenance** |  Active |
 | **Issues** | [View Issues](https://github.com/MinalKanth/biome-logistics/issues) |
 | **PRs** | [View PRs](https://github.com/MinalKanth/biome-logistics/pulls) |
 
@@ -521,7 +521,7 @@ For issues, questions, or suggestions:
 📦 Shipments: 5000+ annually
 🌍 Coverage: 8 states
 ⭐ Rating: 4.8/5.0
-✅ Uptime: 99.9%
+ Uptime: 99.9%
 ⚡ Performance: A+ score
 ```
 
@@ -549,10 +549,10 @@ For issues, questions, or suggestions:
 ### Browser Support
 | Browser | Support | Version |
 |---------|---------|---------|
-| Chrome | ✅ Full | Latest |
-| Firefox | ✅ Full | Latest |
-| Safari | ✅ Full | 12+ |
-| Edge | ✅ Full | Latest |
+| Chrome |  Full | Latest |
+| Firefox |  Full | Latest |
+| Safari |  Full | 12+ |
+| Edge |  Full | Latest |
 | IE | ❌ No | Not supported |
 
 ---
@@ -575,3 +575,8 @@ For issues, questions, or suggestions:
 
 </div>
 
+biome admin panel
+
+https://www.biomeenterprises.com/admin
+admin 
+ChangeMe!123

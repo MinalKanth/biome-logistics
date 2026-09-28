@@ -2,8 +2,6 @@
 declare(strict_types=1);
 
 // Enable full error reporting (Development only)
-ini_set('display_errors', '1');
-ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
 require_once __DIR__ . '/includes/bootstrap.php';
@@ -142,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_p
             // Recalculate running totals on the booking itself.
             $delta = $paymentType === 'refund' ? -$amount : $amount;
             $newPaid = max(0, (float) $booking['paid_amount'] + $delta);
-            $netAmount = (float) ($booking['net_amount'] ?? $booking['total_amount'] ?? 0);
+            $netAmount = (float) ($booking['grand_total'] ?? 0);
             $newBalance = round($netAmount - $newPaid, 2);
 
             if ($newPaid <= 0) {
@@ -170,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_p
             $label = $PAYMENT_TYPE_LIST[$paymentType];
             $pdo->prepare(
                 'INSERT INTO transport_booking_timeline
-                    (booking_id, tracking_id, status, title, description, is_customer_visible, created_by_admin_id, created_at)
+                    (booking_id, tracking_id, status, title, description, customer_visible, created_by, created_at)
                  VALUES (:bid, :tid, :status, :title, :desc, 1, :admin, NOW())'
             )->execute([
                 ':bid'    => $bookingId,
@@ -237,7 +235,7 @@ $sidebarUserCount = (int) safe_scalar_transport($pdo, 'SELECT COUNT(*) FROM user
 $sidebarBlogCount = (int) safe_scalar_transport($pdo, 'SELECT COUNT(*) FROM blog_posts');
 $sidebarTransportCount = (int) safe_scalar_transport($pdo, 'SELECT COUNT(*) FROM transport_bookings WHERE deleted_at IS NULL');
 
-$netAmount = (float) ($booking['net_amount'] ?? $booking['total_amount'] ?? 0);
+$netAmount = (float) ($booking['grand_total'] ?? 0);
 $paidAmount = (float) $booking['paid_amount'];
 $balanceAmount = (float) $booking['balance_amount'];
 

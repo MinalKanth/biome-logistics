@@ -174,7 +174,7 @@ if (!function_exists('cf_e')) {
         'title'       => 'Logistics & Transport Services | Biome Enterprises Assam',
         'description' => 'Biome Enterprises offers highly reliable transportation, logistics, 32 ft container trucks, and open body trucks for seamless freight operations across North-East India.',
         'keywords'    => 'transport, logistics Assam, container truck, open body truck, freight North-East India, Biome Enterprises logistics',
-        'url_path'    => '/transport.php', 
+        'url_path'    => '/transportation', 
         'type'        => 'website'
     ]);
     
@@ -184,7 +184,7 @@ if (!function_exists('cf_e')) {
     echo $seo->schema($seo->coreGraph());
     echo $seo->schema($seo->breadcrumbSchema([
         "Home" => "/",
-        "Transport Services" => "/transport.php"
+        "Transport Services" => "/transportation"
     ]));
     ?>
 
@@ -572,7 +572,13 @@ if (!function_exists('cf_e')) {
             </div>
 
             <div class="d-flex flex-wrap gap-2 mt-4">
-                <a href="#quote-form" class="btn btn-success btn-lg px-4">
+                <a href="transport-booking" class="btn btn-success btn-lg px-4">
+                    <i class="fa fa-truck me-2"></i> Book Online
+                </a>
+                <a href="track" class="btn btn-warning btn-lg px-4">
+                    <i class="fa fa-map-marker-alt me-2"></i> Track Shipment
+                </a>
+                <a href="#quote-form" class="btn btn-outline-light btn-lg px-4">
                     <i class="fa fa-paper-plane me-2"></i> Get A Quote
                 </a>
                 <a href="tel:+919678431656" class="btn btn-outline-light btn-lg px-4">
@@ -591,6 +597,15 @@ if (!function_exists('cf_e')) {
 
     </div>
     <!-- Hero End -->
+
+    <!-- Quick track strip -->
+    <div class="container-lg" style="margin-top:-34px;position:relative;z-index:3;">
+        <form action="track" method="get" class="d-flex flex-wrap gap-2 align-items-center bg-white rounded-4 shadow p-3 border" style="max-width:760px;margin:0 auto;">
+            <span class="fw-bold text-success px-2"><i class="fa fa-search-location me-2"></i>Track your cargo</span>
+            <input type="text" name="id" class="form-control" style="flex:1;min-width:200px;text-transform:uppercase" placeholder="Enter tracking ID e.g. TRK-26-00001" maxlength="40" aria-label="Tracking ID" required>
+            <button type="submit" class="btn btn-success px-4">Track</button>
+        </form>
+    </div>
 
 
     <!-- ============ FLEET ============ -->

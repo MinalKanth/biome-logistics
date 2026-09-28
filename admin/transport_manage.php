@@ -2,8 +2,6 @@
 declare(strict_types=1);
 
 // Enable full error reporting (Development only)
-ini_set('display_errors', '1');
-ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
 require_once __DIR__ . '/includes/bootstrap.php';
@@ -630,8 +628,14 @@ require __DIR__ . '/includes/header.php';
                     </td>
                     <td><span class="mono-time"><?= e((string) $b['scheduled_pickup']) ?></span></td>
                     <td class="actions">
-                      <a href="transport_track.php?tracking_id=<?= urlencode($b['tracking_id']) ?>" class="btn btn-small btn-ghost" title="Timeline / tracking" target="_blank">
-                        <i class="fa-solid fa-timeline"></i> Track
+                      <a href="transport_view.php?id=<?= (int) $b['id'] ?>" class="btn btn-small btn-ghost" title="Open booking">
+                        <i class="fa-solid fa-eye"></i> View
+                      </a>
+                      <a href="timeline.php?id=<?= (int) $b['id'] ?>" class="btn btn-small btn-ghost" title="Update tracking">
+                        <i class="fa-solid fa-location-dot"></i>
+                      </a>
+                      <a href="invoice.php?id=<?= (int) $b['id'] ?>" class="btn btn-small btn-ghost" title="Invoice">
+                        <i class="fa-solid fa-file-invoice"></i>
                       </a>
                       <a href="transport_edit.php?id=<?= (int) $b['id'] ?>" class="btn btn-small btn-secondary">
                         <i class="fa-solid fa-pen"></i> Edit

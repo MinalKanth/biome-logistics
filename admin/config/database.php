@@ -40,6 +40,10 @@ function get_db(): PDO
         $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
     } catch (PDOException $e) {
         // Never expose DB connection details to the client.
+        // error_log('DB connection failed: ' . $e->getMessage());
+        // http_response_code(500);
+        // die('A server error occurred. Please try again later.');
+        
         error_log('DB connection failed: ' . $e->getMessage());
         http_response_code(500);
         die('A server error occurred. Please try again later.');

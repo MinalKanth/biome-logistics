@@ -1,3 +1,7 @@
+<div id="scrollProgress"></div>
+    <div id="cursorGlow"></div>
+
+
 <!-- ===================================================
      NAVBAR STYLES — self-contained, mobile-first.
      Uses its own "bio-nav" namespace so it won't clash 
@@ -11,15 +15,31 @@
         --bio-nav-dark: #14181a;
     }
 
-    .bio-navbar {
-        background: #fff;
+ .bio-navbar {
+        background-color: #ffffff;
         border-bottom: 1px solid rgba(25, 135, 84, 0.15);
         box-shadow: 0 4px 18px rgba(20, 30, 25, .08);
-        transition: box-shadow .3s ease, background .3s ease; 
+        
+        /* Smooth transitions */
+        transition: background-color .3s ease, box-shadow .3s ease; 
+        
+        /* Hardware Acceleration (GPU) - Stuttering Fix */
+        transform: translate3d(0, 0, 0);
+        will-change: background-color, box-shadow;
+        
         padding: 0;
         width: 100%;
         max-width: 100vw;
         overflow-x: clip;
+    }
+
+    .bio-navbar.scrolled,
+    .bio-navbar.be-scrolled {
+        background-color: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 8px 24px rgba(20, 30, 25, .14);
+        /* Optional: Blur effect for premium look */
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
     }
 
     .bio-navbar.scrolled {
@@ -27,45 +47,49 @@
         box-shadow: 0 8px 24px rgba(20, 30, 25, .14);
     }
 
+    /* ---------- Container Fix ---------- */
+    /* Container ko stretch hone denge taki brand height match kar sake */
+    .bio-navbar .container-fluid {
+        align-items: stretch !important; 
+    }
+
     /* ---------- Brand ---------- */
     .bio-navbar .navbar-brand {
         background: linear-gradient(135deg, var(--bio-nav-green-dark), var(--bio-nav-green));
         border-radius: 0 0 1rem 0;
-        margin: 0;
-        padding: .8rem 1rem;
         transition: background .3s ease;
+        
+        /* Flexbox to keep logo and text vertically centered */
+        display: flex;
+        align-items: center;
+
+        /* Left space removal */
+        margin: 0 0 0 calc(var(--bs-gutter-x, 1.5rem) * -0.5) !important;
+        
+        /* Bottom space removal (Stretch to full height) */
+        align-self: stretch !important;
+        height: auto !important;
+        
+        /* Inner spacing */
+        padding: 0.8rem 1.5rem !important; 
     }
 
     .bio-navbar .navbar-brand:hover {
         background: linear-gradient(135deg, var(--bio-nav-green), var(--bio-nav-green-dark));
     }
     
-    /* .bio-brand-logo {
-        height: 42px; 
+    .bio-navbar .bio-brand-logo {
+        height: 42px;
         width: auto;
         object-fit: contain;
         flex-shrink: 0;
-        filter: brightness(0) invert(1);
-    } */
-        .bio-navbar .bio-brand-logo{
-    height:42px;
-    width:auto;
-    object-fit:contain;
-    flex-shrink:0;
-
-    filter: brightness(0) invert(1) !important;
-    -webkit-filter: brightness(0) invert(1) !important;
-}
-
-.bio-navbar .navbar-brand{
-    margin-left:0 !important;
-    padding-left:1rem !important;
-}
+        filter: brightness(0) invert(1) !important;
+        -webkit-filter: brightness(0) invert(1) !important;
+    }
 
     .bio-brand-name {
         color: #fff; 
         font-weight: 700;
-        /* font-size: clamp(1.05rem, 2.2vw + .6rem, 1.6rem); */
         font-size: 1.35rem;
         line-height: 1.15;
         margin: 0;
@@ -82,7 +106,14 @@
         text-transform: uppercase;
     }
 
-    /* ---------- Toggler ---------- */
+    /* ---------- Toggler & Menu Alignment ---------- */
+    .bio-navbar .navbar-toggler,
+    .bio-navbar .navbar-collapse,
+    .bio-nav-phone {
+        /* Inko stretch hone se rokenge taki ye vertically center dikhein */
+        align-self: center; 
+    }
+
     .bio-navbar .navbar-toggler {
         border: 2px solid var(--bio-nav-green);
         border-radius: .5rem; 
@@ -97,7 +128,7 @@
         box-shadow: 0 0 0 .2rem rgba(25, 135, 84, .25);
     }
 
-    /* Custom 3-line -> X animated icon, replaces Bootstrap's default SVG icon */
+    /* Custom 3-line -> X animated icon */
     .bio-navbar .navbar-toggler-icon {
         background-image: none !important;
         position: relative;
@@ -138,7 +169,7 @@
         transform: rotate(-45deg);
     }
 
-    /* Smooth open/close for the mobile menu instead of Bootstrap's abrupt collapse */
+    /* Smooth open/close for mobile */
     @media (max-width: 991.98px) {
         .bio-navbar .navbar-collapse.collapsing {
             transition: height .3s ease;
@@ -246,6 +277,7 @@
             box-shadow: 0 16px 30px rgba(20, 30, 25, .12);
             max-height: calc(100vh - 70px);
             overflow-y: auto;
+            width: 100%; /* Make sure it spans full width */
         }
 
         .bio-navbar .navbar-nav {
@@ -263,7 +295,6 @@
 
         .bio-navbar .dropdown-menu {
             box-shadow: none;
-            background: var(--bio-nav-dark, #f4f8f6);
             background: #f4f8f6;
             margin: .3rem 0 .5rem;
         }
@@ -297,10 +328,10 @@
     /* ---------- Small phones ---------- */
     @media (max-width: 575.98px) {
         .bio-navbar .navbar-brand {
-            padding: .65rem .85rem;
+            padding: 0.65rem 1rem !important; /* Proper padding for small screens */
         }
 
-        .bio-brand-logo {
+        .bio-navbar .bio-brand-logo {
             height: 34px !important;
         }
 
@@ -308,13 +339,38 @@
             display: none;  
         }
     }
-</style>
 
+    /* ---------- FIX: keep every menu item on ONE line (desktop) ---------- */
+    @media (min-width: 992px) {
+        .bio-navbar .navbar-nav { flex-wrap: nowrap; }
+        .bio-navbar .nav-link,
+        .bio-navbar .nav-item .nav-link { white-space: nowrap; margin-right: 0 !important; display: flex; align-items: center; }
+        .bio-navbar .nav-link i { margin-right: .45rem !important; }
+        .bio-nav-phone,
+        .bio-nav-phone * { white-space: nowrap; }
+        .bio-navbar .navbar-brand,
+        .bio-navbar .bio-brand-name { white-space: nowrap; flex-shrink: 0; }
+    }
+    /* laptops / small desktops: tighten spacing so everything still fits */
+    @media (min-width: 992px) and (max-width: 1399.98px) {
+        .bio-navbar .nav-link { font-size: .82rem; padding: 1.1rem .55rem !important; letter-spacing: 0 !important; }
+        .bio-navbar .nav-link::after { left: .55rem; right: .55rem; }
+        .bio-navbar .nav-link i { font-size: .8rem; margin-right: .3rem !important; }
+        .bio-nav-phone { padding: .45rem .8rem; font-size: .85rem; gap: .45rem; }
+        .bio-navbar .bio-brand-name { font-size: 1.15rem; }
+        .bio-navbar .navbar-brand { padding: .7rem 1rem !important; }
+    }
+    @media (min-width: 992px) and (max-width: 1199.98px) {
+        .bio-brand-tagline { display: none; }
+        .bio-nav-phone span, .bio-nav-phone { font-size: .8rem; }
+        .bio-navbar .nav-link i { display: none; }
+    }
+</style>
 <!-- Navbar Start -->
 <nav class="navbar navbar-expand-lg navbar-light bio-navbar sticky-top py-lg-0">
     <div class="container-fluid">
         
-        <a href="index.php" class="navbar-brand d-flex align-items-center">
+        <a href="https://biomeenterprises.com/" class="navbar-brand d-flex align-items-center">
             <img src="img/logo.png" alt="Biome Enterprises Logo" class="bio-brand-logo me-2 me-md-3">
             <div class="d-flex flex-column">
                 <span class="bio-brand-name">Biome Enterprises</span>
@@ -330,12 +386,12 @@
             <div class="navbar-nav ms-auto align-items-lg-center">
 
                 <!-- Home Link --> 
-                <a href="index.php" class="nav-item nav-link">
+                <a href="https://biomeenterprises.com" class="nav-item nav-link">
                     <i class="fa fa-home me-2"></i> Home
                 </a>
 
                 <!-- About Link -->
-                <a href="about.php" class="nav-item nav-link">
+                <a href="about" class="nav-item nav-link">
                     <i class="fa fa-info-circle me-2"></i> About 
                 </a>
                 
@@ -347,27 +403,35 @@
 
                     <div class="dropdown-menu fade-up m-0">
                         
-                        <a href="transportation.php" class="dropdown-item">
+                        <a href="transportation" class="dropdown-item">
                             <i class="fa fa-truck text-primary me-2"></i> Transportation &amp; Logistics
                         </a>
 
-                        <a href="bamboo-trading.php" class="dropdown-item">
+                        <a href="transport-booking" class="dropdown-item">
+                            <i class="fa fa-calendar-check text-success me-2"></i> Book a Truck Online
+                        </a>
+
+                        <a href="track" class="dropdown-item">
+                            <i class="fa fa-map-marker-alt text-danger me-2"></i> Track Shipment
+                        </a>
+
+                        <a href="bamboo-trading" class="dropdown-item">
                             <i class="fa fa-leaf text-success me-2"></i> Bamboo Trading 
                         </a>
                         
-                        <a href="legal.php" class="dropdown-item">
+                        <a href="legal" class="dropdown-item">
                             <i class="fa fa-balance-scale text-warning me-2"></i> Legal &amp; Compliance
                         </a>
 
-                        <a href="cab.php" class="dropdown-item">
+                        <a href="cab" class="dropdown-item">
                             <i class="fa fa-car text-info me-2"></i> Cab Rental
                         </a>
                         
-                        <a href="hotel.php" class="dropdown-item">
+                        <a href="hotel" class="dropdown-item">
                             <i class="fa fa-hotel text-danger me-2"></i> Hotels &amp; Homestays  
                         </a>
 
-                        <a href="restaurant.php" class="dropdown-item">
+                        <a href="restaurant" class="dropdown-item">
                             <i class="fa fa-utensils text-secondary me-2"></i> Restaurant
                         </a>
                         
@@ -375,17 +439,17 @@
                 </div>
 
                 <!-- Contact Link -->
-                <a href="contact.php" class="nav-item nav-link">
+                <a href="contact" class="nav-item nav-link">
                     <i class="fa fa-phone me-2"></i> Contact
                 </a>
 
                 <!-- NGO & Sustainability Link --> 
-                <a href="ngo.php" class="nav-item nav-link">
+                <a href="ngo" class="nav-item nav-link">
                     <i class="fa fa-seedling me-2"></i> NGO
                 </a>
 
                  <!-- Blog Link -->
-                <a href="blog.php" class="nav-item nav-link">
+                <a href="blog" class="nav-item nav-link">
                     <i class="fa fa-camera-retro me-2"></i> Blog
                 </a>
 
@@ -405,9 +469,10 @@
     </div>
 </nav>
 <!-- Navbar End -->
+ 
 
 <!-- Note: the scroll-triggered "scrolled" look is now driven entirely by the
-     single rAF-throttled listener in index.php (adds .be-scrolled), so this
+     single rAF-throttled listener in index (adds .be-scrolled), so this
      navbar no longer runs its own separate, unthrottled scroll handler. -->
 <style>
     /* Keep the same scrolled visual treatment, just driven by .be-scrolled now */
@@ -419,11 +484,11 @@
 
 <script>
     // Add a subtle shadow and background blur once the page is scrolled (cosmetic)
-    (function() {
-        const nav = document.querySelector('.bio-navbar');
-        if (!nav) return;
-        window.addEventListener('scroll', function() {
-            nav.classList.toggle('scrolled', window.scrollY > 20); 
-        });
-    })();
+    // (function() {
+    //     const nav = document.querySelector('.bio-navbar');
+    //     if (!nav) return;
+    //     window.addEventListener('scroll', function() {
+    //         nav.classList.toggle('scrolled', window.scrollY > 20); 
+    //     });
+    // })();
 </script>

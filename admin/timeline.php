@@ -2,10 +2,6 @@
 declare(strict_types=1);
 
 // Enable full error reporting (Development only)
-ini_set('display_errors', '1');
-ini_set('display_startup_errors', '1');
-error_reporting(E_ALL);
-
 require_once __DIR__ . '/includes/bootstrap.php';
 require_admin();
 
@@ -62,6 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_e
     $status              = (string) ($_POST['status'] ?? '');
     $title               = trim((string) ($_POST['title'] ?? ''));
     $description         = trim((string) ($_POST['description'] ?? ''));
+    $location            = mb_substr(trim((string) ($_POST['current_location'] ?? '')), 0, 200);
     $isCustomerVisible   = isset($_POST['is_customer_visible']) ? 1 : 0;
     $updateBookingStatus = isset($_POST['update_booking_status']) ? 1 : 0;
 
@@ -74,24 +71,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_e
 
             $pdo->prepare(
                 'INSERT INTO transport_booking_timeline
-                    (booking_id, tracking_id, status, title, description, is_customer_visible, created_by_admin_id, created_at)
+                    (booking_id, tracking_id, status, title, description, current_location, customer_visible, created_by, created_at)
                  VALUES
-                    (:bid, :tid, :status, :title, :desc, :visible, :admin, NOW())'
+                    (:bid, :tid, :status, :title, :desc, :loc, :visible, :admin, NOW())'
             )->execute([
                 ':bid'     => $bookingId,
                 ':tid'     => $booking['tracking_id'],
                 ':status'  => $status,
                 ':title'   => $title,
                 ':desc'    => $description ?: null,
+                ':loc'     => $location ?: null,
                 ':visible' => $isCustomerVisible,
                 ':admin'   => $_SESSION['admin_id'],
             ]);
 
             if ($updateBookingStatus) {
                 $pdo->prepare(
-                    'UPDATE transport_bookings SET status = :status, updated_by = :admin, updated_at = NOW() WHERE id = :id'
+                    'UPDATE transport_bookings SET status = :status, delivered_at = IF(:status2 = \'delivered\', COALESCE(delivered_at, NOW()), delivered_at), updated_by = :admin, updated_at = NOW() WHERE id = :id'
                 )->execute([
                     ':status' => $status,
+                    ':status2' => $status,
                     ':admin'  => $_SESSION['admin_id'],
                     ':id'     => $bookingId,
                 ]);
@@ -135,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggl
     $eventId = (int) ($_POST['event_id'] ?? 0);
     if ($eventId > 0) {
         $pdo->prepare(
-            'UPDATE transport_booking_timeline SET is_customer_visible = 1 - is_customer_visible WHERE id = :eid AND booking_id = :bid'
+            'UPDATE transport_booking_timeline SET customer_visible = 1 - customer_visible WHERE id = :eid AND booking_id = :bid'
         )->execute([':eid' => $eventId, ':bid' => $bookingId]);
     }
     header('Location: timeline.php?id=' . $bookingId);
@@ -286,6 +285,11 @@ require __DIR__ . '/includes/header.php';
               <textarea name="description" rows="3" placeholder="Additional details for this event…"></textarea>
             </div>
 
+            <div class="form-group">
+              <label>Current location <span style="font-weight:400;color:var(--text-muted);">(shown to the customer on the tracking page)</span></label>
+              <input type="text" name="current_location" maxlength="200" placeholder="e.g. Nagaon bypass, Assam">
+            </div>
+
             <div class="check-row">
               <input type="checkbox" name="is_customer_visible" id="is_customer_visible" value="1" checked>
               <label for="is_customer_visible" style="margin:0;font-weight:400;">Visible to customer</label>
@@ -316,14 +320,14 @@ require __DIR__ . '/includes/header.php';
           <?php else: ?>
             <div class="timeline">
               <?php foreach ($events as $ev): ?>
-                <div class="tl-event <?= (int) $ev['is_customer_visible'] === 0 ? 'hidden-event' : '' ?>">
+                <div class="tl-event <?= (int) $ev['customer_visible'] === 0 ? 'hidden-event' : '' ?>">
                   <div class="tl-top">
                     <span class="tl-title"><?= e($ev['title']) ?></span>
                     <span class="tl-time"><?= e(dt_tl($ev['created_at'])) ?></span>
                   </div>
                   <div style="margin:2px 0;">
                     <?= status_badge_tl((string) $ev['status'], $STATUS_LIST) ?>
-                    <?php if ((int) $ev['is_customer_visible'] === 0): ?>
+                    <?php if ((int) $ev['customer_visible'] === 0): ?>
                       <span class="badge badge-muted" style="font-size:.68rem;">Internal only</span>
                     <?php endif; ?>
                   </div>
@@ -335,7 +339,7 @@ require __DIR__ . '/includes/header.php';
                       <?= csrf_field() ?>
                       <input type="hidden" name="action" value="toggle_visibility">
                       <input type="hidden" name="event_id" value="<?= (int) $ev['id'] ?>">
-                      <button type="submit"><?= (int) $ev['is_customer_visible'] === 1 ? 'Hide from customer' : 'Show to customer' ?></button>
+                      <button type="submit"><?= (int) $ev['customer_visible'] === 1 ? 'Hide from customer' : 'Show to customer' ?></button>
                     </form>
                     <form method="post" action="timeline.php?id=<?= $bookingId ?>" onsubmit="return confirm('Remove this timeline event?');">
                       <?= csrf_field() ?>
