@@ -1,157 +1,99 @@
-<?php
 
+<?php  
+// ======================================================
+// PAGE CONFIG
+// ======================================================
+define('PAGE', 'home');
 
-declare(strict_types=1);
+// ======================================================
+// PRODUCTION ERROR SETTINGS
+// ======================================================
+error_reporting(0);
+ini_set('display_errors', '0');
 
+// ======================================================
+// SECURITY, DB & ENTERPRISE SEO ENGINE
+// ======================================================
+require_once 'protection.php';
+require_once 'EliteSeoEngine.php';
+include 'include/config.php'; // DB Connection moved to top for global access
 
-require_once __DIR__ . '/admin/config/database.php';
+// ======================================================
+// INITIALIZE SEO ENGINE
+// ======================================================
+$seo = new EliteEnterpriseSeoEngine();
+$seo->sendEnterpriseHeaders(filemtime(__FILE__));
 
-
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    session_start();
-}
-if (empty($_SESSION['quote_csrf_token'])) {
-    $_SESSION['quote_csrf_token'] = bin2hex(random_bytes(32));
-}
-$quoteCsrfToken = $_SESSION['quote_csrf_token'];
-
-$quoteFormErrors = [];
-$quoteFormSuccess = false;
-if (!empty($_SESSION['quote_flash_success'])) {
-    $quoteFormSuccess = true;
-    unset($_SESSION['quote_flash_success']);
-}
-
-// Keep submitted values so the form can be re-filled if validation fails.
-$quoteFormValues = [
-    'full_name'         => '',
-    'mobile_number'     => '',
-    'email'             => '',
-    'city_state'        => '',
-    'service_required'  => '',
-    'company_name'       => '',
-    'message'            => '',
+// ======================================================
+// META PARAMETERS FOR HOMEPAGE
+// ======================================================
+$metaParams = [
+    'title'       => 'Biome Enterprises | Logistics, Bamboo Trading & Compliance Services',
+    'description' => 'Biome Enterprises provides reliable transportation, bamboo trading, legal & compliance services, accounting, hospitality, and cab booking solutions across North-East India.',
+    'keywords'    => 'Biome Enterprises, transportation, logistics, bamboo trading, legal services, compliance, accounting, hospitality, cab booking, North-East India, Assam',
+    'url_path'    => 'https://biomeenterprises.com/img/logo.png',
+    'image_path'  => '/img/logo.png',  
+    'type'        => 'website'
 ];
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['quote_form_submit'])) {
-
-    // ---- CSRF check ----
-    $postedToken = $_POST['csrf_token'] ?? '';
-    if (!hash_equals($_SESSION['quote_csrf_token'], $postedToken)) {
-        $quoteFormErrors[] = 'Your session expired. Please refresh the page and try again.';
-    } else {
-
-        // ---- Collect + sanitize input ----
-        $fullName  = trim((string) ($_POST['full_name'] ?? ''));
-        $mobile    = trim((string) ($_POST['mobile_number'] ?? ''));
-        $email     = trim((string) ($_POST['email'] ?? ''));
-        $cityState = trim((string) ($_POST['city_state'] ?? ''));
-        $service   = trim((string) ($_POST['service_required'] ?? ''));
-        $company   = trim((string) ($_POST['company_name'] ?? ''));
-        $message   = trim((string) ($_POST['message'] ?? ''));
-
-        $quoteFormValues = compact(
-            'fullName', 'mobile', 'email', 'cityState', 'service', 'company', 'message'
-        );
-        // also keep snake_case keys for the HTML below
-        $quoteFormValues = [
-            'full_name'        => $fullName,
-            'mobile_number'    => $mobile,
-            'email'            => $email,
-            'city_state'       => $cityState,
-            'service_required' => $service,
-            'company_name'     => $company,
-            'message'          => $message,
-        ];
-
-        // ---- Validation ----
-        if ($fullName === '' || mb_strlen($fullName) > 150) {
-            $quoteFormErrors[] = 'Full name is required (max 150 characters).';
-        }
-
-        // Accepts digits, spaces, +, -, ( ) — 7 to 20 chars total
-        if ($mobile === '' || !preg_match('/^[0-9+\-\s()]{7,20}$/', $mobile)) {
-            $quoteFormErrors[] = 'Please enter a valid mobile number.';
-        }
-
-        if ($email !== '' && (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 150)) {
-            $quoteFormErrors[] = 'Please enter a valid email address.';
-        }
-
-        if (mb_strlen($cityState) > 150) {
-            $quoteFormErrors[] = 'City/State is too long.';
-        }
-
-        $allowedServices = [
-            'Transportation & Logistics', 'Bamboo Trading', 'Legal & Compliance',
-            'GST Registration', 'FSSAI Registration', 'MSME Registration',
-            'Company Registration', 'Accounting & Taxation', 'Cab Rental',
-        ];
-        if ($service !== '' && !in_array($service, $allowedServices, true)) {
-            $quoteFormErrors[] = 'Please select a valid service from the list.';
-        }
-
-        if (mb_strlen($company) > 150) {
-            $quoteFormErrors[] = 'Company/Business name is too long.';
-        }
-
-        if (mb_strlen($message) > 2000) {
-            $quoteFormErrors[] = 'Message is too long (max 2000 characters).';
-        }
-
-        // ---- Basic spam throttle: max 3 submissions per 10 minutes per session ----
-        $now = time();
-        $bucket = $_SESSION['quote_rate_limit'] ?? ['count' => 0, 'start' => $now];
-        if ($now - $bucket['start'] > 600) {
-            $bucket = ['count' => 0, 'start' => $now];
-        }
-        $bucket['count']++;
-        $_SESSION['quote_rate_limit'] = $bucket;
-        if ($bucket['count'] > 3) {
-            $quoteFormErrors[] = 'Too many submissions. Please wait a few minutes and try again.';
-        }
-
-        // ---- Insert into DB if everything is valid ----
-        if (!$quoteFormErrors) {
-            try {
-                $pdo = get_db();
-                $stmt = $pdo->prepare(
-                    'INSERT INTO quote_requests
-                        (full_name, mobile_number, email, city_state, service_required, company_name, message, ip_address)
-                     VALUES
-                        (:full_name, :mobile_number, :email, :city_state, :service_required, :company_name, :message, :ip)'
-                );
-                $stmt->execute([
-                    ':full_name'        => $fullName,
-                    ':mobile_number'    => $mobile,
-                    ':email'            => $email !== '' ? $email : null,
-                    ':city_state'       => $cityState !== '' ? $cityState : null,
-                    ':service_required' => $service !== '' ? $service : null,
-                    ':company_name'     => $company !== '' ? $company : null,
-                    ':message'          => $message !== '' ? $message : null,
-                    ':ip'               => $_SERVER['REMOTE_ADDR'] ?? null,
-                ]);
-
-                // the page never resubmits the form.
-                $_SESSION['quote_flash_success'] = true;
-                $_SESSION['quote_csrf_token'] = bin2hex(random_bytes(32));
-                header('Location: ' . $_SERVER['PHP_SELF']);
-                exit;
-
-            } catch (PDOException $e) {
-                error_log('Quote form insert failed: ' . $e->getMessage());
-                $quoteFormErrors[] = 'Something went wrong on our end. Please try again later.';
-            }
-        }
-    }
-}
-
-/** Small escaping helper for use in the HTML below. */
-function qf_e(string $value): string
-{
-    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
-}
 ?>
+
+
+
+
+
+
+
+ <!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- ===================== ELITE SEO ENGINE HOOKS ===================== -->
+ 
+    <?= $seo->generateMeta($metaParams); ?>
+    
+    
+    <?= $seo->schema($seo->coreGraph()); ?>
+    
+   
+    <?= $seo->schema($seo->localBusinessSchema()); ?>
+    <!-- ================================================================== -->
+
+    <!-- Favicons -->
+    <link rel="icon" href="img/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
+
+    <!-- Google Web Fonts (Preconnects are handled by SEO Engine) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto:wght@500;700&display=swap" rel="stylesheet">
+
+    <!-- Icon Font Stylesheet -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css">
+    </noscript>
+
+    <!-- Critical Assets Preload -->
+    <link rel="preload" as="image" href="img/carousel-1.png" fetchpriority="high">
+
+    <!-- Libraries Stylesheet -->
+    <link href="lib/animate/animate.min.css" rel="stylesheet">
+
+    <!-- Customized Bootstrap & Template Stylesheets -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/navbar-active-state.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <link href="css/style_custom.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <div id="scrollProgress"></div>
+    <div id="cursorGlow"></div>
+
+
 
 <?php if ($quoteFormSuccess): ?>
     <div class="alert alert-success">
@@ -169,170 +111,17 @@ function qf_e(string $value): string
     </div>
 <?php endif; ?>
 
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-    <meta charset="utf-8">
-    <title>Biome Enterprises | Reliable Transportation, Bamboo Trading, Legal & Compliance Services</title>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <meta name="keywords" content="Biome Enterprises, transportation, logistics, bamboo trading, legal services, compliance, accounting, hospitality, cab booking, North-East India, Assam">
-    <meta name="description" content="Biome Enterprises provides reliable transportation, bamboo trading, legal & compliance services, accounting, hospitality, and cab booking solutions across North-East India.">
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://biomeenterprises.com/">
 
-    <!-- Open Graph (social share / rich preview) -->
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="Biome Enterprises | Logistics, Bamboo Trading & Compliance Services">
-    <meta property="og:description" content="Reliable transportation, bamboo trading, legal & compliance services, accounting, hospitality, and cab booking across North-East India.">
-    <meta property="og:image" content="https://biomeenterprises.com/img/logo-og.png">
-    <meta property="og:url" content="https://biomeenterprises.com/">
-    <meta property="og:site_name" content="Biome Enterprises">
-
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Biome Enterprises">
-    <meta name="twitter:description" content="Reliable transportation, bamboo trading, legal & compliance services across North-East India.">
-    <meta name="twitter:image" content="https://biomeenterprises.com/img/logo-og.png">
-
-    <!-- Organization structured data — main signal Google uses for the search-result logo -->
-    <script type="application/ld+json">
-    {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "Biome Enterprises",
-    "url": "https://biomeenterprises.com",
-    "logo": "https://biomeenterprises.com/img/logo.png",
-    "description": "Transportation, bamboo trading, legal & compliance, accounting, hospitality, and cab booking solutions across North-East India.",
-    "telephone": "+91-96784-31656",
-    "address": {
-        "@type": "PostalAddress",
-        "addressRegion": "Assam",
-        "addressCountry": "IN"
-    },
-    "sameAs": []
-    }
-    </script>
-    <!-- Favicon -->
-    <link rel="icon" href="img/favicon.ico" type="image/x-icon">
-    
-    <!-- Favicons -->
-    <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png">
-
-    <!-- Google Web Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto:wght@500;700&display=swap" rel="stylesheet">
-
-    <!-- Icon Font Stylesheet -->
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css">
-    </noscript>
-
-    <link rel="preload" as="image" href="img/carousel-1.png" fetchpriority="high">
-
-    <!-- Libraries Stylesheet -->
-    <link href="lib/animate/animate.min.css" rel="stylesheet">
-
-    <!-- Customized Bootstrap Stylesheet -->
-    <link href="css/bootstrap.min.css" rel="stylesheet">
-    <link href="css/navbar-active-state.css" rel="stylesheet">
-
-    <!-- Template Stylesheet -->
-    <link href="css/style.css" rel="stylesheet">
-    <link href="css/style_custom.css" rel="stylesheet">
-
-    
-</head>
-
-<body>
-
-    <div id="scrollProgress"></div>
-    <div id="cursorGlow"></div>
 
     <!-- Navbar -->
      <?php include __DIR__ . '/navbar.php'; ?>
     <!-- Navbar End -->
 
-    <!-- ===================== Bootstrap Carousel Start ===================== -->
-    <div id="heroCarousel" class="carousel slide mb-5" data-bs-ride="carousel" data-bs-interval="5000">
 
-        <div class="be-blob" style="width:260px;height:260px;top:10%;left:-5%;background:#ffc107;"></div>
-        <div class="be-blob" style="width:200px;height:200px;bottom:8%;right:-3%;background:#198754;animation-delay:2s;"></div>
+<?php include __DIR__ . '/slider.php'; ?>
 
-        <div class="carousel-indicators">
-            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
-            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
-        </div>
 
-        <div class="carousel-inner">
-
-            <!-- Slide 1 -->
-            <div class="carousel-item active">
-                <img src="img/carousel-1.png" class="d-block w-100" alt="Transport and Logistics"
-     fetchpriority="high" loading="eager" decoding="async" width="1920" height="960">
-                <div class="carousel-caption">
-                    <div class="container">
-                        <div class="row">
-                            <div class="col-12 col-lg-8">
-                                <h5 class="text-white text-uppercase mb-3">Transport & Logistics Solution</h5>
-                                <h1 class="display-4 text-white mb-4">
-                                    NORTHEAST INDIA'S LEADING B2B
-                                    <span class="text-primary">LOGISTICS</span> &
-                                    <span class="text-primary">BAMBOO FIRM</span>
-                                </h1>
-                                <p class="fs-5 fw-medium text-white mb-4">
-                                    Biome Enterprises delivers sophisticated supply chain solutions, industrial bamboo procurement, and corporate fleet oversight across all eight states.
-                                </p>
-                                <a href="" class="btn btn-success btn-lg me-3">BOOK A TRUCK</a>
-                                <a href="" class="btn btn-light btn-lg">TRACK CONSOLE</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Slide 2 -->
-            <div class="carousel-item">
-                <img src="img/carousel-2.png" class="d-block w-100" alt="Bamboo Trading" loading="lazy" width="1920" height="960">
-                <div class="carousel-caption">
-                    <div class="container">
-                        <div class="row">
-                            <div class="col-12 col-lg-8">
-                                <h5 class="text-white text-uppercase mb-3">Transport & Logistics Solution</h5>
-                                <h1 class="display-4 text-white mb-4">
-                                    NORTHEAST INDIA'S LEADING B2B
-                                    <span class="text-primary">LOGISTICS</span> &
-                                    <span class="text-primary">BAMBOO FIRM</span>
-                                </h1>
-                                <p class="fs-5 fw-medium text-white mb-4">
-                                    Biome Enterprises delivers sophisticated supply chain solutions, industrial bamboo procurement, and corporate fleet oversight across all eight states.
-                                </p>
-                                <a href="" class="btn btn-primary btn-lg me-3">BOOK A TRUCK</a>
-                                <a href="" class="btn btn-light btn-lg">TRACK CONSOLE</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Previous</span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
-            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Next</span>
-        </button>
-    </div>
-    <!-- ===================== Bootstrap Carousel End ===================== -->
 
 
     <!-- About Start -->
@@ -439,93 +228,173 @@ function qf_e(string $value): string
     <!-- ===================== Fact / Counter End ===================== -->
 
 
-    <!-- Service Start -->
+  <!-- ===================== Service Start ===================== -->
+    <style>
+        /* Modern Service Section Enhancements */
+        .service-card {
+            border-radius: 16px;
+            background: #ffffff;
+            transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, 0.04) !important;
+        }
+
+        .service-img-wrapper {
+            overflow: hidden;
+            border-radius: 12px;
+        }
+
+        .service-img-wrapper img {
+            aspect-ratio: 16 / 10;
+            object-fit: cover;
+            width: 100%;
+            transition: transform 0.5s ease;
+        }
+
+        /* Hover effect only for devices that support hover */
+        @media (hover: hover) and (pointer: fine) {
+            .service-card:hover {
+                transform: translateY(-8px);
+                box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08) !important;
+            }
+            .service-card:hover img {
+                transform: scale(1.05);
+            }
+        }
+
+        .service-card .btn-outline-primary {
+            border-radius: 50px;
+            padding: 8px 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .service-card .btn-outline-primary:hover {
+            background-color: #198754;
+            border-color: #198754;
+            color: #fff;
+            transform: translateX(4px);
+        }
+    </style>
 
     <div class="container py-5 reveal">
         <div class="text-center mb-5">
-            <h6 class="text-secondary text-uppercase">Our Services</h6>
-            <h1 class="mb-4">Explore Our Services</h1>
-            <p class="mb-0">Biome Enterprises delivers integrated supply chain optimization and ethical trade operations across the North-East Indian economic corridor.</p>
+            <h6 class="text-secondary text-uppercase fw-bold tracking-wider">Our Services</h6>
+            <!-- Fixed H1 to H2 for strict SEO compliance -->
+            <h2 class="mb-3 display-6 fw-bold">Explore Our Services</h2>
+            <p class="text-muted mx-auto" style="max-width: 700px;">Biome Enterprises delivers integrated supply chain optimization and ethical trade operations across the North-East Indian economic corridor.</p>
         </div>
-        <div class="row g-4 reveal reveal-stagger">
 
-            <!-- Logistics -->
+        <div class="row g-4 reveal reveal-stagger justify-content-center">
+
+            
+ 
+  <!-- Logistics -->
             <div class="col-md-6 col-lg-4">
-                <div class="card h-100 border-0 shadow-sm p-3 tilt-card">
-                    <img class="card-img-top rounded" src="img/service01.png" alt="Transportation Services" loading="lazy">
-                    <div class="card-body px-0">
-                        <h4 class="card-title">Transportation & Logistics</h4>
-                        <p class="card-text">Reliable Pan India transportation with 32-ft open-body and multi-axle container trucks, connecting Assam to major industrial hubs.</p>
-                        <a class="btn btn-outline-primary" href="transportation.php">Read More <i class="fa fa-arrow-right ms-1"></i></a>
+                <div class="card h-100 shadow-sm p-3 service-card">
+                    <div class="service-img-wrapper mb-3">
+                        <img class="card-img-top" src="img/service01.png" alt="Transportation and Logistics Services by Biome Enterprises" loading="lazy">
+                    </div>
+                    <div class="card-body px-2 pb-2 d-flex flex-column">
+                        <h3 class="card-title h5 fw-bold mb-3">Transportation & Logistics</h3>
+                        <p class="card-text text-muted mb-4 flex-grow-1">Reliable Pan India transportation with 32-ft open-body and multi-axle container trucks, connecting Assam to major industrial hubs.</p>
+                        <div>
+                            <a class="btn btn-outline-primary" href="transportation.php" aria-label="Read more about Transportation & Logistics Services">Read More <i class="fa fa-arrow-right ms-1"></i></a>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Bamboo -->
             <div class="col-md-6 col-lg-4">
-                <div class="card h-100 border-0 shadow-sm p-3 tilt-card">
-                    <img class="card-img-top rounded" src="img/service02.png" alt="Bamboo Trading" loading="lazy">
-                    <div class="card-body px-0">
-                        <h4 class="card-title">Bamboo Trading</h4>
-                        <p class="card-text">Premium raw bamboo, long bamboo poles, bamboo pieces, handicraft materials, and sustainable bamboo products supplied across India.</p>
-                        <a class="btn btn-outline-primary" href="bamboo.php">Read More <i class="fa fa-arrow-right ms-1"></i></a>
+                <div class="card h-100 shadow-sm p-3 service-card">
+                    <div class="service-img-wrapper mb-3">
+                        <img class="card-img-top" src="img/service02.png" alt="Bamboo Trading and Supplies" loading="lazy">
+                    </div>
+                    <div class="card-body px-2 pb-2 d-flex flex-column">
+                        <h3 class="card-title h5 fw-bold mb-3">Bamboo Trading</h3>
+                        <p class="card-text text-muted mb-4 flex-grow-1">Premium raw bamboo, long bamboo poles, bamboo pieces, handicraft materials, and sustainable bamboo products supplied across India.</p>
+                        <div>
+                            <a class="btn btn-outline-primary" href="bamboo.php" aria-label="Read more about Bamboo Trading">Read More <i class="fa fa-arrow-right ms-1"></i></a>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Legal -->
             <div class="col-md-6 col-lg-4">
-                <div class="card h-100 border-0 shadow-sm p-3 tilt-card">
-                    <img class="card-img-top rounded" src="img/service03.png" alt="Legal & Compliance" loading="lazy">
-                    <div class="card-body px-0">
-                        <h4 class="card-title">Legal & Compliance</h4>
-                        <p class="card-text">GST, FSSAI, MSME, Company Registration, IEC, Accounting, Taxation, Documentation, and complete business compliance services.</p>
-                        <a class="btn btn-outline-primary" href="legal.php">Read More <i class="fa fa-arrow-right ms-1"></i></a>
+                <div class="card h-100 shadow-sm p-3 service-card">
+                    <div class="service-img-wrapper mb-3">
+                        <img class="card-img-top" src="img/service03.png" alt="Legal and Compliance Services" loading="lazy">
+                    </div>
+                    <div class="card-body px-2 pb-2 d-flex flex-column">
+                        <h3 class="card-title h5 fw-bold mb-3">Legal & Compliance</h3>
+                        <p class="card-text text-muted mb-4 flex-grow-1">GST, FSSAI, MSME, Company Registration, IEC, Accounting, Taxation, Documentation, and complete business compliance services.</p>
+                        <div>
+                            <a class="btn btn-outline-primary" href="legal.php" aria-label="Read more about Legal & Compliance Services">Read More <i class="fa fa-arrow-right ms-1"></i></a>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Cab -->
             <div class="col-md-6 col-lg-4">
-                <div class="card h-100 border-0 shadow-sm p-3 tilt-card">
-                    <img class="card-img-top rounded" src="img/service04.png" alt="Cab Rental" loading="lazy">
-                    <div class="card-body px-0">
-                        <h4 class="card-title">Cab Rental Services</h4>
-                        <p class="card-text">Self-drive cars, chauffeur-driven vehicles, airport transfers, local travel, and corporate rental services across North-East India.</p>
-                        <a class="btn btn-outline-primary" href="cab.php">Read More <i class="fa fa-arrow-right ms-1"></i></a>
+                <div class="card h-100 shadow-sm p-3 service-card">
+                    <div class="service-img-wrapper mb-3">
+                        <img class="card-img-top" src="img/service04.png" alt="Cab Rental Services" loading="lazy">
+                    </div>
+                    <div class="card-body px-2 pb-2 d-flex flex-column">
+                        <h3 class="card-title h5 fw-bold mb-3">Cab Rental Services</h3>
+                        <p class="card-text text-muted mb-4 flex-grow-1">Self-drive cars, chauffeur-driven vehicles, airport transfers, local travel, and corporate rental services across North-East India.</p>
+                        <div>
+                            <a class="btn btn-outline-primary" href="cab.php" aria-label="Read more about Cab Rental Services">Read More <i class="fa fa-arrow-right ms-1"></i></a>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Hotel -->
             <div class="col-md-6 col-lg-4">
-                <div class="card h-100 border-0 shadow-sm p-3 tilt-card">
-                    <img class="card-img-top rounded" src="img/service05.png" alt="Hotels & Homestays" loading="lazy">
-                    <div class="card-body px-0">
-                        <h4 class="card-title">Hotels & Homestays <span class="badge bg-warning text-dark">Upcoming</span></h4>
-                        <p class="card-text">Book trusted hotels, hill-station stays, premium homestays, and business accommodations across all eight North-East states.</p>
-                        <a class="btn btn-outline-primary" href="hotel.php">Read More <i class="fa fa-arrow-right ms-1"></i></a>
+                <div class="card h-100 shadow-sm p-3 service-card">
+                    <div class="service-img-wrapper mb-3">
+                        <img class="card-img-top" src="img/service05.png" alt="Hotels and Homestays" loading="lazy">
+                    </div>
+                    <div class="card-body px-2 pb-2 d-flex flex-column">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h3 class="card-title h5 fw-bold mb-0">Hotels & Homestays</h3>
+                            <span class="badge bg-warning text-dark px-2 py-1">Upcoming</span>
+                        </div>
+                        <p class="card-text text-muted mb-4 flex-grow-1">Book trusted hotels, hill-station stays, premium homestays, and business accommodations across all eight North-East states.</p>
+                        <div>
+                            <a class="btn btn-outline-primary" href="hotel.php" aria-label="Read more about Hotels & Homestays">Read More <i class="fa fa-arrow-right ms-1"></i></a>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Restaurant -->
             <div class="col-md-6 col-lg-4">
-                <div class="card h-100 border-0 shadow-sm p-3 tilt-card">
-                    <img class="card-img-top rounded" src="img/service06.png" alt="Restaurant" loading="lazy">
-                    <div class="card-body px-0">
-                        <h4 class="card-title">Restaurant & Ethnic Cuisine <span class="badge bg-warning text-dark">Upcoming</span></h4>
-                        <p class="card-text">Experience authentic North-East cuisine, bamboo shoot delicacies, smoked meats, traditional dishes, and local culinary specialties.</p>
-                        <a class="btn btn-outline-primary" href="restaurant.php">Read More <i class="fa fa-arrow-right ms-1"></i></a>
+                <div class="card h-100 shadow-sm p-3 service-card">
+                    <div class="service-img-wrapper mb-3">
+                        <img class="card-img-top" src="img/service06.png" alt="Restaurant and Ethnic Cuisine" loading="lazy">
+                    </div>
+                    <div class="card-body px-2 pb-2 d-flex flex-column">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h3 class="card-title h5 fw-bold mb-0">Restaurant & Cuisine</h3>
+                            <span class="badge bg-warning text-dark px-2 py-1">Upcoming</span>
+                        </div>
+                        <p class="card-text text-muted mb-4 flex-grow-1">Experience authentic North-East cuisine, bamboo shoot delicacies, smoked meats, traditional dishes, and local culinary specialties.</p>
+                        <div>
+                            <a class="btn btn-outline-primary" href="restaurant.php" aria-label="Read more about Restaurant & Cuisine">Read More <i class="fa fa-arrow-right ms-1"></i></a>
+                        </div>
                     </div>
                 </div>
             </div>
 
         </div>
     </div>
-
-    <!-- Service End -->
-
+    <!-- ===================== Service End ===================== -->
 
     <!-- Feature Start -->
 
@@ -703,84 +572,187 @@ function qf_e(string $value): string
     <!-- Quote End -->
 
 
-    <!-- Team Start -->
+<!-- ===================== Team Start ===================== -->
+
+    <style>
+        /* Premium Team Card Hover & Responsive Fixes */
+        .team-premium-card {
+            border-radius: 16px;
+            background: #ffffff;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            overflow: hidden;
+        }
+        
+        /* Float effect only on devices that support hover (Desktops/Laptops) */
+        @media (hover: hover) and (pointer: fine) {
+            .team-premium-card:hover {
+                transform: translateY(-8px);
+                box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1) !important;
+            }
+        }
+
+        /* Enforce perfectly square images without stretching (Prevents Layout Shift) */
+        .team-img-wrapper img {
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            width: 100%;
+            display: block;
+            border-bottom: 3px solid #198754; /* Premium brand accent line */
+        }
+    </style>
 
     <div class="container py-5 reveal">
         <div class="text-center mb-5">
-            <h6 class="text-secondary text-uppercase">Our Team</h6>
-            <h1 class="mb-0">Experienced Professionals Behind Every Successful Project</h1>
+            <h6 class="text-secondary text-uppercase fw-bold tracking-wider">Our Team</h6>
+            <!-- Fixed H1 to H2 for Strict SEO Rules -->
+            <h2 class="mb-0 display-6 fw-bold">Experienced Professionals Behind Every Successful Project</h2>
         </div>
+        
         <div class="row g-4 reveal reveal-stagger justify-content-center">
-            <div class="col-lg-3 col-md-6">
-                <div class="card border-0 shadow-sm text-center p-3 h-100">
-                    <img class="card-img-top rounded" src="img/team-1.jpeg" alt="" loading="lazy">
-                    <div class="card-body">
-                        <h5 class="mb-0">Bittu Ali Hazarika</h5>
-                        <p class="text-muted">Managing Director</p>
-                        <div>
-                            <a href="" class="btn btn-sm btn-outline-primary rounded-circle me-1"><i class="fab fa-facebook-f"></i></a>
-                            <a href="" class="btn btn-sm btn-outline-primary rounded-circle me-1"><i class="fab fa-twitter"></i></a>
-                            <a href="" class="btn btn-sm btn-outline-primary rounded-circle"><i class="fab fa-instagram"></i></a>
+            
+            <!-- Team Member 1 -->
+            <div class="col-10 col-sm-8 col-md-6 col-lg-3">
+                <div class="card border-0 shadow-sm text-center h-100 team-premium-card">
+                    <div class="team-img-wrapper">
+                        <!-- Added specific ALT tags and explicit sizing for SEO/Speed -->
+                        <img class="card-img-top" src="img/team-1.jpeg" alt="Bittu Ali Hazarika - Managing Director at Biome Enterprises" loading="lazy">
+                    </div>
+                    <div class="card-body p-4">
+                        <h5 class="mb-1 fw-bold">Bittu Ali Hazarika</h5>
+                        <p class="text-muted small text-uppercase fw-bold mb-3">Managing Director</p>
+                        <div class="d-flex justify-content-center gap-2">
+                            <!-- Added aria-labels for Accessibility compliance -->
+                            <a href="#" class="btn btn-sm btn-outline-primary rounded-circle" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                            <a href="#" class="btn btn-sm btn-outline-primary rounded-circle" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="btn btn-sm btn-outline-primary rounded-circle" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
                         </div>
                     </div>
                 </div>
             </div>
-            <!-- <div class="col-lg-3 col-md-6">
-                <div class="card border-0 shadow-sm text-center p-3 h-100">
-                    <img class="card-img-top rounded" src="img/team-2.jpg" alt="" loading="lazy">
-                    <div class="card-body">
-                        <h5 class="mb-0">Full Name</h5>
-                        <p class="text-muted">Operations Head</p>
-                        <div>
-                            <a href="" class="btn btn-sm btn-outline-primary rounded-circle me-1"><i class="fab fa-facebook-f"></i></a>
-                            <a href="" class="btn btn-sm btn-outline-primary rounded-circle me-1"><i class="fab fa-twitter"></i></a>
-                            <a href="" class="btn btn-sm btn-outline-primary rounded-circle"><i class="fab fa-instagram"></i></a>
+
+            <!-- Team Member 2 (Commented as requested, but structured correctly) -->
+            <!-- 
+            <div class="col-10 col-sm-8 col-md-6 col-lg-3">
+                <div class="card border-0 shadow-sm text-center h-100 team-premium-card">
+                    <div class="team-img-wrapper">
+                        <img class="card-img-top" src="img/team-2.jpg" alt="Operations Head at Biome Enterprises" loading="lazy">
+                    </div>
+                    <div class="card-body p-4">
+                        <h5 class="mb-1 fw-bold">Full Name</h5>
+                        <p class="text-muted small text-uppercase fw-bold mb-3">Operations Head</p>
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="#" class="btn btn-sm btn-outline-primary rounded-circle" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                            <a href="#" class="btn btn-sm btn-outline-primary rounded-circle" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="btn btn-sm btn-outline-primary rounded-circle" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
                         </div>
                     </div>
                 </div>
-            </div> -->
-            <div class="col-lg-3 col-md-6">
-                <div class="card border-0 shadow-sm text-center p-3 h-100">
-                    <img class="card-img-top rounded" src="img/team-4.png" alt="" loading="lazy">
-                    <div class="card-body">
-                        <h5 class="mb-0">Pinku Sawra</h5>
-                        <p class="text-muted">Data Entry Operator</p>
-                        <div>
-                            <a href="" class="btn btn-sm btn-outline-primary rounded-circle me-1"><i class="fab fa-facebook-f"></i></a>
-                            <a href="" class="btn btn-sm btn-outline-primary rounded-circle me-1"><i class="fab fa-twitter"></i></a>
-                            <a href="" class="btn btn-sm btn-outline-primary rounded-circle"><i class="fab fa-instagram"></i></a>
-                        </div>
+            </div> 
+            -->
+
+            <!-- Team Member 3 -->
+            <div class="col-10 col-sm-8 col-md-6 col-lg-3">
+                <div class="card border-0 shadow-sm text-center h-100 team-premium-card">
+                    <div class="team-img-wrapper">
+                        <img class="card-img-top" src="img/team-4.png" alt="Pinku Sawra - Data Entry Operator at Biome Enterprises" loading="lazy">
                     </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6">
-                <div class="card border-0 shadow-sm text-center p-3 h-100">
-                    <img class="card-img-top rounded" src="img/team-3.png" alt="" loading="lazy">
-                    <div class="card-body">
-                        <h5 class="mb-0">Minal Kanth</h5>
-                        <!-- <p class="text-muted">Senior Full-Stack Web Developer</p> -->
-                        <p class="text-muted">Head of Technology</p>
-                        <div>
-                            <a href="" class="btn btn-sm btn-outline-primary rounded-circle me-1"><i class="fab fa-facebook-f"></i></a>
-                            <a href="" class="btn btn-sm btn-outline-primary rounded-circle me-1"><i class="fab fa-twitter"></i></a>
-                            <a href="" class="btn btn-sm btn-outline-primary rounded-circle"><i class="fab fa-instagram"></i></a>
+                    <div class="card-body p-4">
+                        <h5 class="mb-1 fw-bold">Pinku Sawra</h5>
+                        <p class="text-muted small text-uppercase fw-bold mb-3">Data Entry Operator</p>
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="#" class="btn btn-sm btn-outline-primary rounded-circle" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                            <a href="#" class="btn btn-sm btn-outline-primary rounded-circle" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="btn btn-sm btn-outline-primary rounded-circle" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Team Member 4 -->
+            <div class="col-10 col-sm-8 col-md-6 col-lg-3">
+                <div class="card border-0 shadow-sm text-center h-100 team-premium-card">
+                    <div class="team-img-wrapper">
+                        <img class="card-img-top" src="img/team-3.png" alt="Minal Kanth - Head of Technology at Biome Enterprises" loading="lazy">
+                    </div>
+                    <div class="card-body p-4">
+                        <h5 class="mb-1 fw-bold">Minal Kanth</h5>
+                        <p class="text-muted small text-uppercase fw-bold mb-3">Head of Technology</p>
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="#" class="btn btn-sm btn-outline-primary rounded-circle" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                            <a href="#" class="btn btn-sm btn-outline-primary rounded-circle" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="btn btn-sm btn-outline-primary rounded-circle" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
+    <!-- ===================== Team End ===================== -->
 
-    <!-- Team End -->
 
 
-    <!-- ===================== Bootstrap Testimonial Carousel Start ===================== -->
+
+
+
+
+
+
+
+
+
+<!-- ===================== Bootstrap Testimonial Carousel Start ===================== -->
+
+    <style>
+        /* Premium Testimonial Enhancements */
+        .testimonial-card {
+            border-radius: 20px;
+            background: #ffffff;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .testimonial-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.08) !important;
+        }
+        
+        /* Custom Premium Navigation Buttons */
+        .testimonial-nav-btn {
+            width: 50px;
+            height: 50px;
+            background: #ffffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+        .carousel-control-prev, .carousel-control-next {
+            width: 10%; /* Prevent buttons from overlapping the text on desktop */
+            opacity: 1; /* Keep buttons visible */
+        }
+        .testimonial-nav-btn i {
+            color: #198754; /* Biome Green */
+            font-size: 1.2rem;
+            transition: color 0.3s ease;
+        }
+        /* Hover Effects */
+        .carousel-control-prev:hover .testimonial-nav-btn,
+        .carousel-control-next:hover .testimonial-nav-btn {
+            background: #198754;
+            transform: scale(1.1);
+        }
+        .carousel-control-prev:hover .testimonial-nav-btn i,
+        .carousel-control-next:hover .testimonial-nav-btn i {
+            color: #ffffff;
+        }
+    </style>
 
     <div class="container py-5 reveal">
         <div class="text-center mb-5">
             <h6 class="text-secondary text-uppercase">Client Testimonials</h6>
-            <h1 class="mb-0">What Our Clients Say</h1>
+            <h2 class="mb-0 display-6">What Our Clients Say</h2>
         </div>
 
         <div id="testimonialCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="6000">
@@ -792,20 +764,20 @@ function qf_e(string $value): string
                 <button type="button" data-bs-target="#testimonialCarousel" data-bs-slide-to="3" class="bg-primary" aria-label="Slide 4"></button>
             </div>
 
-            <div class="carousel-inner">
+            <div class="carousel-inner pb-4">
 
                 <!-- Testimonial 1 -->
                 <div class="carousel-item active">
-                    <div class="card border-0 shadow-sm mx-auto p-4 p-md-5" style="max-width:700px;">
-                        <i class="fa fa-quote-right fa-2x text-primary mb-3"></i>
+                    <div class="card border-0 shadow-sm mx-auto p-4 p-md-5 testimonial-card" style="max-width:700px;">
+                        <i class="fa fa-quote-right fa-2x text-primary mb-3" style="opacity: 0.5;"></i>
                         <p class="fs-5 mb-4">
                             Biome Enterprises handled our Assam to Delhi freight professionally. Their team provided timely updates and ensured safe delivery throughout the journey.
                         </p>
                         <div class="d-flex align-items-center">
-                            <img class="rounded-circle flex-shrink-0" src="img/testimonial-1.jpg" style="width:64px;height:64px;object-fit:cover;" loading="lazy">
+                            <img class="rounded-circle flex-shrink-0 shadow-sm" alt="Biome Enterprises" src="img/testimonial-1.jpg" style="width:64px;height:64px;object-fit:cover;" loading="lazy">
                             <div class="ms-3">
                                 <h5 class="mb-0">Rajesh Sharma</h5>
-                                <p class="m-0 text-muted">Manufacturing Business</p>
+                                <p class="m-0 text-muted small text-uppercase fw-bold">Manufacturing Business</p>
                             </div>
                         </div>
                     </div>
@@ -813,16 +785,16 @@ function qf_e(string $value): string
 
                 <!-- Testimonial 2 -->
                 <div class="carousel-item">
-                    <div class="card border-0 shadow-sm mx-auto p-4 p-md-5" style="max-width:700px;">
-                        <i class="fa fa-quote-right fa-2x text-primary mb-3"></i>
+                    <div class="card border-0 shadow-sm mx-auto p-4 p-md-5 testimonial-card" style="max-width:700px;">
+                        <i class="fa fa-quote-right fa-2x text-primary mb-3" style="opacity: 0.5;"></i>
                         <p class="fs-5 mb-4">
                             Their legal and compliance team completed our GST and FSSAI registration quickly with complete transparency. Highly recommended for startups.
                         </p>
                         <div class="d-flex align-items-center">
-                            <img class="rounded-circle flex-shrink-0" src="img/testimonial-2.jpg" style="width:64px;height:64px;object-fit:cover;" loading="lazy">
+                            <img class="rounded-circle flex-shrink-0 shadow-sm" alt="Biome Enterprises" src="img/testimonial-2.jpg" style="width:64px;height:64px;object-fit:cover;" loading="lazy">
                             <div class="ms-3">
                                 <h5 class="mb-0">Priya Das</h5>
-                                <p class="m-0 text-muted">Food Business Owner</p>
+                                <p class="m-0 text-muted small text-uppercase fw-bold">Food Business Owner</p>
                             </div>
                         </div>
                     </div>
@@ -830,16 +802,16 @@ function qf_e(string $value): string
 
                 <!-- Testimonial 3 -->
                 <div class="carousel-item">
-                    <div class="card border-0 shadow-sm mx-auto p-4 p-md-5" style="max-width:700px;">
-                        <i class="fa fa-quote-right fa-2x text-primary mb-3"></i>
+                    <div class="card border-0 shadow-sm mx-auto p-4 p-md-5 testimonial-card" style="max-width:700px;">
+                        <i class="fa fa-quote-right fa-2x text-primary mb-3" style="opacity: 0.5;"></i>
                         <p class="fs-5 mb-4">
                             Excellent cab booking and hotel arrangements for our business trip across North-East India. The service was reliable and hassle-free.
                         </p>
                         <div class="d-flex align-items-center">
-                            <img class="rounded-circle flex-shrink-0" src="img/testimonial-3.jpg" style="width:64px;height:64px;object-fit:cover;" loading="lazy">
+                            <img class="rounded-circle flex-shrink-0 shadow-sm" alt="Biome Enterprises" src="img/testimonial-3.jpg" style="width:64px;height:64px;object-fit:cover;" loading="lazy">
                             <div class="ms-3">
                                 <h5 class="mb-0">Amit Verma</h5>
-                                <p class="m-0 text-muted">Corporate Client</p>
+                                <p class="m-0 text-muted small text-uppercase fw-bold">Corporate Client</p>
                             </div>
                         </div>
                     </div>
@@ -847,16 +819,16 @@ function qf_e(string $value): string
 
                 <!-- Testimonial 4 -->
                 <div class="carousel-item">
-                    <div class="card border-0 shadow-sm mx-auto p-4 p-md-5" style="max-width:700px;">
-                        <i class="fa fa-quote-right fa-2x text-primary mb-3"></i>
+                    <div class="card border-0 shadow-sm mx-auto p-4 p-md-5 testimonial-card" style="max-width:700px;">
+                        <i class="fa fa-quote-right fa-2x text-primary mb-3" style="opacity: 0.5;"></i>
                         <p class="fs-5 mb-4">
                             We source bamboo materials through Biome Enterprises regularly. Their quality, pricing, and logistics support have always exceeded our expectations.
                         </p>
                         <div class="d-flex align-items-center">
-                            <img class="rounded-circle flex-shrink-0" src="img/testimonial-4.jpg" style="width:64px;height:64px;object-fit:cover;" loading="lazy">
+                            <img class="rounded-circle flex-shrink-0 shadow-sm" alt="Biome Enterprises" src="img/testimonial-4.jpg" style="width:64px;height:64px;object-fit:cover;" loading="lazy">
                             <div class="ms-3">
                                 <h5 class="mb-0">Neha Singh</h5>
-                                <p class="m-0 text-muted">Bamboo Industry</p>
+                                <p class="m-0 text-muted small text-uppercase fw-bold">Bamboo Industry</p>
                             </div>
                         </div>
                     </div>
@@ -864,183 +836,29 @@ function qf_e(string $value): string
 
             </div>
 
+            <!-- Custom Navigation Buttons using FontAwesome -->
             <button class="carousel-control-prev" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="prev">
-                <span class="carousel-control-prev-icon bg-primary rounded-circle p-3" aria-hidden="true"></span>
+                <div class="testimonial-nav-btn">
+                    <i class="fas fa-chevron-left"></i>
+                </div>
                 <span class="visually-hidden">Previous</span>
             </button>
             <button class="carousel-control-next" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="next">
-                <span class="carousel-control-next-icon bg-primary rounded-circle p-3" aria-hidden="true"></span>
+                <div class="testimonial-nav-btn">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
                 <span class="visually-hidden">Next</span>
             </button>
+            
         </div>
     </div>
 
-    <!-- ===================== Bootstrap Testimonial Carousel End ===================== -->
+   <!-- ===================== Bootstrap Testimonial Carousel End ===================== -->
 
-
-    <!-- Floating WhatsApp Button -->
-    <a href="https://wa.me/919678431656" target="_blank" class="whatsapp-float" aria-label="Chat on WhatsApp">
-        <i class="fab fa-whatsapp"></i>
-    </a>
-
-    <!-- Sticky Mobile Call Bar -->
-    <div id="mobileCallBar">
-        <a href="tel:+919678431656" class="btn btn-primary flex-fill"><i class="fa fa-phone me-2"></i>Call Now</a>
-        <a href="https://wa.me/919678431656" target="_blank" class="btn btn-success flex-fill"><i class="fab fa-whatsapp me-2"></i>WhatsApp</a>
-    </div>
-
+  
     <!-- Footer  -->
     <?php include __DIR__ . '/footer.php'; ?>
     <!-- Footer end -->
 
+    
 
-    <!-- Back to Top -->
-    <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded-0 back-to-top"><i class="bi bi-arrow-up"></i></a>
-
-
-    <!-- JavaScript Libraries -->
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- <script src="lib/wow/wow.min.js"></script> -->
-    <!-- <script src="lib/easing/easing.min.js"></script> -->
-    <!-- <script src="lib/waypoints/waypoints.min.js"></script> -->
-
-    <!-- Template Javascript -->
-    <!-- <script src="js/main.js"></script>  -->
-
-    <!-- ===================== Counter Animation (vanilla JS, 0 -> target) ===================== -->
-    <script>
-    (function () {
-        const counters = document.querySelectorAll('.counter-number');
-        const duration = 1800; // ms
-
-        function animateCounter(el) {
-            const target = parseInt(el.getAttribute('data-target'), 10) || 0;
-            const start = performance.now();
-
-            function step(now) {
-                const progress = Math.min((now - start) / duration, 1);
-                // easeOutQuad
-                const eased = 1 - (1 - progress) * (1 - progress);
-                el.textContent = Math.floor(eased * target);
-                if (progress < 1) {
-                    requestAnimationFrame(step);
-                } else {
-                    el.textContent = target;
-                }
-            }
-            requestAnimationFrame(step);
-        }
-
-        if ('IntersectionObserver' in window) {
-            const observer = new IntersectionObserver(function (entries) {
-                entries.forEach(function (entry) {
-                    if (entry.isIntersecting && !entry.target.dataset.animated) {
-                        entry.target.dataset.animated = 'true';
-                        animateCounter(entry.target);
-                        observer.unobserve(entry.target);
-                    }
-                });
-            }, { threshold: 0.4 });
-
-            counters.forEach(function (el) { observer.observe(el); });
-        } else {
-            counters.forEach(animateCounter);
-        }
-    })();
-    </script>
-
-    <!-- ===================== Premium Interactivity (scroll progress, reveal, navbar) ===================== -->
-    <script>
-
-    (function () {
-        const heroImg = document.querySelector('#heroCarousel .active img');
-            if (!heroImg) return;
-            if (heroImg.complete) {
-                heroImg.classList.add('zoomed');
-            } else {
-                heroImg.addEventListener('load', function () {
-                    this.classList.add('zoomed');
-                });
-            }
-        // Scroll progress bar (rAF-throttled)
-        const progressBar = document.getElementById('scrollProgress');
-        let progressTicking = false;
-        function updateProgress() {
-            const h = document.documentElement;
-            const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
-            if (progressBar) progressBar.style.width = scrolled + '%';
-            progressTicking = false;
-        }
-        window.addEventListener('scroll', function () {
-            if (!progressTicking) {
-                requestAnimationFrame(updateProgress);
-                progressTicking = true;
-            }
-        }, { passive: true });
-        updateProgress();
-
-        // Reveal-on-scroll sections
-        const reveals = document.querySelectorAll('.reveal');
-        if ('IntersectionObserver' in window) {
-            const revealObserver = new IntersectionObserver(function (entries) {
-                entries.forEach(function (entry) {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('is-visible');
-                        revealObserver.unobserve(entry.target);
-                    }
-                });
-            }, { threshold: 0.12 });
-            reveals.forEach(function (el) { revealObserver.observe(el); });
-        } else {
-            reveals.forEach(function (el) { el.classList.add('is-visible'); });
-        }
-
-        // Navbar shadow on scroll (rAF-throttled so it never fights the browser's paint cycle)
-        const nav = document.querySelector('nav.navbar, .navbar');
-        let navTicking = false;
-        function updateNav() {
-            if (!nav) return;
-            nav.classList.toggle('be-scrolled', window.scrollY > 40);
-            navTicking = false;
-        }
-        window.addEventListener('scroll', function () {
-            if (!navTicking) {
-                requestAnimationFrame(updateNav);
-                navTicking = true;
-            }
-        }, { passive: true });
-        updateNav();
-
-        // Cursor glow (desktop only)
-        const glow = document.getElementById('cursorGlow');
-        if (glow && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-            window.addEventListener('mousemove', function (e) {
-                glow.style.left = e.clientX + 'px';
-                glow.style.top = e.clientY + 'px';
-            }, { passive: true });
-        }
-
-        // 3D tilt effect on cards
-        const tiltCards = document.querySelectorAll('.tilt-card');
-        if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-            tiltCards.forEach(function (card) {
-                card.addEventListener('mousemove', function (e) {
-                    const rect = card.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    const rotateX = ((y / rect.height) - 0.5) * -10;
-                    const rotateY = ((x / rect.width) - 0.5) * 10;
-                    card.style.transform = 'perspective(800px) rotateX(' + rotateX + 'deg) rotateY(' + rotateY + 'deg) translateY(-8px)';
-                });
-                card.addEventListener('mouseleave', function () {
-                    card.style.transform = '';
-                });
-            });
-        }
-    })();
-    </script>
-
-</body>
-
-</html>

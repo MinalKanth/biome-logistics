@@ -1,8 +1,18 @@
 <?php
 declare(strict_types=1);
 
+// =========================================================================
+// 1. ELITE SEO ENGINE & HEADERS
+// =========================================================================
+require_once __DIR__ . '/EliteSeoEngine.php'; 
+$seo = new EliteEnterpriseSeoEngine();
+$seo->sendEnterpriseHeaders();
+
 require_once __DIR__ . '/admin/config/database.php';
 
+// =========================================================================
+// 2. FORM & SECURE SESSION LOGIC
+// =========================================================================
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
@@ -155,10 +165,29 @@ function bf_e(string $value): string
 
 <head>
     <meta charset="utf-8">
-    <title>Biome Enterprises | Bamboo Trading</title>
+    <?php
+    // =========================================================================
+    // 🚀 DYNAMIC META GENERATION FOR BAMBOO PAGE
+    // =========================================================================
+    echo $seo->generateMeta([
+        'title'       => 'Bamboo Trading & Suppliers | Biome Enterprises Assam',
+        'description' => 'Premium raw bamboo, long bamboo poles, bamboo pieces, and sustainable bamboo products supplied across India by Biome Enterprises.',
+        'keywords'    => 'Bamboo suppliers Assam, Raw bamboo trading, Buy long bamboo poles, Bamboo products India, Biome Enterprises bamboo',
+        'url_path'    => '/bamboo.php', 
+        'type'        => 'website'
+    ]);
+    
+    // =========================================================================
+    // 🧠 AI SEMANTIC SCHEMAS (JSON-LD)
+    // =========================================================================
+    echo $seo->schema($seo->coreGraph());
+    echo $seo->schema($seo->breadcrumbSchema([
+        "Home" => "/",
+        "Bamboo Trading" => "/bamboo.php"
+    ]));
+    ?>
+
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <meta content="" name="keywords">
-    <meta content="" name="description">
 
     <!-- Favicon -->
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
@@ -166,35 +195,31 @@ function bf_e(string $value): string
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto:wght@500;700;800&display=swap" rel="stylesheet">
 
     <!-- Icon Font Stylesheet -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
 
     <!-- Libraries Stylesheet -->
     <link href="lib/animate/animate.min.css" rel="stylesheet">
-    <!-- <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet"> -->
-
-    <!-- Customized Bootstrap Stylesheet -->
-    <link href="css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Template Stylesheet -->
-    <link href="css/style.css" rel="stylesheet">
-    <!-- <link href="css/style-bamboo-trading.css" rel="stylesheet"> -->
     <link href="css/navbar-active-state.css" rel="stylesheet">
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
 
-    <!-- ===================================================
-         ENHANCED INTERACTIVE / RESPONSIVE STYLES (NEW)
-         Matches existing green/warning/dark theme.
-         Does not alter the original template files —
-         these rules are additive and override only where
-         needed for responsiveness & interactivity.
-    ==================================================== -->
     <style>
-
-
+        /* ---- MASTER PREMIUM THEME VARIABLES ---- */
         :root {
+            --be-primary: #ffc107;
+            --be-primary-dark: #bf9107;
+            --be-success: #198754;
+            --be-dark: #271e01;
+            --be-radius: 1rem;
+            --be-shadow-soft: 0 10px 30px rgba(57, 51, 10, 0.08);
+            --be-shadow-strong: 0 20px 50px rgba(194, 157, 8, 0.18);
+            --be-transition: all .35s cubic-bezier(.25,.8,.25,1);
+            
+            /* Bamboo Specific Vars (Preserved) */
             --bamboo-green: #198754;
             --bamboo-green-dark: #14532d;
             --bamboo-gold: #ffc107;
@@ -202,26 +227,76 @@ function bf_e(string $value): string
             --bamboo-transition: all .35s cubic-bezier(.25, .8, .25, 1);
         }
 
-        html {
-            scroll-behavior: smooth;
-        }
+        html { scroll-behavior: smooth; }
 
-        * {
-            box-sizing: border-box;
-        }
-
-        html, body {
-            max-width: 100%;
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f9fc;
             overflow-x: hidden;
-        }
-
-        img {
             max-width: 100%;
-            height: auto;
+        }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Roboto', sans-serif; }
+        img { max-width: 100%; height: auto; }
+
+        /* ---- Scroll progress bar ---- */
+        #scrollProgress {
+            position: fixed; top: 0; left: 0; height: 4px; width: 0%;
+            background: linear-gradient(90deg, var(--be-primary), var(--be-success));
+            z-index: 2000; transition: width .1s ease-out;
         }
 
-        /* Fluid typography so headings never force horizontal scroll
-           on small screens, scaling smoothly between breakpoints */
+        /* ---- Cursor glow (desktop only) ---- */
+        #cursorGlow {
+            position: fixed; width: 320px; height: 320px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,193,7,.14), transparent 70%);
+            pointer-events: none; z-index: 1; transform: translate(-50%, -50%);
+            transition: opacity .3s ease; opacity: 0;
+        }
+        @media (hover: hover) and (pointer: fine) { #cursorGlow { opacity: 1; } }
+        
+        /* ---- Reveal-on-scroll Animations ---- */
+        .reveal { opacity: 0; transform: translateY(40px); transition: opacity .8s ease, transform .8s ease; }
+        .reveal.is-visible { opacity: 1; transform: translateY(0); }
+        .reveal-stagger > * { opacity: 0; transform: translateY(30px); transition: opacity .7s ease, transform .7s ease; }
+        .reveal-stagger.is-visible > * { opacity: 1; transform: translateY(0); }
+        .reveal-stagger.is-visible > *:nth-child(1) { transition-delay: .05s; }
+        .reveal-stagger.is-visible > *:nth-child(2) { transition-delay: .15s; }
+        .reveal-stagger.is-visible > *:nth-child(3) { transition-delay: .25s; }
+        .reveal-stagger.is-visible > *:nth-child(4) { transition-delay: .35s; }
+
+        /* ---- PREMIUM PAGE HEADER (Strictly Locked Theme) ---- */
+        .page-header {
+            position: relative;
+            background: linear-gradient(135deg, #1c1602 0%, #3a2e05 55%, #16210f 100%);
+            overflow: hidden;
+            padding: 100px 0 80px 0;
+        }
+        .page-header::before {
+            content: ""; position: absolute; inset: 0;
+            background: radial-gradient(circle at 15% 20%, rgba(255,193,7,.25), transparent 55%),
+                        radial-gradient(circle at 85% 80%, rgba(25,135,84,.3), transparent 55%);
+            pointer-events: none;
+        }
+        .page-header h6.text-warning {
+            letter-spacing: 3px; display: inline-block; padding: .35rem 1rem;
+            border: 1px solid rgba(255,255,255,.35); border-radius: 50px;
+            backdrop-filter: blur(6px); background: rgba(255,255,255,.08);
+            position: relative; z-index: 1; margin-bottom: 1rem;
+        }
+        .page-header .text-success { color: #198754 !important; }
+        
+        /* Breadcrumbs */
+        .breadcrumb { background: rgba(0,0,0,0.25); display: inline-flex; padding: 10px 25px; border-radius: 50px; backdrop-filter: blur(8px); margin: 0; }
+        .breadcrumb-item + .breadcrumb-item::before { color: rgba(255,255,255,.6); }
+
+        /* ---- Animated Background Blobs ---- */
+        .be-blob { filter: blur(70px); opacity: 0.4; animation: be-float 10s ease-in-out infinite; }
+        @keyframes be-float {
+            0%, 100% { transform: translateY(0) translateX(0) scale(1); }
+            50% { transform: translateY(-30px) translateX(20px) scale(1.05); }
+        }
+
+        /* Fluid typography */
         .display-3 { font-size: clamp(1.7rem, 5vw + 1rem, 4rem); }
         .display-5 { font-size: clamp(1.4rem, 3vw + 1rem, 2.5rem); }
         h1 { font-size: clamp(1.5rem, 3vw + 1rem, 2.5rem); }
@@ -230,403 +305,123 @@ function bf_e(string $value): string
         h4 { font-size: clamp(1.05rem, 1.5vw + .6rem, 1.5rem); }
         .fs-5 { font-size: clamp(.95rem, 1vw + .7rem, 1.25rem) !important; }
 
-        /* ---------- General interactivity ---------- */
-        a, .btn {
-            transition: var(--bamboo-transition);
-        }
-
+        /* ---------- Buttons ---------- */
+        a, .btn { transition: var(--bamboo-transition); }
         .btn-success {
-            position: relative;
-            overflow: hidden;
-            z-index: 1;
+            position: relative; overflow: hidden; z-index: 1;
+            background: linear-gradient(135deg, var(--be-success), #115d3a); border: none;
+            border-radius: 50px; padding: 14px 34px;
         }
-
         .btn-success::after {
-            content: "";
-            position: absolute;
-            inset: 0;
+            content: ""; position: absolute; inset: 0;
             background: linear-gradient(120deg, rgba(255,255,255,.25), transparent 60%);
-            transform: translateX(-120%);
-            transition: transform .6s ease;
-            z-index: -1;
+            transform: translateX(-120%); transition: transform .6s ease; z-index: -1;
+        }
+        .btn-success:hover::after { transform: translateX(0); }
+        .btn-success:hover, .btn-outline-light:hover {
+            transform: translateY(-3px); box-shadow: 0 12px 24px rgba(25, 135, 84, .25);
         }
 
-        .btn-success:hover::after {
-            transform: translateX(0);
-        }
-
-        .btn-success:hover,
-        .btn-outline-light:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 24px rgba(25, 135, 84, .25);
-        }
-
-        /* ---------- Page header ---------- */
-        .bamboo-header {
-            background-size: cover;
-            background-position: center;
-        }
-
-        .bamboo-header::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(20, 83, 45, .92), rgba(28, 31, 29, .85));
-            z-index: 0;
-        }
-
-        .bamboo-header .container {
-            z-index: 1;
-        }
-
-        /* ---------- Product / feature cards ---------- */
-        .service-item,
-        .product-feature,
-        .bg-white.rounded-4 {
+        /* ---------- Product / Feature Cards ---------- */
+        .service-item, .product-feature, .bg-white.rounded-4 {
             transition: var(--bamboo-transition);
             border: 1px solid rgba(25, 135, 84, .08);
+            border-radius: var(--be-radius);
+            box-shadow: var(--be-shadow-soft);
         }
-
-        .service-item:hover,
-        .product-feature:hover {
+        .service-item:hover, .product-feature:hover {
             transform: translateY(-10px);
-            box-shadow: 0 20px 35px rgba(0, 0, 0, .12) !important;
+            box-shadow: var(--be-shadow-strong) !important;
         }
-
-        .service-item img {
-            transition: transform .5s ease;
-        }
-
-        .service-item:hover img {
-            transform: scale(1.06);
-        }
-
-        .badge {
-            letter-spacing: .03em;
-        }
+        .service-item img { transition: transform .5s ease; }
+        .service-item:hover img { transform: scale(1.06); }
+        .badge { letter-spacing: .03em; }
 
         /* Industry / application icon tiles */
-        .container-xxl .text-center.p-4.rounded-4 {
-            transition: var(--bamboo-transition);
-            cursor: default;
-        }
-
+        .container-xxl .text-center.p-4.rounded-4 { transition: var(--bamboo-transition); cursor: default; }
         .container-xxl .text-center.p-4.rounded-4:hover {
-            transform: translateY(-8px) scale(1.03);
-            background: var(--bamboo-green) !important;
-        }
-
-        .container-xxl .text-center.p-4.rounded-4:hover i,
-        .container-xxl .text-center.p-4.rounded-4:hover h6 {
-            color: #fff !important;
-        }
-
-        .back-to-top {
-            border-radius: 50% !important;
-            width: 50px; height: 50px;
-            display: flex; align-items: center; justify-content: center;
+            transform: translateY(-8px) scale(1.03); background: var(--bamboo-green) !important;
             box-shadow: var(--be-shadow-strong);
-            background: linear-gradient(135deg, var(--be-primary), var(--be-primary-dark)) !important;
-            border: none;
         }
-        .back-to-top {
+        .container-xxl .text-center.p-4.rounded-4:hover i, .container-xxl .text-center.p-4.rounded-4:hover h6 { color: #fff !important; }
 
-    position: fixed !important;
-
-    right: 24px !important;
-
-    bottom: 20px !important;
-
-    left: auto !important;
-
-    z-index: 1501;
-
-}
-        .back-to-top:hover {
-            background: var(--be-success) !important;
-            box-shadow: 0 14px 32px rgba(25,135,84,.4);
+        /* ---------- Enquiry Form ---------- */
+        #enquiry .bg-white.rounded-4 { border: none; box-shadow: var(--be-shadow-soft); }
+        #enquiry .form-control, #enquiry .form-select {
+            border-radius: .75rem; border: 1px solid #dee2e6; transition: var(--bamboo-transition);
         }
-        /* ---------- Enquiry form ---------- */
-        #enquiry .bg-white.rounded-4 {
-            border: none;
-        }
-
-        #enquiry .form-control,
-        #enquiry .form-select {
-            border-radius: .75rem;
-            border: 1px solid #dee2e6;
-            transition: var(--bamboo-transition);
-        }
-
-        #enquiry .form-control:focus,
-        #enquiry .form-select:focus {
-            border-color: var(--bamboo-green);
-            box-shadow: 0 0 0 .2rem rgba(25, 135, 84, .15);
-        }
-
-        #enquiry .form-label {
-            color: var(--bamboo-dark);
-            font-size: .92rem;
-        }
-
-        /* Floating-style multi-select look */
-        #enquiry select[multiple] option {
-            padding: .35rem .5rem;
-        }
-
-        #enquiry select[multiple] option:checked {
-            background: var(--bamboo-green) linear-gradient(0deg, var(--bamboo-green) 0%, var(--bamboo-green) 100%);
-            color: #fff;
-        }
-
-        /* Inline live char counter */
-        .char-counter {
-            font-size: .78rem;
-            color: #6c757d;
-            display: block;
-            text-align: right;
-            margin-top: .25rem;
-        }
-
-        /* Submit button loading state */
-        #enquiry button[type="submit"].is-loading {
-            pointer-events: none;
-            opacity: .8;
-        }
-
-        #enquiry button[type="submit"] .spinner-border {
-            width: 1rem;
-            height: 1rem;
-            margin-right: .5rem;
-            display: none;
-        }
-
-        #enquiry button[type="submit"].is-loading .spinner-border {
-            display: inline-block;
-        }
-
-        /* Field-level invalid state */
-        .form-control.is-invalid-bamboo,
-        .form-select.is-invalid-bamboo {
-            border-color: #dc3545 !important;
-            box-shadow: 0 0 0 .2rem rgba(220, 53, 69, .15) !important;
-        }
-
-        /* ---------- Counter badge ---------- */
-        .position-absolute.bottom-0.start-0 {
-            box-shadow: 0 12px 25px rgba(0, 0, 0, .2);
-        }
-
-        /* ---------- Sticky mobile CTA bar ---------- */
-        .bamboo-mobile-cta {
-            display: none;
-            position: fixed;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 1040;
-            background: var(--bamboo-dark);
-            padding: .65rem 1rem;
-            box-shadow: 0 -6px 18px rgba(0, 0, 0, .25);
-        }
-
-        .bamboo-mobile-cta .btn {
-            border-radius: 50px;
-            font-weight: 600;
-        }
-
+        #enquiry .form-control:focus, #enquiry .form-select:focus { border-color: var(--bamboo-green); box-shadow: 0 0 0 .25rem rgba(25, 135, 84, .15); }
+        #enquiry .form-label { color: var(--bamboo-dark); font-size: .92rem; }
+        #enquiry select[multiple] option { padding: .35rem .5rem; }
+        #enquiry select[multiple] option:checked { background: var(--bamboo-green); color: #fff; }
         
+        .char-counter { font-size: .78rem; color: #6c757d; display: block; text-align: right; margin-top: .25rem; }
+        
+        /* Button Loading state */
+        #enquiry button[type="submit"].is-loading { pointer-events: none; opacity: .8; }
+        #enquiry button[type="submit"] .spinner-border { width: 1rem; height: 1rem; margin-right: .5rem; display: none; }
+        #enquiry button[type="submit"].is-loading .spinner-border { display: inline-block; }
 
-        /* ---------- Back to top repositioned on mobile ---------- */
-        @media (max-width: 575.98px) {
-            .back-to-top {
-                bottom: 70px !important;
-            }
+        /* Form Invalid state */
+        .form-control.is-invalid-bamboo, .form-select.is-invalid-bamboo { border-color: #dc3545 !important; box-shadow: 0 0 0 .2rem rgba(220, 53, 69, .15) !important; }
+
+        /* ---------- Sticky Mobile CTA Bar ---------- */
+        .bamboo-mobile-cta {
+            display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 1040;
+            background: rgba(255,255,255,.92); backdrop-filter: blur(12px); box-shadow: 0 -8px 24px rgba(0,0,0,.12); padding: .6rem 1rem;
+        }
+        .bamboo-mobile-cta .btn { border-radius: 50px; font-weight: 600; }
+
+        /* ---- WhatsApp floating pulse ---- */
+        .whatsapp-float {
+            position: fixed; bottom: 90px; right: 24px; z-index: 1500;
+            width: 60px; height: 60px; border-radius: 50%; background: var(--be-success);
+            display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.6rem;
+            box-shadow: 0 8px 24px rgba(25,135,84,.4); animation: be-pulse 2.4s infinite;
+        }
+        @keyframes be-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(25,135,84,.45); }
+            70% { box-shadow: 0 0 0 16px rgba(25,135,84,0); }
+            100% { box-shadow: 0 0 0 0 rgba(25,135,84,0); }
         }
 
-        /* ===================================================
-           RESPONSIVE BREAKPOINTS (mobile-first overrides)
-        ==================================================== */
+        /* ---- Back to top ---- */
+        .back-to-top {
+            border-radius: 50% !important; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;
+            box-shadow: var(--be-shadow-strong); background: linear-gradient(135deg, var(--be-primary), var(--be-primary-dark)) !important; border: none;
+            position: fixed !important; right: 24px !important; bottom: 20px !important; left: auto !important; z-index: 1501;
+            transition: var(--be-transition);
+        }
+        .back-to-top:hover { background: var(--be-success) !important; box-shadow: 0 14px 32px rgba(25,135,84,.4); }
 
-        /* ----- Tablet & below (≤991.98px) ----- */
+        /* Navbar Fixes */
+        .navbar { transition: background .4s ease, box-shadow .4s ease, padding .4s ease; background: transparent !important; box-shadow: none !important; }
+        .navbar .navbar-brand h2, .navbar .navbar-brand, .navbar .nav-link, .navbar .dropdown-toggle { color:#fff !important; }
+        .navbar .navbar-toggler { border-color: rgba(255,255,255,.35); }
+        .navbar .navbar-toggler i, .navbar .navbar-toggler-icon { color:#fff !important; }
+        .navbar.be-scrolled { background: rgba(255,255,255,.98) !important; backdrop-filter: blur(14px); padding-top: .4rem !important; padding-bottom: .4rem !important; box-shadow: 0 6px 20px rgba(0,0,0,.08) !important; }
+        .navbar.be-scrolled .navbar-brand h2, .navbar.be-scrolled .navbar-brand, .navbar.be-scrolled .nav-link, .navbar.be-scrolled .dropdown-toggle { color: var(--be-dark) !important; }
+
+        ::selection { background: var(--be-primary); color: var(--be-dark); }
+
+        /* ===================== FULL MOBILE RESPONSIVENESS ===================== */
         @media (max-width: 991.98px) {
-            .bamboo-mobile-cta {
-                display: flex;
-                gap: .6rem;
-            }
-
-            body {
-                padding-bottom: 70px;
-            }
-
-            .bamboo-header {
-                margin-bottom: 2.5rem !important;
-                padding-top: 2.5rem;
-                padding-bottom: 2.5rem;
-            }
-
-            .bamboo-header .py-5 {
-                padding-top: 1.5rem !important;
-                padding-bottom: 1.5rem !important;
-            }
-
-            /* Stack any 2-column row into a single column */
-            .row.align-items-center.g-5 > [class*="col-lg-6"] {
-                margin-bottom: 2rem;
-            }
-
-            .row.align-items-center.g-5 > [class*="col-lg-6"]:last-child {
-                margin-bottom: 0;
-            }
-
-            .container-xxl.py-5,
-            .container-fluid.py-5 {
-                padding-top: 2.5rem !important;
-                padding-bottom: 2.5rem !important;
-            }
+            .bamboo-mobile-cta { display: flex; gap: .6rem; }
+            body { padding-bottom: 70px; }
+            .row.align-items-center.g-5 > [class*="col-lg-6"] { margin-bottom: 2rem; }
+            .row.align-items-center.g-5 > [class*="col-lg-6"]:last-child { margin-bottom: 0; }
         }
-
-        /* ----- Phones & small tablets (≤767.98px) ----- */
         @media (max-width: 767.98px) {
-
-            body {
-                font-size: .95rem;
-            }
-
-            .bamboo-header .d-flex.flex-wrap.gap-3 {
-                flex-direction: column;
-                gap: .75rem !important;
-            }
-
-            .bamboo-header .btn-lg {
-                width: 100%;
-                text-align: center;
-                padding-top: .9rem !important;
-                padding-bottom: .9rem !important;
-                font-size: 1rem;
-            }
-
-            .position-absolute.bottom-0.start-0.translate-middle-y {
-                position: static !important;
-                transform: none !important;
-                margin-top: -1.5rem;
-                width: fit-content;
-                padding: .9rem 1.25rem !important;
-            }
-
-            /* Generic section padding tightening */
-            .p-5 {
-                padding: 1.5rem !important;
-            }
-
-            #enquiry .bg-white.rounded-4 {
-                padding: 1.5rem !important;
-            }
-
-            .container-fluid.py-5 .bg-dark.rounded-4 {
-                padding: 1.75rem !important;
-            }
-
-            .container-fluid.py-5 .bg-dark.rounded-4 .btn {
-                display: block;
-                width: 100%;
-                margin: .5rem 0 !important;
-            }
-
-            /* Icon + text rows in "Why Choose Us" stack cleanly */
-            .d-flex.mb-4 i.fa-3x,
-            .d-flex.mb-4 i.fa-2x {
-                font-size: 1.6rem !important;
-            }
-
-            .d-flex.mb-4 {
-                align-items: flex-start;
-            }
-
-            /* Form gets touch-friendly spacing */
-            #enquiry .form-control,
-            #enquiry .form-select {
-                font-size: 1rem;
-                padding-top: .65rem !important;
-                padding-bottom: .65rem !important;
-            }
-
-            #enquiry select[multiple] {
-                min-height: 180px;
-            }
-
-            .back-to-top {
-                bottom: 78px !important;
-                right: 12px !important;
-            }
+            .back-to-top { bottom: 78px !important; right: 12px !important; }
+            #enquiry .bg-white.rounded-4 { padding: 1.5rem !important; }
         }
-
-        /* ----- Small phones (≤575.98px) ----- */
         @media (max-width: 575.98px) {
-            /* .container, .container-fluid, .container-xxl {
-                padding-left: 1rem !important;
-                padding-right: 1rem !important;
-            } */
-
-            .service-item .p-4,
-            .product-feature,
-            .container-xxl .text-center.p-4.rounded-4 {
-                padding: 1.1rem !important;
-            }
-
-            .service-item h4,
-            .service-item h5 {
-                font-size: 1.05rem;
-            }
-
-            #enquiry select[multiple] {
-                min-height: 160px;
-            }
-
-            .bamboo-mobile-cta {
-                padding: .55rem .75rem;
-            }
-
-            .bamboo-mobile-cta .btn {
-                font-size: .85rem;
-                padding: .55rem .75rem;
-            }
-
-            .navbar-brand img {
-                max-width: 140px;
-                height: auto;
-            }
-
-            /* Industry tiles 2-per-row already via col-6, just tighten gap */
-            .row.g-4 {
-                --bs-gutter-x: .75rem;
-                --bs-gutter-y: .75rem;
-            }
-        }
-
-        /* ----- Very small phones (≤400px) ----- */
-        @media (max-width: 400px) {
-            .display-3 { font-size: 1.5rem; }
-            .display-5 { font-size: 1.25rem; }
-
-            .btn-lg {
-                font-size: .95rem;
-                padding: .75rem 1.25rem !important;
-            }
-        }
-
-        /* Reduce motion for accessibility */
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation-duration: .001ms !important;
-                transition-duration: .001ms !important;
-            }
+            .whatsapp-float { width: 50px; height: 50px; font-size: 1.3rem; bottom: 76px; right: 16px; }
+            .bamboo-mobile-cta { padding: .55rem .75rem; }
+            .bamboo-mobile-cta .btn { font-size: .85rem; padding: .55rem .75rem; }
         }
     </style>
-
 </head>
-
-
 
 <body>
 
@@ -1507,34 +1302,7 @@ function bf_e(string $value): string
     <!-- <div id="footer"></div> -->
     <?php include __DIR__ . '/footer.php'; ?>
     <!-- Footer end -->
-
-    <!-- Sticky mobile call-to-action bar (NEW, hidden on desktop) -->
-    <div class="bamboo-mobile-cta">
-        <a href="tel:+919678431656" class="btn btn-outline-light flex-fill">
-            <i class="fa fa-phone me-1"></i> Call
-        </a>
-        <a href="#enquiry" class="btn btn-success flex-fill">
-            <i class="fa fa-paper-plane me-1"></i> Get Quote
-        </a>
-    </div>
-
-    <!-- Back to Top -->
-    <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded-0 back-to-top"><i class="bi bi-arrow-up"></i></a>
-
-
-    <!-- JavaScript Libraries -->
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="lib/wow/wow.min.js"></script>
-    <script src="lib/easing/easing.min.js"></script>
-    <script src="lib/waypoints/waypoints.min.js"></script>
-    <script src="lib/counterup/counterup.min.js"></script>
-    <script src="lib/owlcarousel/owl.carousel.min.js"></script>
-
-    <!-- Template Javascript -->
-    <script src="js/main.js"></script>
-
-    <script src="js/navbar-active-state.js"></script>
+ 
 
     <script>
         // Navbar scroll effect

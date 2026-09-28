@@ -1,8 +1,18 @@
 <?php
 declare(strict_types=1);
 
+// =========================================================================
+// 1. ELITE SEO ENGINE & HEADERS
+// =========================================================================
+require_once __DIR__ . '/EliteSeoEngine.php'; 
+$seo = new EliteEnterpriseSeoEngine();
+$seo->sendEnterpriseHeaders();
+
 require_once __DIR__ . '/admin/config/database.php';
 
+// =========================================================================
+// 2. FORM & SECURE SESSION LOGIC
+// =========================================================================
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
@@ -154,10 +164,29 @@ function cb_e(string $value): string
 
 <head>
     <meta charset="utf-8">
-    <title>Biome Enterprises | Cab Service</title>
+    <?php
+    // =========================================================================
+    // 🚀 DYNAMIC META GENERATION FOR CAB SERVICE PAGE
+    // =========================================================================
+    echo $seo->generateMeta([
+        'title'       => 'Cab Rentals & Transport Service | Biome Enterprises',
+        'description' => 'Reliable and comfortable cab rental services across Northeast India. Book Hatchbacks, SUVs, and Luxury Cars for self-drive or with a professional driver.',
+        'keywords'    => 'Cab Service Assam, Rent a Car Guwahati, Self Drive Cars North East, SUV Rental India, Outstation Taxi booking, Biome Enterprises Transport',
+        'url_path'    => '/cab-service.php', 
+        'type'        => 'website'
+    ]);
+    
+    // =========================================================================
+    // 🧠 AI SEMANTIC SCHEMAS (JSON-LD)
+    // =========================================================================
+    echo $seo->schema($seo->coreGraph());
+    echo $seo->schema($seo->breadcrumbSchema([
+        "Home" => "/",
+        "Cab Service" => "/cab-service.php"
+    ]));
+    ?>
+
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <meta content="" name="keywords">
-    <meta content="" name="description">
 
     <!-- Favicon -->
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
@@ -172,14 +201,10 @@ function cb_e(string $value): string
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
 
     <!-- Libraries Stylesheet -->
-    <!-- <link href="lib/animate/animate.min.css" rel="stylesheet">
-    <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet"> -->
+    <link href="lib/animate/animate.min.css" rel="stylesheet">
 
-    <!-- Customized Bootstrap Stylesheet -->
+    <!-- Bootstrap & Main CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
-    <link href="css/navbar-active-state.css" rel="stylesheet">
-
-    <!-- Template Stylesheet -->
     <link href="css/style.css" rel="stylesheet">
 
     <style>
@@ -190,7 +215,7 @@ function cb_e(string $value): string
             --be-dark: #271e01;
             --be-radius: 1rem;
             --be-shadow-soft: 0 10px 30px rgba(57, 51, 10, 0.08);
-            --be-shadow-strong: 0 20px 50px #c29d082e;
+            --be-shadow-strong: 0 20px 50px rgba(194, 157, 8, 0.18);
             --be-transition: all .35s cubic-bezier(.25,.8,.25,1);
         }
 
@@ -205,62 +230,61 @@ function cb_e(string $value): string
 
         /* ---- Scroll progress bar ---- */
         #scrollProgress {
-            position: fixed;
-            top: 0; left: 0;
-            height: 4px;
-            width: 0%;
+            position: fixed; top: 0; left: 0; height: 4px; width: 0%;
             background: linear-gradient(90deg, var(--be-primary), var(--be-success));
-            z-index: 2000;
-            transition: width .1s ease-out;
+            z-index: 2000; transition: width .1s ease-out;
         }
 
-        /* ---- Reveal-on-scroll (added on top of WOW/animate.css used by page JS) ---- */
+        /* ---- Reveal-on-scroll ---- */
         .reveal {
-            opacity: 0;
-            transform: translateY(40px);
+            opacity: 0; transform: translateY(40px);
             transition: opacity .7s ease, transform .7s ease;
         }
         .reveal.active { opacity: 1; transform: translateY(0); }
 
-        /* ---- Navbar glass on scroll ---- */
-        .navbar {
-            transition: background .4s ease, box-shadow .4s ease, padding .4s ease;
-        }
-        .navbar.be-scrolled, .navbar.scrolled {
-            background: rgba(255,255,255,.78) !important;
-            backdrop-filter: blur(14px) saturate(160%);
-            -webkit-backdrop-filter: blur(14px) saturate(160%);
-            padding-top: .4rem !important;
-            padding-bottom: .4rem !important;
-            box-shadow: 0 6px 20px rgba(0,0,0,.08) !important;
+        /* ---- Animated Background Blobs ---- */
+        .be-blob { filter: blur(70px); opacity: 0.4; animation: be-float 10s ease-in-out infinite; }
+        @keyframes be-float {
+            0%, 100% { transform: translateY(0) translateX(0) scale(1); }
+            50% { transform: translateY(-30px) translateX(20px) scale(1.05); }
         }
 
+        /* ---- Navbar glass on scroll ---- */
+        .navbar { transition: background .4s ease, box-shadow .4s ease, padding .4s ease; background: transparent !important; box-shadow: none !important; }
+        .navbar .navbar-brand h2, .navbar .navbar-brand, .navbar .nav-link, .navbar .dropdown-toggle { color:#fff !important; }
+        .navbar .navbar-toggler { border-color: rgba(255,255,255,.35); }
+        .navbar .navbar-toggler i, .navbar .navbar-toggler-icon { color:#fff !important; }
+        
+        .navbar.be-scrolled, .navbar.scrolled {
+            background: rgba(255,255,255,.98) !important;
+            backdrop-filter: blur(14px) saturate(160%);
+            -webkit-backdrop-filter: blur(14px) saturate(160%);
+            padding-top: .4rem !important; padding-bottom: .4rem !important;
+            box-shadow: 0 6px 20px rgba(0,0,0,.08) !important;
+        }
+        .navbar.be-scrolled .navbar-brand h2, .navbar.be-scrolled .navbar-brand, .navbar.be-scrolled .nav-link, .navbar.be-scrolled .dropdown-toggle { color: var(--be-dark) !important; }
+
         /* ---- Hero / Page header ---- */
-        .cab-header {
+        .cab-header, .page-header {
             position: relative;
             background: linear-gradient(135deg, #1c1602 0%, #3a2e05 55%, #16210f 100%);
-            background-size: cover;
-            background-position: center;
-            overflow: hidden;
+            background-size: cover; background-position: center; overflow: hidden;
+            padding: 100px 0 80px 0;
         }
-        .cab-header::before {
-            content: "";
-            position: absolute; inset: 0;
+        .cab-header::before, .page-header::before {
+            content: ""; position: absolute; inset: 0;
             background: radial-gradient(circle at 15% 20%, rgba(255,193,7,.25), transparent 55%),
                         radial-gradient(circle at 85% 80%, rgba(25,135,84,.3), transparent 55%);
             pointer-events: none;
         }
-        .cab-header h6.text-warning {
-            color: var(--be-primary) !important;
-            letter-spacing: 3px;
-            display: inline-block;
-            padding: .35rem 1rem;
-            border: 1px solid rgba(255,255,255,.35);
-            border-radius: 50px;
-            backdrop-filter: blur(6px);
-            background: rgba(255,255,255,.08);
+        .cab-header h6.text-warning, .page-header h6.text-warning {
+            color: var(--be-primary) !important; letter-spacing: 3px; display: inline-block;
+            padding: .35rem 1rem; border: 1px solid rgba(255,255,255,.35); border-radius: 50px;
+            backdrop-filter: blur(6px); background: rgba(255,255,255,.08); position: relative; z-index: 1; margin-bottom: 1rem;
         }
-        .cab-header .text-success { color: var(--be-primary) !important; }
+        .cab-header .text-success, .page-header .text-success { color: var(--be-primary) !important; }
+        .breadcrumb { background: rgba(0,0,0,0.25); display: inline-flex; padding: 10px 25px; border-radius: 50px; backdrop-filter: blur(8px); margin: 0; }
+        .breadcrumb-item + .breadcrumb-item::before { color: rgba(255,255,255,.6); }
 
         /* ---- Fluid type ---- */
         h1, .display-3 { font-size: clamp(1.8rem, 4.5vw + .5rem, 3.2rem) !important; }
@@ -268,97 +292,41 @@ function cb_e(string $value): string
         p { font-size: clamp(.92rem, .4vw + .8rem, 1.05rem); }
 
         /* ---- Buttons ---- */
-        .btn {
-            position: relative;
-            overflow: hidden;
-            border-radius: 50px;
-        }
-        .btn-success {
-            background: linear-gradient(135deg, var(--be-success), #115d3a);
-            border: none;
-            transition: var(--be-transition);
-        }
-        .btn-success:hover {
-            transform: translateY(-4px) !important;
-            box-shadow: 0 12px 24px rgba(25, 135, 84, 0.35);
-        }
-        .btn-outline-light:hover {
-            background: var(--be-primary);
-            border-color: var(--be-primary);
-            color: var(--be-dark) !important;
-        }
-        .btn-success.glow {
-            box-shadow: 0 0 18px rgba(25,135,84,.55);
-        }
-        /* Ripple from page JS */
+        .btn { position: relative; overflow: hidden; border-radius: 50px; }
+        .btn-success { background: linear-gradient(135deg, var(--be-success), #115d3a); border: none; transition: var(--be-transition); }
+        .btn-success:hover { transform: translateY(-4px) !important; box-shadow: 0 12px 24px rgba(25, 135, 84, 0.35); }
+        .btn-outline-light:hover { background: var(--be-primary); border-color: var(--be-primary); color: var(--be-dark) !important; }
+        .btn-success.glow { box-shadow: 0 0 18px rgba(25,135,84,.55); }
+        
         .ripple {
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(255,255,255,.45);
-            transform: scale(0);
-            animation: be-ripple .65s ease-out;
-            pointer-events: none;
+            position: absolute; border-radius: 50%; background: rgba(255,255,255,.45);
+            transform: scale(0); animation: be-ripple .65s ease-out; pointer-events: none;
         }
-        @keyframes be-ripple {
-            to { transform: scale(2.4); opacity: 0; }
-        }
+        @keyframes be-ripple { to { transform: scale(2.4); opacity: 0; } }
 
         /* ---- Cards / service items ---- */
-        .service-item, .service-feature, .bg-white {
-            transition: var(--be-transition);
-        }
-        .service-item:hover, .service-feature:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 45px rgba(191, 145, 7, 0.22) !important;
-        }
-        .service-item i.text-success, .service-feature i.text-success {
-            transition: var(--be-transition);
-        }
-        .service-item:hover i.text-success, .service-feature:hover i.text-success {
-            transform: scale(1.1) rotate(-4deg);
-            filter: drop-shadow(0 4px 14px rgba(25,135,84,.45));
-        }
+        .service-item, .service-feature, .bg-white { transition: var(--be-transition); }
+        .service-item:hover, .service-feature:hover { transform: translateY(-8px); box-shadow: 0 20px 45px rgba(191, 145, 7, 0.22) !important; }
+        .service-item i.text-success, .service-feature i.text-success { transition: var(--be-transition); }
+        .service-item:hover i.text-success, .service-feature:hover i.text-success { transform: scale(1.1) rotate(-4deg); filter: drop-shadow(0 4px 14px rgba(25,135,84,.45)); }
         .rounded-4 { border-radius: var(--be-radius) !important; }
 
-        .bg-success, .bg-success.bg-gradient {
-            background: linear-gradient(135deg, var(--be-success), #0d4429) !important;
-        }
+        .bg-success, .bg-success.bg-gradient { background: linear-gradient(135deg, var(--be-success), #0d4429) !important; }
+        .bg-dark { background: linear-gradient(135deg, #1c1602, #16210f) !important; }
 
-        .bg-dark {
-            background: linear-gradient(135deg, #1c1602, #16210f) !important;
-        }
-
-        /* Step numbers */
-        .rounded-circle.bg-success {
-            background: linear-gradient(135deg, var(--be-success), #115d3a) !important;
-            transition: var(--be-transition);
-        }
+        .rounded-circle.bg-success { background: linear-gradient(135deg, var(--be-success), #115d3a) !important; transition: var(--be-transition); }
         .rounded-circle.bg-success:hover { transform: scale(1.08); }
 
         /* ---- Booking form ---- */
-        #booking .form-control, #booking .form-select {
-            border-radius: .65rem;
-            border: 1px solid #e3e8f0;
-            transition: var(--be-transition);
-        }
-        #booking .form-control:focus, #booking .form-select:focus {
-            border-color: var(--be-primary);
-            box-shadow: 0 0 0 .25rem rgba(255, 193, 7, 0.18);
-            transform: translateY(-2px);
-        }
+        #booking .form-control, #booking .form-select { border-radius: .65rem; border: 1px solid #e3e8f0; transition: var(--be-transition); }
+        #booking .form-control:focus, #booking .form-select:focus { border-color: var(--be-primary); box-shadow: 0 0 0 .25rem rgba(255, 193, 7, 0.18); transform: translateY(-2px); }
 
         /* ---- WhatsApp floating pulse ---- */
         .whatsapp-float {
-            position: fixed;
-            bottom: 90px; right: 24px;
-            z-index: 1500;
-            width: 60px; height: 60px;
-            border-radius: 50%;
-            background: var(--be-success);
-            display: flex; align-items: center; justify-content: center;
-            color: #fff; font-size: 1.6rem;
-            box-shadow: 0 8px 24px rgba(25,135,84,.4);
-            animation: be-pulse 2.4s infinite;
+            position: fixed; bottom: 90px; right: 24px; z-index: 1500;
+            width: 60px; height: 60px; border-radius: 50%; background: var(--be-success);
+            display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.6rem;
+            box-shadow: 0 8px 24px rgba(25,135,84,.4); animation: be-pulse 2.4s infinite;
         }
         @keyframes be-pulse {
             0% { box-shadow: 0 0 0 0 rgba(25,135,84,.45); }
@@ -368,60 +336,24 @@ function cb_e(string $value): string
 
         /* ---- Sticky mobile call bar ---- */
         #mobileCallBar {
-            position: fixed;
-            left: 0; right: 0; bottom: 0;
-            z-index: 1600;
-            display: none;
-            background: rgba(255,255,255,.92);
-            backdrop-filter: blur(12px);
-            box-shadow: 0 -8px 24px rgba(0,0,0,.12);
-            padding: .6rem 1rem;
+            position: fixed; left: 0; right: 0; bottom: 0; z-index: 1600; display: none;
+            background: rgba(255,255,255,.92); backdrop-filter: blur(12px); box-shadow: 0 -8px 24px rgba(0,0,0,.12); padding: .6rem 1rem;
         }
-        @media (max-width: 576px) {
-            #mobileCallBar { display: flex; gap: .6rem; }
-            body { padding-bottom: 64px; }
-        }
+        @media (max-width: 576px) { #mobileCallBar { display: flex; gap: .6rem; } body { padding-bottom: 64px; } }
 
         /* ---- Back to top ---- */
         .back-to-top {
-            border-radius: 50% !important;
-            width: 50px; height: 50px;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: var(--be-shadow-strong);
-            background: linear-gradient(135deg, var(--be-primary), var(--be-primary-dark)) !important;
-            border: none;
+            border-radius: 50% !important; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;
+            box-shadow: var(--be-shadow-strong); background: linear-gradient(135deg, var(--be-primary), var(--be-primary-dark)) !important;
+            border: none; position: fixed !important; right: 24px !important; bottom: 20px !important; left: auto !important; z-index: 1501;
         }
-        .back-to-top {
-
-    position: fixed !important;
-
-    right: 24px !important;
-
-    bottom: 20px !important;
-
-    left: auto !important;
-
-    z-index: 1501;
-
-}
-        .back-to-top:hover {
-            background: var(--be-success) !important;
-            box-shadow: 0 14px 32px rgba(25,135,84,.4);
-        }
-
+        .back-to-top:hover { background: var(--be-success) !important; box-shadow: 0 14px 32px rgba(25,135,84,.4); }
         ::selection { background: var(--be-primary); color: var(--be-dark); }
 
         /* ===================== FULL MOBILE RESPONSIVENESS ===================== */
-
         @media (max-width: 991px) {
-            .position-absolute.bottom-0.start-0.translate-middle-y {
-                position: static !important;
-                transform: none !important;
-                margin-top: -2.5rem;
-                display: inline-block;
-            }
+            .position-absolute.bottom-0.start-0.translate-middle-y { position: static !important; transform: none !important; margin-top: -2.5rem; display: inline-block; }
         }
-
         @media (max-width: 768px) {
             .py-5 { padding-top: 2.5rem !important; padding-bottom: 2.5rem !important; }
             .row.g-4, .row.g-5 { row-gap: 1.5rem; }
@@ -430,7 +362,6 @@ function cb_e(string $value): string
             .cab-header .d-flex.flex-wrap.gap-3 .btn { width: 100%; text-align: center; }
             .fa-4x { font-size: 2.3rem !important; }
         }
-
         @media (max-width: 576px) {
             .container { padding-left: 1rem; padding-right: 1rem; }
             .fa-3x { font-size: 1.9rem !important; }
@@ -441,75 +372,73 @@ function cb_e(string $value): string
             .whatsapp-float { width: 50px; height: 50px; font-size: 1.3rem; bottom: 76px; right: 16px; }
             .rounded-circle.bg-success { width: 70px !important; height: 70px !important; }
         }
-
-        @media (max-width: 400px) {
-            .display-3, h1 { font-size: 1.6rem !important; }
-        }
+        @media (max-width: 400px) { .display-3, h1 { font-size: 1.6rem !important; } }
     </style>
 </head>
 
 <body>
 
-    <div id="scrollProgress"></div>
+  
 
     <!-- Navbar -->
     <?php include __DIR__ . '/navbar.php'; ?>
     <!-- Navbar End -->
 
-    <!-- =========================================
+  <!-- =========================================
                 PAGE HEADER START
-========================================= -->
+    ========================================= -->
+    <div class="container-fluid page-header py-5 position-relative overflow-hidden">
 
-    <div class="container-fluid cab-header position-relative overflow-hidden py-5">
+        <!-- Animated Background Blobs -->
+        <div class="be-blob position-absolute rounded-circle d-none d-md-block" style="width:280px;height:280px;top:8%;left:-6%;background:#ffc107; z-index: 0; pointer-events: none;"></div>
+        <div class="be-blob position-absolute rounded-circle d-none d-md-block" style="width:220px;height:220px;bottom:5%;right:-4%;background:#198754;animation-delay:2s; z-index: 0; pointer-events: none;"></div>
 
-        <div class="container py-5">
+        <!-- Aligned container (Center on mobile, Left on desktop) -->
+        <div class="container py-5 position-relative z-1 text-center text-lg-start">
 
             <div class="row align-items-center">
+                <div class="col-lg-9 reveal">
 
-                <div class="col-lg-8 reveal">
-
-                    <h6 class="text-uppercase text-warning fw-bold mb-3">
+                    <!-- Premium Glassmorphism Badge -->
+                    <h6 class="text-uppercase text-warning fw-bold mb-3" style="letter-spacing: 2px; display: inline-block; padding: .35rem 1rem; border: 1px solid rgba(255,255,255,.35); border-radius: 50px; backdrop-filter: blur(6px); background: rgba(255,255,255,.08);">
                         Self Drive • Driver-Assisted Travel • Rental Cars
                     </h6>
 
-                    <h1 class="display-3 text-white fw-bold mb-4">
-                        Self Drive,
-
-                        <span class="text-success">    Driver-Assisted Travel</span> & Rental Cars
+                    <!-- Fluid Typography -->
+                    <h1 class="text-white fw-bold mb-4" style="font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.2;">
+                        Self Drive, <span class="text-success">Driver-Assisted Travel</span> & Rental Cars
                     </h1>
 
-                    <p class="text-light fs-5 mb-4">
-
+                    <p class="text-light fs-5 mb-4 mx-auto mx-lg-0 opacity-75" style="max-width: 800px; line-height: 1.6;">
                         Choose from self-drive cars, driver services vehicles and flexible daily, weekly or monthly rentals across Assam and North-East India.
-
                     </p>
 
-                    <div class="d-flex flex-wrap gap-3">
+                    <!-- Breadcrumb integrated properly -->
+                    <nav class="mb-5 d-flex justify-content-center justify-content-lg-start">
+                        <ol class="breadcrumb mb-0 shadow-sm d-inline-flex px-4 py-2 rounded-pill" style="background: rgba(0,0,0,0.25); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1);">
+                            <li class="breadcrumb-item"><a class="text-white text-decoration-none opacity-75" href="index.php" style="transition: all 0.3s ease;">Home</a></li>
+                            <li class="breadcrumb-item text-white fw-bold active" aria-current="page">Cab Service</li>
+                        </ol>
+                    </nav>
 
-                        <a href="#booking" class="btn btn-success btn-lg rounded-pill px-5 py-3 shadow">
-                            <i class="fa fa-car me-2"></i> Book Now
+                    <!-- Premium CTA Buttons -->
+                    <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-lg-start">
+                        <a href="#booking" class="btn btn-success rounded-pill px-5 py-3 fw-bold shadow-sm" style="transition: all 0.3s ease;">
+                            <i class="fas fa-car me-2"></i> Book Now
                         </a>
-
-                        <a href="tel:+919678431656" class="btn btn-outline-light btn-lg rounded-pill px-5 py-3">
-                            <i class="fa fa-phone me-2"></i> Call Now
+                        <a href="tel:+919678431656" class="btn btn-outline-light rounded-pill px-5 py-3 fw-bold" style="transition: all 0.3s ease;">
+                            <i class="fas fa-phone-alt me-2"></i> Call Now
                         </a>
-
                     </div>
 
                 </div>
-
             </div>
 
         </div>
-
     </div>
-
     <!-- =========================================
                 PAGE HEADER END
-========================================= -->
-
-
-
+    ========================================= -->
 
     <!-- =========================================
                 ABOUT START
@@ -1698,61 +1627,7 @@ Request Your Vehicle
     <?php include __DIR__ . '/footer.php'; ?>
     <!-- Footer End -->
 
-
-    <!-- Floating WhatsApp Button -->
-    <a href="https://wa.me/919678431656" target="_blank" class="whatsapp-float" aria-label="Chat on WhatsApp">
-        <i class="fab fa-whatsapp"></i>
-    </a>
-
-    <!-- Sticky Mobile Call Bar -->
-    <div id="mobileCallBar">
-        <a href="tel:+919678431656" class="btn btn-success flex-fill"><i class="fa fa-phone me-2"></i>Call Now</a>
-        <a href="https://wa.me/919678431656" target="_blank" class="btn btn-light flex-fill"><i class="fab fa-whatsapp me-2"></i>WhatsApp</a>
-    </div>
-
-    <!-- Back to Top -->
-    <a href="#" class="btn btn-lg btn-lg-square rounded-0 back-to-top"><i class="bi bi-arrow-up"></i></a>
-
-
-    <!-- JavaScript Libraries -->
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="lib/wow/wow.min.js"></script>
-    <script src="lib/easing/easing.min.js"></script>
-    <script src="lib/waypoints/waypoints.min.js"></script>
-    <!-- <script src="lib/owlcarousel/owl.carousel.min.js"></script> -->
-
-    <!-- Template Javascript -->
-    <script src="js/main.js"></script>
-
-    <!-- ===================== Premium Interactivity (scroll progress, reveal, navbar) ===================== -->
-    <script>
-    (function () {
-        // Scroll progress bar
-        const progressBar = document.getElementById('scrollProgress');
-        function updateProgress() {
-            const h = document.documentElement;
-            const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
-            if (progressBar) progressBar.style.width = scrolled + '%';
-        }
-        window.addEventListener('scroll', updateProgress, { passive: true });
-        updateProgress();
-
-        // Navbar glass effect on scroll
-        const nav = document.querySelector('nav.navbar, .navbar');
-        function updateNav() {
-            if (!nav) return;
-            if (window.scrollY > 40) {
-                nav.classList.add('be-scrolled');
-            } else {
-                nav.classList.remove('be-scrolled');
-            }
-        }
-        window.addEventListener('scroll', updateNav, { passive: true });
-        updateNav();
-    })();
-    </script>
-
+ 
     <script>
         /*==================================================
                                                                                     CAB PAGE INTERACTIONS
@@ -1791,32 +1666,7 @@ Request Your Vehicle
 
             });
 
-            /* Magnetic Buttons (desktop only — disabled on touch to avoid mobile jank) */
-
-            if (!isTouch) {
-                document.querySelectorAll(".btn").forEach(btn => {
-
-                    btn.addEventListener("mousemove", e => {
-
-                        const rect = btn.getBoundingClientRect();
-
-                        const x = e.clientX - rect.left - rect.width / 2;
-                        const y = e.clientY - rect.top - rect.height / 2;
-
-                        btn.style.transform =
-                            `translate(${x*.15}px,${y*.15}px)`;
-
-                    });
-
-                    btn.addEventListener("mouseleave", () => {
-
-                        btn.style.transform = "";
-
-                    });
-
-                });
-            }
-
+           
             /* Ripple */
 
             document.querySelectorAll(".btn").forEach(btn => {

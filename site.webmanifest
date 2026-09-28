@@ -1,0 +1,22 @@
+{
+    "name": "Biome Enterprises",
+    "short_name": "Biome",
+    "description": "Logistics, Bamboo Trading & Business Solutions",
+    "icons": [
+        {
+            "src": "/img/favicon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/img/favicon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "theme_color": "#198754",
+    "background_color": "#ffffff",
+    "display": "standalone",
+    "start_url": "/?utm_source=pwa",
+    "orientation": "portrait"
+}

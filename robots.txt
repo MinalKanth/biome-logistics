@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# Security: Prevent indexing of backend and config folders
+Disallow: /admin/
+Disallow: /include/
+Disallow: /css/
+Disallow: /js/
+Disallow: /lib/
+
+# Sitemap location for faster indexing
+Sitemap: https://biomeenterprises.com/sitemap.xml

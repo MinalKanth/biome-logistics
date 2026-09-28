@@ -483,3 +483,122 @@
 .bg-secondary {
     background-color: #ffc107 !important;
 }
+
+
+
+
+
+
+
+
+
+
+
+  /* ---- Scroll progress bar ---- */
+        #scrollProgress {
+            position: fixed;
+            top: 0; left: 0;
+            height: 4px;
+            width: 0%;
+            background: linear-gradient(90deg, var(--be-primary), var(--be-success));
+            z-index: 2000;
+            transition: width .1s ease-out;
+        }
+
+        /* ---- Cursor glow (desktop only) ---- */
+        #cursorGlow {
+            position: fixed;
+            width: 320px; height: 320px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,193,7,.14), transparent 70%);
+            pointer-events: none;
+            z-index: 1;
+            transform: translate(-50%, -50%);
+            transition: opacity .3s ease;
+            opacity: 0;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            #cursorGlow { opacity: 1; }
+        }
+        
+        
+        
+        
+        
+        
+        
+          /* ---- Reveal-on-scroll ---- */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity .8s ease, transform .8s ease;
+        }
+        .reveal.is-visible { opacity: 1; transform: translateY(0); }
+        .reveal-stagger > * {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity .7s ease, transform .7s ease;
+        }
+        .reveal-stagger.is-visible > * { opacity: 1; transform: translateY(0); }
+        .reveal-stagger.is-visible > *:nth-child(1) { transition-delay: .05s; }
+        .reveal-stagger.is-visible > *:nth-child(2) { transition-delay: .15s; }
+        .reveal-stagger.is-visible > *:nth-child(3) { transition-delay: .25s; }
+
+        /* ---- Page Header (replaces template's page-header bg) ---- */
+        .page-header {
+            position: relative;
+            background: linear-gradient(135deg, #1c1602 0%, #3a2e05 55%, #16210f 100%);
+            overflow: hidden;
+        }
+        .page-header::before {
+            content: "";
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 15% 20%, rgba(255,193,7,.25), transparent 55%),
+                        radial-gradient(circle at 85% 80%, rgba(25,135,84,.3), transparent 55%);
+            pointer-events: none;
+        }
+        .page-header h6.text-warning {
+            letter-spacing: 3px;
+            display: inline-block;
+            padding: .35rem 1rem;
+            border: 1px solid rgba(255,255,255,.35);
+            border-radius: 50px;
+            backdrop-filter: blur(6px);
+            background: rgba(255,255,255,.08);
+        }
+        .page-header .text-success { color: #ffc107 !important; }
+        .breadcrumb { background: transparent; margin: 0; }
+        .breadcrumb-item + .breadcrumb-item::before { color: rgba(255,255,255,.6); }
+
+        /* ---- Animated Background Blobs ---- */
+        .be-blob {
+            filter: blur(70px);
+            opacity: 0.4;
+            animation: be-float 10s ease-in-out infinite;
+        }
+        @keyframes be-float {
+            0%, 100% { transform: translateY(0) translateX(0) scale(1); }
+            50% { transform: translateY(-30px) translateX(20px) scale(1.05); }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,8 +1,18 @@
 <?php
 declare(strict_types=1);
 
+// =========================================================================
+// 1. ELITE SEO ENGINE & HEADERS
+// =========================================================================
+require_once __DIR__ . '/EliteSeoEngine.php'; 
+$seo = new EliteEnterpriseSeoEngine();
+$seo->sendEnterpriseHeaders();
+
 require_once __DIR__ . '/admin/config/database.php';
 
+// =========================================================================
+// 2. CONTACT FORM & SECURE SESSION LOGIC
+// =========================================================================
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
@@ -106,10 +116,29 @@ function cf_e(string $value): string
 
 <head>
     <meta charset="utf-8">
-    <title>Biome Enterprises | Contact Us</title>
+    <?php
+    // =========================================================================
+    // 🚀 DYNAMIC META GENERATION FOR CONTACT PAGE
+    // =========================================================================
+    echo $seo->generateMeta([
+        'title'       => 'Contact Us | Biome Enterprises - Let\'s Talk Business',
+        'description' => 'Get in touch with Biome Enterprises for logistics, bamboo trading, compliance services, and corporate solutions. We are here to help your business grow.',
+        'keywords'    => 'Contact Biome Enterprises, customer support Assam, business inquiry logistics, bamboo supplier contact, corporate compliance help',
+        'url_path'    => '/contact.php', 
+        'type'        => 'website'
+    ]);
+    
+    // =========================================================================
+    // 🧠 AI SEMANTIC SCHEMAS (JSON-LD)
+    // =========================================================================
+    echo $seo->schema($seo->coreGraph());
+    echo $seo->schema($seo->breadcrumbSchema([
+        "Home" => "/",
+        "Contact Us" => "/contact.php"
+    ]));
+    ?>
+
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <meta content="" name="keywords">
-    <meta content="" name="description">
 
     <!-- Favicon -->
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
@@ -117,20 +146,16 @@ function cf_e(string $value): string
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto:wght@500;700;800&display=swap" rel="stylesheet">
 
     <!-- Icon Font Stylesheet -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
 
     <!-- Libraries Stylesheet -->
-    <!-- <link href="lib/animate/animate.min.css" rel="stylesheet"> -->
-    <!-- <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet"> -->
+    <link href="lib/animate/animate.min.css" rel="stylesheet">
     <link href="css/navbar-active-state.css" rel="stylesheet">
-    <!-- Customized Bootstrap Stylesheet -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Template Stylesheet -->
     <link href="css/style.css" rel="stylesheet">
 
     <style>
@@ -141,7 +166,7 @@ function cf_e(string $value): string
             --be-dark: #271e01;
             --be-radius: 1rem;
             --be-shadow-soft: 0 10px 30px rgba(57, 51, 10, 0.08);
-            --be-shadow-strong: 0 20px 50px #c29d082e;
+            --be-shadow-strong: 0 20px 50px rgba(194, 157, 8, 0.18);
             --be-transition: all .35s cubic-bezier(.25,.8,.25,1);
         }
 
@@ -154,16 +179,7 @@ function cf_e(string $value): string
         }
         h1, h2, h3, h4, h5, h6 { font-family: 'Roboto', sans-serif; }
 
-        /* ---- Scroll progress bar ---- */
-        #scrollProgress {
-            position: fixed;
-            top: 0; left: 0;
-            height: 4px;
-            width: 0%;
-            background: linear-gradient(90deg, var(--be-primary), var(--be-success));
-            z-index: 2000;
-            transition: width .1s ease-out;
-        }
+        
 
         /* ---- Reveal-on-scroll ---- */
         .reveal {
@@ -171,10 +187,7 @@ function cf_e(string $value): string
             transform: translateY(40px);
             transition: opacity .8s ease, transform .8s ease;
         }
-        .reveal.is-visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        .reveal.is-visible { opacity: 1; transform: translateY(0); }
         .reveal-stagger > * {
             opacity: 0;
             transform: translateY(30px);
@@ -211,6 +224,17 @@ function cf_e(string $value): string
         .breadcrumb { background: transparent; margin: 0; }
         .breadcrumb-item + .breadcrumb-item::before { color: rgba(255,255,255,.6); }
 
+        /* ---- Animated Background Blobs ---- */
+        .be-blob {
+            filter: blur(70px);
+            opacity: 0.4;
+            animation: be-float 10s ease-in-out infinite;
+        }
+        @keyframes be-float {
+            0%, 100% { transform: translateY(0) translateX(0) scale(1); }
+            50% { transform: translateY(-30px) translateX(20px) scale(1.05); }
+        }
+
         /* ---- Glass / premium cards ---- */
         .card {
             border-radius: var(--be-radius) !important;
@@ -225,6 +249,10 @@ function cf_e(string $value): string
         .info-card {
             position: relative;
             overflow: hidden;
+            border-radius: var(--be-radius);
+            box-shadow: var(--be-shadow-soft);
+            transition: var(--be-transition);
+            background: #fff;
         }
         .info-card::before {
             content: "";
@@ -232,6 +260,7 @@ function cf_e(string $value): string
             background: radial-gradient(circle at top right, rgba(255,193,7,.12), transparent 60%);
         }
         .info-card i { transition: var(--be-transition); }
+        .info-card:hover { transform: translateY(-6px); box-shadow: var(--be-shadow-strong); }
         .info-card:hover i { transform: scale(1.12) rotate(-4deg); filter: drop-shadow(0 4px 14px rgba(25,135,84,.45)); }
 
         /* Buttons with premium hover */
@@ -279,7 +308,7 @@ function cf_e(string $value): string
             border-radius: 2px;
         }
 
-        /* ---- Form ---- */
+        /* ---- Form Styling ---- */
         .bg-light.p-4 {
             border-radius: var(--be-radius);
             box-shadow: var(--be-shadow-soft);
@@ -347,20 +376,15 @@ function cf_e(string $value): string
             width: 50px; height: 50px;
             display: flex; align-items: center; justify-content: center;
             box-shadow: var(--be-shadow-strong);
+            background: linear-gradient(135deg, var(--be-primary), var(--be-primary-dark)) !important;
+            border: none;
+            position: fixed !important;
+            right: 24px !important;
+            bottom: 20px !important;
+            left: auto !important;
+            z-index: 1501;
+            transition: var(--be-transition);
         }
-        .back-to-top {
-
-    position: fixed !important;
-
-    right: 24px !important;
-
-    bottom: 20px !important;
-
-    left: auto !important;
-
-    z-index: 1501;
-
-}
         .back-to-top:hover {
             background: var(--be-success) !important;
             box-shadow: 0 14px 32px rgba(25,135,84,.4);
@@ -368,59 +392,29 @@ function cf_e(string $value): string
 
         /* ---- Navbar glass on scroll ---- */
         .navbar {
+            background: transparent !important;
+            box-shadow: none !important;
             transition: background .4s ease, box-shadow .4s ease, padding .4s ease;
         }
+        .navbar .navbar-brand h2,
+        .navbar .navbar-brand,
+        .navbar .nav-link,
+        .navbar .dropdown-toggle { color:#fff !important; }
+        .navbar .navbar-toggler { border-color: rgba(255,255,255,.35); }
+        .navbar .navbar-toggler i, .navbar .navbar-toggler-icon { color:#fff !important; }
+
         .navbar.be-scrolled {
-            background: rgba(255,255,255,.78) !important;
+            background: rgba(255,255,255,.98) !important;
             backdrop-filter: blur(14px) saturate(160%);
             -webkit-backdrop-filter: blur(14px) saturate(160%);
             padding-top: .4rem !important;
             padding-bottom: .4rem !important;
             box-shadow: 0 6px 20px rgba(0,0,0,.08) !important;
         }
-
-
-
-        /* Keep navbar identical to NGO page */
-.navbar{
-    background: transparent !important;
-    box-shadow: none !important;
-}
-
-.navbar .navbar-brand h2,
-.navbar .navbar-brand,
-.navbar .nav-link,
-.navbar .dropdown-toggle{
-    color:#fff !important;
-}
-
-.navbar .navbar-toggler{
-    border-color: rgba(255,255,255,.35);
-}
-
-.navbar .navbar-toggler i,
-.navbar .navbar-toggler-icon{
-    color:#fff !important;
-}
-
-/* Same glass effect after scrolling */
-.navbar.be-scrolled{
-    background: rgba(255,255,255,.78) !important;
-    backdrop-filter: blur(14px) saturate(160%);
-    -webkit-backdrop-filter: blur(14px) saturate(160%);
-    box-shadow:0 6px 20px rgba(0,0,0,.08)!important;
-}
-
-.navbar.be-scrolled .navbar-brand h2,
-.navbar.be-scrolled .navbar-brand,
-.navbar.be-scrolled .nav-link,
-.navbar.be-scrolled .dropdown-toggle{
-    color:#fff !important;
-}
-
-
-
-
+        .navbar.be-scrolled .navbar-brand h2,
+        .navbar.be-scrolled .navbar-brand,
+        .navbar.be-scrolled .nav-link,
+        .navbar.be-scrolled .dropdown-toggle { color: var(--be-dark) !important; }
 
         /* Selection color branding */
         ::selection { background: var(--be-primary); color: #271e01; }
@@ -439,44 +433,50 @@ function cf_e(string $value): string
 </head>
 
 <body>
-
-    <div id="scrollProgress"></div>
+  
 
     <!-- Navbar -->
     <?php include __DIR__ . '/navbar.php'; ?>
     <!-- Navbar End -->
 
+<!-- =========================
+         PAGE HEADER START
+    ========================= -->
+    <div class="container-fluid page-header py-5 position-relative overflow-hidden">
 
-    <!-- Page Header Start -->
-    <div class="container-fluid page-header py-5">
-        <div class="container py-5">
+        <!-- Animated Background Blobs -->
+        <div class="be-blob position-absolute rounded-circle d-none d-md-block" style="width:280px;height:280px;top:8%;left:-6%;background:#ffc107; z-index: 0; pointer-events: none;"></div>
+        <div class="be-blob position-absolute rounded-circle d-none d-md-block" style="width:220px;height:220px;bottom:5%;right:-4%;background:#198754;animation-delay:2s; z-index: 0; pointer-events: none;"></div>
 
-            <h6 class="text-uppercase text-warning fw-bold mb-3 animated slideInDown">
+        <!-- Aligned container (Center on mobile, Left on desktop) -->
+        <div class="container py-5 position-relative z-1 text-center text-lg-start">
+
+            <h6 class="text-uppercase text-warning fw-bold mb-3 reveal">
                 Get In Touch
             </h6>
 
-            <h1 class="display-3 text-white fw-bold mb-4 animated slideInDown">
+            <h1 class="text-white fw-bold mb-4 reveal" style="line-height: 1.2;">
                 Contact <span class="text-success">Biome Enterprises</span>
             </h1>
 
-            <p class="text-light fs-5 mb-4">
+            <p class="text-light fs-5 mb-4 reveal mx-auto mx-lg-0 opacity-75" style="max-width: 800px;">
                 Transportation • Bamboo Trading • Legal Services • Cab Rentals • Business Registration
             </p>
 
-            <nav>
+            <nav class="reveal d-flex justify-content-center justify-content-lg-start">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item">
-                        <a class="text-white" href="index.php">Home</a>
+                        <a class="text-white text-decoration-none opacity-75" href="index.php" style="transition: all 0.3s ease;">Home</a>
                     </li>
-                    <li class="breadcrumb-item text-white active">
-                        Contact
+                    <li class="breadcrumb-item text-white fw-bold active" aria-current="page">
+                        Contact Us
                     </li>
                 </ol>
             </nav>
 
         </div>
     </div>
-    <!-- Page Header End -->
+    <!-- PAGE HEADER END -->
 
 
     <!-- Quick Info Cards Start -->
@@ -605,112 +605,10 @@ function cf_e(string $value): string
     <!-- Contact End -->
 
 
-    <!-- Floating WhatsApp Button -->
-    <a href="https://wa.me/919678431656" target="_blank" class="whatsapp-float" aria-label="Chat on WhatsApp">
-        <i class="fab fa-whatsapp"></i>
-    </a>
-
-    <!-- Sticky Mobile Call Bar -->
-    <div id="mobileCallBar">
-        <a href="tel:+919678431656" class="btn btn-primary flex-fill"><i class="fa fa-phone me-2"></i>Call Now</a>
-        <a href="https://wa.me/919678431656" target="_blank" class="btn btn-success flex-fill"><i class="fab fa-whatsapp me-2"></i>WhatsApp</a>
-    </div>
+   
 
     <!-- Footer -->
     <?php include __DIR__ . '/footer.php'; ?>
     <!-- Footer End -->
 
-
-    <!-- Back to Top -->
-    <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded-0 back-to-top"><i class="bi bi-arrow-up"></i></a>
-
-
-    <!-- JavaScript Libraries -->
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="lib/wow/wow.min.js"></script>
-    <script src="lib/easing/easing.min.js"></script>
-    <script src="lib/waypoints/waypoints.min.js"></script>
-    <!-- <script src="lib/counterup/counterup.min.js"></script>
-    <script src="lib/owlcarousel/owl.carousel.min.js"></script> -->
-
-    <!-- Template Javascript -->
-    <script src="js/main.js"></script>
-
-    <!-- ===================== Premium Interactivity (scroll progress, reveal, navbar) ===================== -->
-    <script>
-    (function () {
-        // Scroll progress bar
-        const progressBar = document.getElementById('scrollProgress');
-        function updateProgress() {
-            const h = document.documentElement;
-            const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
-            if (progressBar) progressBar.style.width = scrolled + '%';
-        }
-        window.addEventListener('scroll', updateProgress, { passive: true });
-        updateProgress();
-
-        // Reveal-on-scroll sections
-        const reveals = document.querySelectorAll('.reveal');
-        if ('IntersectionObserver' in window) {
-            const revealObserver = new IntersectionObserver(function (entries) {
-                entries.forEach(function (entry) {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('is-visible');
-                        revealObserver.unobserve(entry.target);
-                    }
-                });
-            }, { threshold: 0.12 });
-            reveals.forEach(function (el) { revealObserver.observe(el); });
-        } else {
-            reveals.forEach(function (el) { el.classList.add('is-visible'); });
-        }
-
-        // Navbar glass effect on scroll
-        const nav = document.querySelector('nav.navbar, .navbar');
-        function updateNav() {
-            if (!nav) return;
-            if (window.scrollY > 40) {
-                nav.classList.add('be-scrolled');
-            } else {
-                nav.classList.remove('be-scrolled');
-            }
-        }
-        window.addEventListener('scroll', updateNav, { passive: true });
-        updateNav();
-
-        // Info-card mouse-follow glow (keeps interactivity, no template styling)
-        document.querySelectorAll('.info-card').forEach(function (card) {
-            card.addEventListener('mousemove', function (e) {
-                const rect = card.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                card.style.background = 'radial-gradient(circle at ' + x + 'px ' + y + 'px, rgba(255,193,7,.10), #fff 65%)';
-            });
-            card.addEventListener('mouseleave', function () {
-                card.style.background = '#fff';
-            });
-        });
-
-        // Floating label lift
-        document.querySelectorAll('.form-control, .form-select').forEach(function (input) {
-            input.addEventListener('focus', function () { input.parentElement.style.transform = 'translateY(-3px)'; });
-            input.addEventListener('blur', function () { input.parentElement.style.transform = 'translateY(0)'; });
-        });
-
-        // Smooth scroll for in-page anchors
-        document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
-            anchor.addEventListener('click', function (e) {
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    e.preventDefault();
-                    target.scrollIntoView({ behavior: 'smooth' });
-                }
-            });
-        });
-    })();
-    </script>
-
-</body>
-
-</html>
+ 

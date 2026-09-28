@@ -1,8 +1,18 @@
 <?php
 declare(strict_types=1);
 
+// =========================================================================
+// 1. ELITE SEO ENGINE & HEADERS (Must be at the very top)
+// =========================================================================
+require_once __DIR__ . '/EliteSeoEngine.php'; 
+$seo = new EliteEnterpriseSeoEngine();
+$seo->sendEnterpriseHeaders();
+
 require_once __DIR__ . '/admin/config/database.php';
 
+// =========================================================================
+// 2. CONTACT FORM & SECURE SESSION LOGIC
+// =========================================================================
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
@@ -106,12 +116,29 @@ function cf_e(string $value): string
 
 <head>
     <meta charset="utf-8">
-    <title>Biome Enterprises | NGO & Sustainability</title>
+    <?php
+    // =========================================================================
+    // 🚀 DYNAMIC META GENERATION FOR NGO PAGE
+    // =========================================================================
+    echo $seo->generateMeta([
+        'title'       => 'NGO & Sustainability | Biome Foundation - Assam',
+        'description' => 'Biome Enterprises is committed to sustainability, environmental conservation, bamboo plantation, community development, skill development, and creating a greener future.',
+        'keywords'    => 'NGO, Sustainability, Environment, Bamboo Plantation, Green India, CSR, Community Development, Biome Enterprises, Assam NGO',
+        'url_path'    => '/ngo.php', 
+        'type'        => 'website'
+    ]);
+    
+    // =========================================================================
+    // 🧠 AI SEMANTIC SCHEMAS (JSON-LD)
+    // =========================================================================
+    echo $seo->schema($seo->coreGraph());
+    echo $seo->schema($seo->breadcrumbSchema([
+        "Home" => "/",
+        "NGO & Sustainability" => "/ngo.php"
+    ]));
+    ?>
+
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <meta name="keywords" content="NGO, Sustainability, Environment, Bamboo Plantation, Green India, CSR, Community Development, Biome Enterprises, Assam">
-
-    <meta name="description" content="Biome Enterprises is committed to sustainability, environmental conservation, bamboo plantation, community development, skill development, waste management, and creating a greener future through impactful NGO initiatives.">
-
 
     <!-- Favicon -->
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
@@ -122,12 +149,11 @@ function cf_e(string $value): string
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto:wght@500;700&display=swap" rel="stylesheet">
 
     <!-- Icon Font Stylesheet -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
 
     <!-- Libraries Stylesheet -->
     <link href="lib/animate/animate.min.css" rel="stylesheet">
-    <!-- <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet"> -->
     <link href="css/navbar-active-state.css" rel="stylesheet">
     <!-- Customized Bootstrap Stylesheet -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
@@ -143,7 +169,7 @@ function cf_e(string $value): string
             --be-dark: #271e01;
             --be-radius: 1rem;
             --be-shadow-soft: 0 10px 30px rgba(57, 51, 10, 0.08);
-            --be-shadow-strong: 0 20px 50px #c29d082e;
+            --be-shadow-strong: 0 20px 50px rgba(194, 157, 8, 0.18);
             --be-transition: all .35s cubic-bezier(.25,.8,.25,1);
         }
 
@@ -167,6 +193,22 @@ function cf_e(string $value): string
             transition: width .1s ease-out;
         }
 
+        /* ---- Cursor glow (desktop only) ---- */
+        #cursorGlow {
+            position: fixed;
+            width: 320px; height: 320px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,193,7,.14), transparent 70%);
+            pointer-events: none;
+            z-index: 1;
+            transform: translate(-50%, -50%);
+            transition: opacity .3s ease;
+            opacity: 0;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            #cursorGlow { opacity: 1; }
+        }
+        
         /* ---- Reveal-on-scroll ---- */
         .reveal {
             opacity: 0;
@@ -186,6 +228,7 @@ function cf_e(string $value): string
         .reveal-stagger.is-visible > *:nth-child(1) { transition-delay: .05s; }
         .reveal-stagger.is-visible > *:nth-child(2) { transition-delay: .15s; }
         .reveal-stagger.is-visible > *:nth-child(3) { transition-delay: .25s; }
+        .reveal-stagger.is-visible > *:nth-child(4) { transition-delay: .35s; }
 
         /* ---- Page Header (replaces template's page-header bg) ---- */
         .page-header {
@@ -314,7 +357,7 @@ function cf_e(string $value): string
             100% { transform: translateY(0); }
         }
 
-        /* ---- Generic icon + card accents (gold/green, no blue) ---- */
+        /* ---- Generic icon + card accents ---- */
         .text-success, i.text-success { color: var(--be-success) !important; }
         i.fa-3x.text-success, i.fa-5x.text-success {
             transition: var(--be-transition);
@@ -411,20 +454,13 @@ function cf_e(string $value): string
             box-shadow: var(--be-shadow-strong);
             background: linear-gradient(135deg, var(--be-primary), var(--be-primary-dark)) !important;
             border: none;
+            position: fixed !important;
+            right: 24px !important;
+            bottom: 20px !important;
+            left: auto !important;
+            z-index: 1501;
+            transition: var(--be-transition);
         }
-        .back-to-top {
-
-    position: fixed !important;
-
-    right: 24px !important;
-
-    bottom: 20px !important;
-
-    left: auto !important;
-
-    z-index: 1501;
-
-}
         .back-to-top:hover {
             background: var(--be-success) !important;
             box-shadow: 0 14px 32px rgba(25,135,84,.4);
@@ -466,121 +502,105 @@ function cf_e(string $value): string
             .display-3, h1 { font-size: 1.6rem !important; }
             .btn-lg { font-size: .85rem; padding: .65rem 1.3rem; }
         }
+        
+        /* ---- Animated Background Blobs ---- */
+        .be-blob {
+            filter: blur(70px);
+            opacity: 0.4;
+            animation: be-float 10s ease-in-out infinite;
+        }
+        
+        @keyframes be-float {
+            0%, 100% { 
+                transform: translateY(0) translateX(0) scale(1); 
+            }
+            50% { 
+                transform: translateY(-30px) translateX(20px) scale(1.05); 
+            }
+        }
     </style>
 </head>
 
 <body>
-
-    <div id="scrollProgress"></div>
+     
 
     <!-- Navbar -->
     <?php include __DIR__ . '/navbar.php'; ?>
     <!-- Navbar End -->
 
 
-    <!-- Page Header Start -->
-    <div class="container-fluid page-header position-relative overflow-hidden py-5">
+     
 
-        <div class="container py-5 position-relative">
+<!-- =========================
+         PAGE HEADER START
+    ========================= -->
+    <div class="container-fluid page-header py-5 position-relative overflow-hidden">
 
-            <div class="row align-items-center">
+        <!-- Background Blobs (Original Colors, fixed overflow and interactions) -->
+        <div class="be-blob position-absolute rounded-circle d-none d-md-block" style="width:280px;height:280px;top:8%;left:-6%;background:#ffc107; z-index: 0; pointer-events: none;"></div>
+        <div class="be-blob position-absolute rounded-circle d-none d-md-block" style="width:220px;height:220px;bottom:5%;right:-4%;background:#198754;animation-delay:2s; z-index: 0; pointer-events: none;"></div>
 
+        <!-- Added text-center for mobile, text-lg-start for desktop -->
+        <div class="container py-5 position-relative z-1 text-center text-lg-start">
+            
+            <div class="row align-items-center g-5">
+
+                <!-- Left Content Column -->
                 <div class="col-lg-7 reveal">
-
-                    <h6 class="text-uppercase text-warning fw-bold mb-3">
-
+                    <h6 class="text-uppercase text-warning fw-bold mb-3" style="letter-spacing: 2px; display: inline-block; padding: .35rem 1rem; border: 1px solid rgba(255,255,255,.35); border-radius: 50px; backdrop-filter: blur(6px); background: rgba(255,255,255,.08);">
                         Biome Foundation
-
                     </h6>
 
-                    <h1 class="display-3 text-white fw-bold mb-4">
-
-                        NGO &
-                        <span class="text-success">
-                            Sustainability
-                        </span>
-
+                    <h1 class="text-white fw-bold mb-4" style="font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.2;">
+                        NGO & <span class="text-success">Sustainability</span>
                     </h1>
 
-                    <p class="text-light fs-5 mb-4">
-
+                    <p class="text-light fs-5 mb-4 mx-auto mx-lg-0 opacity-75" style="max-width: 700px; line-height: 1.6;">
                         Building a greener tomorrow through environmental conservation, bamboo plantation, community empowerment, education and sustainable development initiatives across North-East India.
-
                     </p>
 
-                    <div class="d-flex flex-wrap gap-3">
+                    <!-- Breadcrumb properly aligned with the rest of the text -->
+                    <nav class="mb-5 d-flex justify-content-center justify-content-lg-start">
+                        <ol class="breadcrumb mb-0 shadow-sm d-inline-flex px-4 py-2 rounded-pill" style="background: rgba(0,0,0,0.25); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1);">
+                            <li class="breadcrumb-item"><a class="text-white text-decoration-none opacity-75" href="index.php">Home</a></li>
+                            <li class="breadcrumb-item text-white fw-bold active" aria-current="page">NGO & Sustainability</li>
+                        </ol>
+                    </nav>
 
-                        <a href="#mission" class="btn btn-success">
-
+                    <!-- CTA Buttons -->
+                    <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-lg-start">
+                        <a href="#mission" class="btn btn-success rounded-pill px-4 py-3 fw-bold shadow-sm" style="transition: all 0.3s ease;">
                             Explore Our Mission
-
                         </a>
-
-                        <a href="contact.php" class="btn btn-outline-light rounded-pill px-4 py-3">
-
+                        <a href="contact.php" class="btn btn-outline-light rounded-pill px-4 py-3 fw-bold" style="transition: all 0.3s ease;">
                             Become a Volunteer
-
                         </a>
-
                     </div>
-
                 </div>
 
-
-                <div class="col-lg-5 text-center mt-5 mt-lg-0 reveal">
-
-                    <div class="glass-card p-5 floating">
-
-                        <i class="fas fa-seedling fa-5x text-success mb-4"></i>
-
-                        <h3 class="text-white fw-bold">
-
+                <!-- Right Glass Card Column -->
+                <div class="col-lg-5 text-center reveal">
+                    <!-- Glassmorphism Card with Floating Animation -->
+                    <div class="p-5 rounded-4 shadow-lg" style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); animation: be-float 6s ease-in-out infinite;">
+                        
+                        <i class="fas fa-seedling fa-4x text-success mb-4" style="filter: drop-shadow(0 0 15px rgba(25,135,84,0.4));"></i>
+                        
+                        <h3 class="text-white fw-bold mb-3" style="line-height: 1.4;">
                             Together We Can Create A Greener Future
-
                         </h3>
-
-                        <p class="text-light mb-0">
-
+                        
+                        <p class="text-light mb-0 opacity-75" style="line-height: 1.6;">
                             Every tree planted, every community empowered, every life transformed contributes to a sustainable tomorrow.
-
                         </p>
-
+                        
                     </div>
-
                 </div>
 
             </div>
 
-            <nav class="mt-5">
-
-                <ol class="breadcrumb">
-
-                    <li class="breadcrumb-item">
-
-                        <a class="text-white" href="index.php">
-
-                            Home
-
-                        </a>
-
-                    </li>
-
-                    <li class="breadcrumb-item text-white active">
-
-                        NGO & Sustainability
-
-                    </li>
-
-                </ol>
-
-            </nav>
-
         </div>
-
     </div>
-    <!-- Page Header End -->
-
-
+    <!-- PAGE HEADER END -->
     <!-- Quick Info Cards Start -->
     <div class="container">
         <div class="row g-4 mb-5 reveal reveal-stagger" style="margin-top:-3rem;">
@@ -1810,137 +1830,11 @@ function cf_e(string $value): string
 
     </section>
 
-
-    <!-- Floating WhatsApp Button -->
-    <a href="https://wa.me/919678431656" target="_blank" class="whatsapp-float" aria-label="Chat on WhatsApp">
-        <i class="fab fa-whatsapp"></i>
-    </a>
-
-    <!-- Sticky Mobile Call Bar -->
-    <div id="mobileCallBar">
-        <a href="tel:+919678431656" class="btn btn-primary flex-fill"><i class="fa fa-phone me-2"></i>Call Now</a>
-        <a href="https://wa.me/919678431656" target="_blank" class="btn btn-success flex-fill"><i class="fab fa-whatsapp me-2"></i>WhatsApp</a>
-    </div>
+ 
 
     <!-- Footer -->
     <?php include __DIR__ . '/footer.php'; ?>
     <!-- Footer End -->
 
 
-    <!-- Back to Top -->
-    <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded-0 back-to-top"><i class="bi bi-arrow-up"></i></a>
-
-
-    <!-- JavaScript Libraries -->
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="lib/wow/wow.min.js"></script>
-    <script src="lib/easing/easing.min.js"></script>
-    <script src="lib/waypoints/waypoints.min.js"></script>
-    <!-- <script src="lib/counterup/counterup.min.js"></script> -->
-    <script src="lib/owlcarousel/owl.carousel.min.js"></script>
-
-    <!-- Template Javascript -->
-    <script src="js/main.js"></script>
-
-   <script>
-    (function () {
-        const counters = document.querySelectorAll('.counter-number');
-        const duration = 1800;
-
-        function animateCounter(el) {
-            const target = parseInt(el.getAttribute('data-target'), 10) || 0;
-            const start = performance.now();
-
-            function step(now) {
-                const progress = Math.min((now - start) / duration, 1);
-                const eased = 1 - (1 - progress) * (1 - progress);
-                el.textContent = Math.floor(eased * target);
-                if (progress < 1) {
-                    requestAnimationFrame(step);
-                } else {
-                    el.textContent = target;
-                }
-            }
-            requestAnimationFrame(step);
-        }
-
-        if ('IntersectionObserver' in window) {
-            const observer = new IntersectionObserver(function (entries) {
-                entries.forEach(function (entry) {
-                    if (entry.isIntersecting && !entry.target.dataset.animated) {
-                        entry.target.dataset.animated = 'true';
-                        animateCounter(entry.target);
-                        observer.unobserve(entry.target);
-                    }
-                });
-            }, { threshold: 0.4 });
-
-            counters.forEach(function (el) { observer.observe(el); });
-        } else {
-            counters.forEach(animateCounter);
-        }
-    })();
-    </script>
-
-    <!-- ===================== Premium Interactivity (scroll progress, reveal, navbar) ===================== -->
-    <script>
-    (function () {
-        // Scroll progress bar
-        const progressBar = document.getElementById('scrollProgress');
-        function updateProgress() {
-            const h = document.documentElement;
-            const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
-            if (progressBar) progressBar.style.width = scrolled + '%';
-        }
-        window.addEventListener('scroll', updateProgress, { passive: true });
-        updateProgress();
-
-        // Reveal-on-scroll sections
-        const reveals = document.querySelectorAll('.reveal');
-        if ('IntersectionObserver' in window) {
-            const revealObserver = new IntersectionObserver(function (entries) {
-                entries.forEach(function (entry) {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('is-visible');
-                        revealObserver.unobserve(entry.target);
-                    }
-                });
-            }, { threshold: 0.12 });
-            reveals.forEach(function (el) { revealObserver.observe(el); });
-        } else {
-            reveals.forEach(function (el) { el.classList.add('is-visible'); });
-        }
-
-        // Navbar glass effect on scroll
-        const nav = document.querySelector('nav.navbar, .navbar');
-        function updateNav() {
-            if (!nav) return;
-            if (window.scrollY > 40) {
-                nav.classList.add('be-scrolled');
-            } else {
-                nav.classList.remove('be-scrolled');
-            }
-        }
-        window.addEventListener('scroll', updateNav, { passive: true });
-        updateNav();
-
-        // Card mouse-follow glow (gold accent, no template styling)
-        document.querySelectorAll('.bg-white.rounded-4, .glass-card.bg-white').forEach(function (card) {
-            card.addEventListener('mousemove', function (e) {
-                const rect = card.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                card.style.background = 'radial-gradient(circle at ' + x + 'px ' + y + 'px, rgba(255,193,7,.10), #fff 65%)';
-            });
-            card.addEventListener('mouseleave', function () {
-                card.style.background = '#fff';
-            });
-        });
-    })();
-    </script>
-
-
-</body>
-
-</html>
+    

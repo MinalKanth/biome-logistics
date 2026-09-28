@@ -387,7 +387,7 @@
 
             <div class="col-md-6 text-center text-md-start">
 
-                &copy; 2026 <strong>Biome Enterprises</strong>. All Rights Reserved.
+                &copy; 2026 <strong>  <a href="https://biomeenterprises.com" >  Biome Enterprises </a></strong>. All Rights Reserved.
 
             </div>
 
@@ -405,6 +405,204 @@
     </div>
 </div>
 <!-- Footer End -->
+
+
+    <!-- Footer  -->
+    <?php   include __DIR__ . '/widget.php'; ?>
+    <!-- Footer end -->
+
+
+
+
+    <!-- JavaScript Libraries (Added defer for better page load performance) -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js" defer></script>
+    
+    
+    
+    
+    
+     <!--<script src="js/navbar-active-state.js"></script>-->
+    
+    
+    
+    
+    <!-- Template Javascript -->
+    <!-- <script src="js/main.js"></script>  -->
+    
+    
+    
+    <!-- ===================== Counter Animation (Optimized Vanilla JS) ===================== -->
+    <script>
+    (function () {
+        const counters = document.querySelectorAll('.counter-number');
+        if (counters.length === 0) return;
+
+        const duration = 1800; // ms
+
+        function animateCounter(el) {
+            const target = parseInt(el.getAttribute('data-target'), 10) || 0;
+            const start = performance.now();
+
+            function step(now) {
+                const progress = Math.min((now - start) / duration, 1);
+                // easeOutQuad calculation
+                const eased = 1 - (1 - progress) * (1 - progress);
+                el.textContent = Math.floor(eased * target);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    el.textContent = target;
+                }
+            }
+            requestAnimationFrame(step);
+        }
+
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting && !entry.target.dataset.animated) {
+                        entry.target.dataset.animated = 'true';
+                        animateCounter(entry.target);
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.4 });
+
+            counters.forEach(function (el) { observer.observe(el); });
+        } else {
+            counters.forEach(animateCounter); // Fallback for older browsers
+        }
+    })();
+    </script>
+
+    <!-- ===================== Premium Interactivity (Scroll progress, Reveal, Navbar, UI) ===================== -->
+    <script>
+    (function () {
+        
+        // 1. Hero Image Zoom Logic
+        const heroImg = document.querySelector('#heroCarousel .active img');
+        if (heroImg) {
+            if (heroImg.complete) {
+                heroImg.classList.add('zoomed');
+            } else {
+                heroImg.addEventListener('load', function () {
+                    this.classList.add('zoomed');
+                });
+            }
+        }
+
+        // 2. Scroll Progress Bar (rAF-throttled for high performance)
+        const progressBar = document.getElementById('scrollProgress');
+        let progressTicking = false;
+        function updateProgress() {
+            const h = document.documentElement;
+            const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+            if (progressBar) progressBar.style.width = scrolled + '%';
+            progressTicking = false;
+        }
+
+        // 3. Navbar Shadow & Back-to-Top Button Toggle
+        const nav = document.querySelector('nav.navbar, .navbar');
+        const backToTopBtn = document.querySelector('.back-to-top');
+        let navTicking = false;
+        
+        function updateNavAndScroll() {
+            const scrollY = window.scrollY;
+            
+            // Navbar toggle
+            if (nav) {
+                nav.classList.toggle('be-scrolled', scrollY > 40);
+            }
+            
+            // Back to top toggle
+            if (backToTopBtn) {
+                if (scrollY > 300) {
+                    backToTopBtn.style.opacity = '1';
+                    backToTopBtn.style.visibility = 'visible';
+                } else {
+                    backToTopBtn.style.opacity = '0';
+                    backToTopBtn.style.visibility = 'hidden';
+                }
+            }
+            navTicking = false;
+        }
+
+        window.addEventListener('scroll', function () {
+            if (!progressTicking) {
+                requestAnimationFrame(updateProgress);
+                progressTicking = true;
+            }
+            if (!navTicking) {
+                requestAnimationFrame(updateNavAndScroll);
+                navTicking = true;
+            }
+        }, { passive: true });
+        
+        // Initial calls
+        updateProgress();
+        updateNavAndScroll();
+
+        // Smooth Scroll for Back-to-Top
+        if(backToTopBtn) {
+            backToTopBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+
+        // 4. Reveal-on-scroll Sections
+        const reveals = document.querySelectorAll('.reveal');
+        if (reveals.length > 0) {
+            if ('IntersectionObserver' in window) {
+                const revealObserver = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (entry) {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('is-visible');
+                            revealObserver.unobserve(entry.target);
+                        }
+                    });
+                }, { threshold: 0.12 });
+                reveals.forEach(function (el) { revealObserver.observe(el); });
+            } else {
+                reveals.forEach(function (el) { el.classList.add('is-visible'); });
+            }
+        }
+
+        // 5. Hardware Accelerated Cursor Glow (Desktop Only)
+        const glow = document.getElementById('cursorGlow');
+        if (glow && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+            window.addEventListener('mousemove', function (e) {
+                // Using transform is much smoother for rendering than left/top
+                glow.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
+            }, { passive: true });
+        }
+
+        // 6. 3D Tilt Effect on Cards (SaaS-style premium feel)
+        const tiltCards = document.querySelectorAll('.tilt-card');
+        if (tiltCards.length > 0 && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+            tiltCards.forEach(function (card) {
+                card.addEventListener('mousemove', function (e) {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const rotateX = ((y / rect.height) - 0.5) * -10;
+                    const rotateY = ((x / rect.width) - 0.5) * 10;
+                    card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-8px)`;
+                });
+                card.addEventListener('mouseleave', function () {
+                    card.style.transform = '';
+                });
+            });
+        }
+    })();
+    </script>
+
+ 
+
+
+
 
 <script>
     // Magnetic hover on footer social icons (desktop/hover-capable only)

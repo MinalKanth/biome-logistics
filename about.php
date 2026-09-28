@@ -1,15 +1,44 @@
+<?php
+// Elite SEO Engine include karein (Ensure file path sahi ho)
+require_once __DIR__ . '/EliteSeoEngine.php'; 
+$seo = new EliteEnterpriseSeoEngine();
+
+// Performance aur Security headers send karein
+$seo->sendEnterpriseHeaders();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-    <meta charset="utf-8">
-    <title>Biome Enterprises | About</title>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <meta content="" name="keywords">
-    <meta content="" name="description">
+    <?php
+    // =========================================================================
+    // 🚀 DYNAMIC META GENERATION FOR ABOUT PAGE
+    // =========================================================================
+    echo $seo->generateMeta([
+        'title'       => 'About Us | Biome Enterprises - Logistics & Bamboo Experts',
+        'description' => 'Discover Biome Enterprises, Northeast India\'s premier B2B logistics, sustainable bamboo trading, and corporate compliance firm committed to excellence.',
+        'keywords'    => 'About Biome Enterprises, Logistics company Northeast India, Assam Bamboo trading experts, Legal compliance services Assam, Company profile',
+        'url_path'    => '/about.php', // Current page path
+        'type'        => 'website'
+    ]);
+    
+    // =========================================================================
+    // 🧠 AI SEMANTIC SCHEMAS (JSON-LD)
+    // =========================================================================
+    
+    // 1. Core Organization Schema
+    echo $seo->schema($seo->coreGraph());
+    
+    // 2. Breadcrumb Schema (Helps Google show navigation path in search results)
+    echo $seo->schema($seo->breadcrumbSchema([
+        "Home" => "/",
+        "About Us" => "/about.php"
+    ]));
+    ?>
 
-    <!-- Favicon -->
-    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <!-- =========================================================================
+         FONTS, ICONS & STYLESHEETS
+    ========================================================================= -->
 
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,8 +55,11 @@
     <!-- Customized Bootstrap Stylesheet -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link href="css/navbar-active-state.css" rel="stylesheet">
+    
     <!-- Template Stylesheet -->
     <link href="css/style.css" rel="stylesheet">
+    
+</head>
 
     <style>
         :root {
@@ -50,32 +82,7 @@
         }
         h1, h2, h3, h4, h5, h6 { font-family: 'Roboto', sans-serif; }
 
-        /* ---- Scroll progress bar ---- */
-        #scrollProgress {
-            position: fixed;
-            top: 0; left: 0;
-            height: 4px;
-            width: 0%;
-            background: linear-gradient(90deg, var(--be-primary), var(--be-success));
-            z-index: 2000;
-            transition: width .1s ease-out;
-        }
-
-        /* ---- Cursor glow (desktop only) ---- */
-        #cursorGlow {
-            position: fixed;
-            width: 320px; height: 320px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(255,193,7,.14), transparent 70%);
-            pointer-events: none;
-            z-index: 1;
-            transform: translate(-50%, -50%);
-            transition: opacity .3s ease;
-            opacity: 0;
-        }
-        @media (hover: hover) and (pointer: fine) {
-            #cursorGlow { opacity: 1; }
-        }
+      
 
         /* ---- Reveal-on-scroll ---- */
         .reveal {
@@ -356,38 +363,40 @@
 
 <body>
 
-    <div id="scrollProgress"></div>
-    <div id="cursorGlow"></div>
+ 
 
     <!-- Navbar -->
     <?php include __DIR__ . '/navbar.php'; ?>
     <!-- Navbar End -->
 
 
-    <!-- =========================
-     PAGE HEADER START
-========================= -->
-    <div class="container-fluid page-header py-5">
+<!-- =========================
+         PAGE HEADER START
+    ========================= -->
+    <div class="container-fluid page-header py-5 position-relative overflow-hidden">
 
-        <div class="be-blob" style="width:280px;height:280px;top:8%;left:-6%;background:#ffc107;"></div>
-        <div class="be-blob" style="width:220px;height:220px;bottom:5%;right:-4%;background:#198754;animation-delay:2s;"></div>
+        <!-- Background Blobs (Original Colors, fixed overflow and interactions) -->
+        <div class="be-blob position-absolute rounded-circle d-none d-md-block" style="width:280px;height:280px;top:8%;left:-6%;background:#ffc107; z-index: 0; pointer-events: none;"></div>
+        <div class="be-blob position-absolute rounded-circle d-none d-md-block" style="width:220px;height:220px;bottom:5%;right:-4%;background:#198754;animation-delay:2s; z-index: 0; pointer-events: none;"></div>
 
-        <div class="container py-5 position-relative">
+        <!-- Added text-center for mobile, text-lg-start for desktop -->
+        <div class="container py-5 position-relative z-1 text-center text-lg-start">
 
             <h6 class="mb-3 reveal">About Biome Enterprises</h6>
 
-            <h1 class="display-3 text-white fw-bold mb-4 reveal">
-                Building Trust Through
+            <!-- Kept original display-3 and text-primary colors, added responsive spacing -->
+            <h1 class="display-3 text-white fw-bold mb-4 reveal" style="line-height: 1.2;">
+                Building Trust Through<br class="d-none d-lg-block">
                 <span class="text-primary">Logistics & Business Solutions</span>
             </h1>
 
-            <p class="text-light fs-5 mb-4 reveal">
+            <p class="text-light fs-5 mb-4 reveal mx-auto mx-lg-0" style="max-width: 800px;">
                 Transportation • Bamboo Trading • Legal & Compliance • Accounting • Cab Rentals • Hospitality Services
             </p>
 
-            <nav class="reveal">
+            <nav class="reveal d-flex justify-content-center justify-content-lg-start">
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a class="text-white" href="index.php">Home</a></li>
+                    <li class="breadcrumb-item"><a class="text-white text-decoration-none" href="index.php">Home</a></li>
                     <li class="breadcrumb-item text-white active" aria-current="page">About Us</li>
                 </ol>
             </nav>
@@ -542,159 +551,10 @@
     </div>
     <!-- FACTS END -->
 
-
-    <!-- Floating WhatsApp Button -->
-    <a href="https://wa.me/919678431656" target="_blank" class="whatsapp-float" aria-label="Chat on WhatsApp">
-        <i class="fab fa-whatsapp"></i>
-    </a>
-
-    <!-- Sticky Mobile Call Bar -->
-    <div id="mobileCallBar">
-        <a href="tel:+919678431656" class="btn btn-primary flex-fill"><i class="fa fa-phone me-2"></i>Call Now</a>
-        <a href="https://wa.me/919678431656" target="_blank" class="btn btn-success flex-fill"><i class="fab fa-whatsapp me-2"></i>WhatsApp</a>
-    </div>
+ 
 
     <!-- Footer -->
     <?php include __DIR__ . '/footer.php'; ?>
     <!-- Footer End -->
 
-
-    <!-- Back to Top -->
-    <a href="#" class="btn btn-lg btn-primary btn-lg-square rounded-0 back-to-top"><i class="bi bi-arrow-up"></i></a>
-
-
-    <!-- JavaScript Libraries -->
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="lib/wow/wow.min.js"></script>
-    <script src="lib/easing/easing.min.js"></script>
-    <script src="lib/waypoints/waypoints.min.js"></script>
-
-    <!-- Template Javascript -->
-    <script src="js/main.js"></script>
-
-    <!-- ===================== Counter Animation (vanilla JS, 0 -> target) ===================== -->
-    <script>
-    (function () {
-        const counters = document.querySelectorAll('.counter-number');
-        const duration = 1800;
-
-        function animateCounter(el) {
-            const target = parseInt(el.getAttribute('data-target'), 10) || 0;
-            const start = performance.now();
-
-            function step(now) {
-                const progress = Math.min((now - start) / duration, 1);
-                const eased = 1 - (1 - progress) * (1 - progress);
-                el.textContent = Math.floor(eased * target);
-                if (progress < 1) {
-                    requestAnimationFrame(step);
-                } else {
-                    el.textContent = target;
-                }
-            }
-            requestAnimationFrame(step);
-        }
-
-        if ('IntersectionObserver' in window) {
-            const observer = new IntersectionObserver(function (entries) {
-                entries.forEach(function (entry) {
-                    if (entry.isIntersecting && !entry.target.dataset.animated) {
-                        entry.target.dataset.animated = 'true';
-                        animateCounter(entry.target);
-                        observer.unobserve(entry.target);
-                    }
-                });
-            }, { threshold: 0.4 });
-
-            counters.forEach(function (el) { observer.observe(el); });
-        } else {
-            counters.forEach(animateCounter);
-        }
-    })();
-    </script>
-
-    <!-- ===================== Premium Interactivity (scroll progress, reveal, navbar, cursor, tilt) ===================== -->
-    <script>
-    (function () {
-        // Scroll progress bar
-        const progressBar = document.getElementById('scrollProgress');
-        function updateProgress() {
-            const h = document.documentElement;
-            const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
-            if (progressBar) progressBar.style.width = scrolled + '%';
-        }
-        window.addEventListener('scroll', updateProgress, { passive: true });
-        updateProgress();
-
-        // Reveal-on-scroll
-        const reveals = document.querySelectorAll('.reveal');
-        if ('IntersectionObserver' in window) {
-            const revealObserver = new IntersectionObserver(function (entries) {
-                entries.forEach(function (entry) {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('is-visible');
-                        revealObserver.unobserve(entry.target);
-                    }
-                });
-            }, { threshold: 0.12 });
-            reveals.forEach(function (el) { revealObserver.observe(el); });
-        } else {
-            reveals.forEach(function (el) { el.classList.add('is-visible'); });
-        }
-
-        // Navbar shadow / glass on scroll
-        const nav = document.querySelector('nav.navbar, .navbar');
-        function updateNav() {
-            if (!nav) return;
-            if (window.scrollY > 40) {
-                nav.classList.add('be-scrolled');
-            } else {
-                nav.classList.remove('be-scrolled');
-            }
-        }
-        window.addEventListener('scroll', updateNav, { passive: true });
-        updateNav();
-
-        // Cursor glow (desktop only)
-        const glow = document.getElementById('cursorGlow');
-        if (glow && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-            window.addEventListener('mousemove', function (e) {
-                glow.style.left = e.clientX + 'px';
-                glow.style.top = e.clientY + 'px';
-            }, { passive: true });
-        }
-
-        // 3D tilt effect on cards / image
-        const tiltCards = document.querySelectorAll('.tilt-card');
-        if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-            tiltCards.forEach(function (card) {
-                card.addEventListener('mousemove', function (e) {
-                    const rect = card.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    const rotateX = ((y / rect.height) - 0.5) * -8;
-                    const rotateY = ((x / rect.width) - 0.5) * 8;
-                    card.style.transform = 'perspective(800px) rotateX(' + rotateX + 'deg) rotateY(' + rotateY + 'deg) translateY(-6px)';
-                });
-                card.addEventListener('mouseleave', function () {
-                    card.style.transform = '';
-                });
-            });
-        }
-
-        // Subtle parallax on page header blobs
-        const header = document.querySelector('.page-header');
-        window.addEventListener('scroll', function () {
-            if (!header) return;
-            const offset = window.scrollY * 0.15;
-            header.querySelectorAll('.be-blob').forEach(function (blob) {
-                blob.style.transform = 'translateY(' + offset + 'px)';
-            });
-        }, { passive: true });
-    })();
-    </script>
-
-</body>
-
-</html>
+ 
