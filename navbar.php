@@ -365,6 +365,45 @@
         .bio-nav-phone span, .bio-nav-phone { font-size: .8rem; }
         .bio-navbar .nav-link i { display: none; }
     }
+
+    /* ---------- FIX: Services dropdown vanishing when moving the mouse down ---------- */
+    @media (min-width: 992px) {
+        /* the hover area now spans the full navbar height, so there is no dead zone under the link */
+        .bio-navbar .navbar-nav .nav-item.dropdown { align-self: stretch; display: flex; align-items: center; position: relative; }
+
+        .bio-navbar .nav-item.dropdown > .dropdown-menu {
+            display: block !important;
+            position: absolute !important;
+            top: 100% !important;
+            left: 50% !important;
+            right: auto !important;
+            margin: 0 !important;
+            min-width: 260px;
+            transform: translate(-50%, 8px) !important;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            z-index: 2000;
+            /* stay open ~250ms after the pointer leaves, so a slightly wobbly path still works */
+            transition: opacity .2s ease, transform .2s ease, visibility 0s linear .25s !important;
+        }
+        /* invisible bridge above the panel: the pointer can never fall into a gap */
+        .bio-navbar .nav-item.dropdown > .dropdown-menu::before {
+            content: '';
+            position: absolute;
+            left: -20px; right: -20px; top: -28px; height: 28px;
+        }
+        .bio-navbar .nav-item.dropdown:hover > .dropdown-menu,
+        .bio-navbar .nav-item.dropdown:focus-within > .dropdown-menu,
+        .bio-navbar .nav-item.dropdown > .dropdown-menu.show {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: translate(-50%, 0) !important;
+            transition: opacity .2s ease, transform .2s ease, visibility 0s !important;
+        }
+        .bio-navbar .dropdown-item { white-space: nowrap; padding: .6rem .9rem; }
+    }
 </style>
 <!-- Navbar Start -->
 <nav class="navbar navbar-expand-lg navbar-light bio-navbar sticky-top py-lg-0">
