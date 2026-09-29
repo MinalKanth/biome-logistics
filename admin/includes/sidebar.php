@@ -33,7 +33,10 @@ if (!isset($sidebarTransportCount)) {
     $sidebarTransportCount = sidebar_safe_count($pdo, 'SELECT COUNT(*) FROM transport_bookings WHERE deleted_at IS NULL');
 }
 $sidebarPendingCount = sidebar_safe_count($pdo, "SELECT COUNT(*) FROM transport_bookings WHERE deleted_at IS NULL AND status = 'pending'");
-$sidebarLiveCount    = sidebar_safe_count($pdo, "SELECT COUNT(*) FROM transport_bookings WHERE deleted_at IS NULL AND status IN ('picked_up','in_transit','out_for_delivery')");
+
+$sidebarBambooNewCount   = sidebar_safe_count($pdo, "SELECT COUNT(*) FROM bamboo_enquiries WHERE status = 'new'");
+$sidebarBambooDueCount   = sidebar_safe_count($pdo, "SELECT COUNT(*) FROM bamboo_enquiries WHERE follow_up_date IS NOT NULL AND follow_up_date <= CURDATE() AND status NOT IN ('won','lost')");
+$sidebarBambooOpenOrders = sidebar_safe_count($pdo, "SELECT COUNT(*) FROM bamboo_orders WHERE deleted_at IS NULL AND status NOT IN ('delivered','cancelled')");
 
 $navActive = static fn(string ...$pages): string => in_array($currentPage, $pages, true) ? ' active' : '';
 $curStatus = (string) ($_GET['status'] ?? '');
@@ -54,8 +57,28 @@ $curStatus = (string) ($_GET['status'] ?? '');
       <div class="sidebar-section-label">Manage</div>
       <ul>
         <li><a href="users.php" class="nav-item<?= $navActive('users.php') ?>"><i class="fa-solid fa-users"></i> Users <span class="pill"><?= e((string) $totalUsers) ?></span></a></li>
-        <li><a href="bamboo_enquiries.php" class="nav-item<?= $navActive('bamboo_enquiries.php') ?>"><i class="fa-solid fa-user-shield"></i> Bamboo Enquiries</a></li>
         <li><a href="blog_manage.php" class="nav-item<?= $navActive('blog_manage.php') ?>"><i class="fa-solid fa-newspaper"></i> Blog Posts <span class="pill"><?= e((string) $sidebarBlogCount) ?></span></a></li>
+      </ul>
+
+      <!-- Bamboo Trading -->
+      <div class="sidebar-section-label">Bamboo Trading</div>
+      <ul>
+        <li>
+          <a href="bamboo_enquiries.php" class="nav-item<?= $navActive('bamboo_enquiries.php') ?>">
+            <i class="fa-solid fa-seedling"></i> Enquiries
+            <?php if ($sidebarBambooNewCount > 0): ?><span class="pill" style="background:#f59e0b;color:#fff;"><?= e((string) $sidebarBambooNewCount) ?></span><?php endif; ?>
+          </a>
+        </li>
+        <?php if ($sidebarBambooDueCount > 0): ?>
+        <li><a href="bamboo_enquiries.php?s=due" class="nav-item<?= ($currentPage === 'bamboo_enquiries.php' && ($_GET['s'] ?? '') === 'due') ? ' active' : '' ?>"><i class="fa-solid fa-bell"></i> Follow-ups due <span class="pill" style="background:#dc3545;color:#fff;"><?= e((string) $sidebarBambooDueCount) ?></span></a></li>
+        <?php endif; ?>
+        <li>
+          <a href="bamboo_orders.php" class="nav-item<?= $navActive('bamboo_orders.php', 'bamboo_order_form.php', 'bamboo_order_view.php') ?>">
+            <i class="fa-solid fa-file-invoice-dollar"></i> Orders &amp; Quotations
+            <span class="pill"><?= e((string) $sidebarBambooOpenOrders) ?></span>
+          </a>
+        </li>
+        <li><a href="bamboo_products.php" class="nav-item<?= $navActive('bamboo_products.php') ?>"><i class="fa-solid fa-boxes-stacked"></i> Products &amp; Stock</a></li>
       </ul>
 
       <!-- Transport -->
