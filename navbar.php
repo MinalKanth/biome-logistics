@@ -30,7 +30,7 @@
         padding: 0;
         width: 100%;
         max-width: 100vw;
-        overflow-x: clip;
+        overflow-x: visible;
     }
 
     .bio-navbar.scrolled,
@@ -379,13 +379,15 @@
             right: auto !important;
             margin: 0 !important;
             min-width: 260px;
-            transform: translate(-50%, 8px) !important;
+            /* geometry never moves: only opacity fades, so the hit-test box always matches what is on screen */
+            transform: translate(-50%, 0) !important;
             opacity: 0;
             visibility: hidden;
-            pointer-events: none;
             z-index: 2000;
-            /* stay open ~250ms after the pointer leaves, so a slightly wobbly path still works */
-            transition: opacity .2s ease, transform .2s ease, visibility 0s linear .25s !important;
+            /* stay hoverable ~250ms after the pointer leaves, so a slightly wobbly path still works.
+               visibility (not pointer-events) gates interaction, and it changes only after this delay -
+               pointer-events must NEVER flip to none while the menu is still visible/fading. */
+            transition: opacity .2s ease, visibility 0s linear .25s !important;
         }
         /* invisible bridge above the panel: the pointer can never fall into a gap */
         .bio-navbar .nav-item.dropdown > .dropdown-menu::before {
@@ -398,9 +400,7 @@
         .bio-navbar .nav-item.dropdown > .dropdown-menu.show {
             opacity: 1;
             visibility: visible;
-            pointer-events: auto;
-            transform: translate(-50%, 0) !important;
-            transition: opacity .2s ease, transform .2s ease, visibility 0s !important;
+            transition: opacity .2s ease, visibility 0s !important;
         }
         .bio-navbar .dropdown-item { white-space: nowrap; padding: .6rem .9rem; }
     }
