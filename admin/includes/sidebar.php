@@ -34,6 +34,9 @@ if (!isset($sidebarTransportCount)) {
 }
 $sidebarPendingCount = sidebar_safe_count($pdo, "SELECT COUNT(*) FROM transport_bookings WHERE deleted_at IS NULL AND status = 'pending'");
 
+$sidebarLiveCount = isset($sidebarLiveCount) ? $sidebarLiveCount : sidebar_safe_count($pdo, "SELECT COUNT(*) FROM transport_bookings WHERE deleted_at IS NULL AND status = 'in_transit'");
+$sidebarCabNew   = sidebar_safe_count($pdo, "SELECT COUNT(*) FROM cab_booking_requests WHERE deleted_at IS NULL AND status = 'new'");
+$sidebarCabToday = sidebar_safe_count($pdo, "SELECT COUNT(*) FROM cab_booking_requests WHERE deleted_at IS NULL AND status IN ('confirmed','assigned','on_trip') AND journey_date <= CURDATE() AND COALESCE(end_date, journey_date) >= CURDATE()");
 $sidebarBambooNewCount   = sidebar_safe_count($pdo, "SELECT COUNT(*) FROM bamboo_enquiries WHERE status = 'new'");
 $sidebarBambooDueCount   = sidebar_safe_count($pdo, "SELECT COUNT(*) FROM bamboo_enquiries WHERE follow_up_date IS NOT NULL AND follow_up_date <= CURDATE() AND status NOT IN ('won','lost')");
 $sidebarBambooOpenOrders = sidebar_safe_count($pdo, "SELECT COUNT(*) FROM bamboo_orders WHERE deleted_at IS NULL AND status NOT IN ('delivered','cancelled')");
@@ -79,6 +82,24 @@ $curStatus = (string) ($_GET['status'] ?? '');
           </a>
         </li>
         <li><a href="bamboo_products.php" class="nav-item<?= $navActive('bamboo_products.php') ?>"><i class="fa-solid fa-boxes-stacked"></i> Products &amp; Stock</a></li>
+      </ul>
+
+      <!-- Cab Services -->
+      <div class="sidebar-section-label">Cab Services</div>
+      <ul>
+        <li><a href="cab_dashboard.php" class="nav-item<?= $navActive('cab_dashboard.php') ?>"><i class="fa-solid fa-gauge-high"></i> Cab Dashboard</a></li>
+        <li>
+          <a href="cab_bookings.php" class="nav-item<?= ($currentPage === 'cab_bookings.php' && $curStatus === '') || in_array($currentPage, ['cab_view.php', 'cab_form.php'], true) ? ' active' : '' ?>">
+            <i class="fa-solid fa-taxi"></i> Bookings
+            <?php if ($sidebarCabNew > 0): ?><span class="pill" style="background:#f59e0b;color:#fff;"><?= e((string) $sidebarCabNew) ?> new</span><?php endif; ?>
+          </a>
+        </li>
+        <li><a href="cab_bookings.php?status=on_trip" class="nav-item<?= ($currentPage === 'cab_bookings.php' && $curStatus === 'on_trip') ? ' active' : '' ?>"><i class="fa-solid fa-route"></i> Trips running today <?php if ($sidebarCabToday > 0): ?><span class="pill"><?= e((string) $sidebarCabToday) ?></span><?php endif; ?></a></li>
+        <li><a href="cab_form.php" class="nav-item<?= $navActive('cab_form.php') ?>"><i class="fa-solid fa-plus"></i> Add Booking</a></li>
+        <li><a href="cab_fleet.php" class="nav-item<?= $navActive('cab_fleet.php') ?>"><i class="fa-solid fa-car-side"></i> Fleet &amp; Drivers</a></li>
+        <li><a href="cab_rates.php" class="nav-item<?= $navActive('cab_rates.php') ?>"><i class="fa-solid fa-indian-rupee-sign"></i> Rates &amp; Settings</a></li>
+        <li><a href="cab_reports.php" class="nav-item<?= $navActive('cab_reports.php') ?>"><i class="fa-solid fa-chart-column"></i> Reports</a></li>
+        <li><a href="../cab" target="_blank" rel="noopener" class="nav-item"><i class="fa-solid fa-arrow-up-right-from-square"></i> Public Cab Page</a></li>
       </ul>
 
       <!-- Transport -->

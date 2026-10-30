@@ -41,113 +41,136 @@ $cabFormValues = [
     'message'     => '',
 ];
 
-$cabAllowedVehicles = ['Hatchback', 'Sedan', 'SUV', 'Innova Crysta', 'Tempo Traveller', 'Luxury Car'];
-$cabAllowedServices = ['Self Drive', 'Car With Driver', 'Rental Car (Daily)', 'Rental Car (Weekly)', 'Rental Car (Monthly)'];
+require_once __DIR__ . '/admin/includes/cab_lib.php';
+
+$cabAllowedVehicles = cab_vehicle_types();
+$cabAllowedServices = array_keys(cab_service_types());
+$cabFormValues += ['time' => '', 'return' => '', 'km' => ''];
+$cabHoneypot = '';
+
+$cabBooking = null; // set after a successful submission (shown as a confirmation card)
+if (!empty($_SESSION['cab_flash_booking']) && is_array($_SESSION['cab_flash_booking'])) {
+    $cabBooking = $_SESSION['cab_flash_booking'];
+    unset($_SESSION['cab_flash_booking']);
+    $cabFormSuccess = false;
+}
+
+$cabSettings = cab_setting_defaults();
+try {
+    $cabSettings = cab_settings(get_db());
+} catch (Throwable $e) {
+    error_log('cab settings load failed: ' . $e->getMessage());
+}
+$cabMinDate = date('Y-m-d', time() + ((int) $cabSettings['min_lead_hours']) * 3600);
+$cabMaxDate = date('Y-m-d', strtotime('+' . (int) $cabSettings['max_advance_days'] . ' days'));
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cab_form_submit'])) {
 
     $postedToken = $_POST['csrf_token'] ?? '';
-    if (!hash_equals($_SESSION['cab_csrf_token'], $postedToken)) {
+    if (!hash_equals($_SESSION['cab_csrf_token'], (string) $postedToken)) {
         $cabFormErrors[] = 'Your session expired. Please refresh the page and try again.';
+    } elseif (trim((string) ($_POST['website'] ?? '')) !== '') {
+        // honeypot filled in: silently pretend success so bots learn nothing
+        $_SESSION['cab_flash_success'] = true;
+        header('Location: ' . $_SERVER['PHP_SELF'] . '#booking');
+        exit;
     } else {
 
-        $name        = trim((string) ($_POST['name'] ?? ''));
-        $mobile      = trim((string) ($_POST['mobile'] ?? ''));
-        $email       = trim((string) ($_POST['email'] ?? ''));
-        $vehicle     = trim((string) ($_POST['vehicle'] ?? ''));
-        $service     = trim((string) ($_POST['service'] ?? ''));
-        $pickup      = trim((string) ($_POST['pickup'] ?? ''));
-        $destination = trim((string) ($_POST['destination'] ?? ''));
-        $date        = trim((string) ($_POST['date'] ?? ''));
-        $passengers  = trim((string) ($_POST['passengers'] ?? ''));
-        $message     = trim((string) ($_POST['message'] ?? ''));
+        $in = static fn(string $k): string => trim(str_replace("\0", '', (string) ($_POST[$k] ?? '')));
+        $name = $in('name'); $mobile = $in('mobile'); $email = $in('email'); $vehicle = $in('vehicle'); $service = $in('service');
+        $pickup = $in('pickup'); $destination = $in('destination'); $date = $in('date'); $time = $in('time'); $return = $in('return');
+        $passengers = $in('passengers'); $km = $in('km'); $message = $in('message');
+        $cabFormValues = compact('name', 'mobile', 'email', 'vehicle', 'service', 'pickup', 'destination', 'date', 'time', 'return', 'passengers', 'km', 'message');
 
-        $cabFormValues = compact('name', 'mobile', 'email', 'vehicle', 'service', 'pickup', 'destination', 'date', 'passengers', 'message');
+        if ($name === '' || mb_strlen($name) > 150) { $cabFormErrors[] = 'Full name is required (max 150 characters).'; }
+        if ($mobile === '' || !preg_match('/^[0-9+\-\s()]{7,20}$/', $mobile) || strlen(preg_replace('/\D/', '', $mobile)) < 10) {
+            $cabFormErrors[] = 'Please enter a valid mobile number (at least 10 digits).';
+        }
+        if ($email !== '' && (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 150)) { $cabFormErrors[] = 'Please enter a valid email address.'; }
+        if (!in_array($vehicle, $cabAllowedVehicles, true)) { $cabFormErrors[] = 'Please select a vehicle type.'; }
+        if (!in_array($service, $cabAllowedServices, true)) { $cabFormErrors[] = 'Please select a service type.'; }
+        if ($pickup === '' || mb_strlen($pickup) > 200) { $cabFormErrors[] = 'Please enter the pickup location (max 200 characters).'; }
+        if (mb_strlen($destination) > 200) { $cabFormErrors[] = 'Destination is too long (max 200 characters).'; }
 
-        if ($name === '' || mb_strlen($name) > 150) {
-            $cabFormErrors[] = 'Full name is required (max 150 characters).';
+        $dateValue = cab_valid_date($date);
+        if (!$dateValue) {
+            $cabFormErrors[] = 'Please choose a valid journey date.';
+        } elseif ($dateValue < date('Y-m-d', strtotime($cabMinDate))) {
+            $cabFormErrors[] = 'Journey date is too soon. Please choose ' . date('d M Y', strtotime($cabMinDate)) . ' or later, or call us for urgent bookings on ' . $cabSettings['support_phone'] . '.';
+        } elseif ($dateValue > $cabMaxDate) {
+            $cabFormErrors[] = 'We accept online bookings up to ' . (int) $cabSettings['max_advance_days'] . ' days ahead.';
         }
-        if ($mobile === '' || !preg_match('/^[0-9+\-\s()]{7,20}$/', $mobile)) {
-            $cabFormErrors[] = 'Please enter a valid mobile number.';
+        $timeValue = cab_valid_time($time);
+        if ($time !== '' && !$timeValue) { $cabFormErrors[] = 'Please enter a valid pickup time.'; }
+        if ($dateValue && $timeValue && strtotime($dateValue . ' ' . $timeValue) < time() + ((int) $cabSettings['min_lead_hours']) * 3600) {
+            $cabFormErrors[] = 'Pickup time is too soon. We need at least ' . (int) $cabSettings['min_lead_hours'] . ' hour(s) notice.';
         }
-        if ($email !== '' && (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 150)) {
-            $cabFormErrors[] = 'Please enter a valid email address.';
-        }
-        if ($vehicle !== '' && !in_array($vehicle, $cabAllowedVehicles, true)) {
-            $cabFormErrors[] = 'Please select a valid vehicle type.';
-        }
-        if ($service !== '' && !in_array($service, $cabAllowedServices, true)) {
-            $cabFormErrors[] = 'Please select a valid service type.';
-        }
-        if (mb_strlen($pickup) > 200 || mb_strlen($destination) > 200) {
-            $cabFormErrors[] = 'Pickup/destination location is too long.';
-        }
-
-        $dateValue = null;
-        if ($date !== '') {
-            $d = DateTime::createFromFormat('Y-m-d', $date);
-            if (!$d || $d->format('Y-m-d') !== $date) {
-                $cabFormErrors[] = 'Please enter a valid journey date.';
-            } else {
-                $dateValue = $date;
-            }
-        }
+        $returnValue = cab_valid_date($return);
+        if ($return !== '' && !$returnValue) { $cabFormErrors[] = 'Please enter a valid return date.'; }
+        if ($dateValue && $returnValue && $returnValue < $dateValue) { $cabFormErrors[] = 'Return date cannot be before the journey date.'; }
+        if ($dateValue && $returnValue && (new DateTime($dateValue))->diff(new DateTime($returnValue))->days > 89) { $cabFormErrors[] = 'For trips longer than 90 days please contact us directly.'; }
 
         $passengersValue = null;
         if ($passengers !== '') {
-            if (!ctype_digit($passengers) || (int) $passengers < 1 || (int) $passengers > 100) {
-                $cabFormErrors[] = 'Please enter a valid number of passengers.';
-            } else {
-                $passengersValue = (int) $passengers;
-            }
+            if (!ctype_digit($passengers) || (int) $passengers < 1 || (int) $passengers > 100) { $cabFormErrors[] = 'Please enter a valid number of passengers.'; } else { $passengersValue = (int) $passengers; }
         }
-
-        if (mb_strlen($message) > 2000) {
-            $cabFormErrors[] = 'Additional requirements are too long (max 2000 characters).';
+        $kmValue = null;
+        if ($km !== '') {
+            if (!is_numeric($km) || (float) $km < 0 || (float) $km > 20000) { $cabFormErrors[] = 'Approximate distance must be between 0 and 20000 km.'; } else { $kmValue = round((float) $km, 1); }
         }
+        if (mb_strlen($message) > 2000) { $cabFormErrors[] = 'Additional requirements are too long (max 2000 characters).'; }
 
         $now = time();
         $bucket = $_SESSION['cab_rate_limit'] ?? ['count' => 0, 'start' => $now];
-        if ($now - $bucket['start'] > 600) {
-            $bucket = ['count' => 0, 'start' => $now];
-        }
+        if ($now - $bucket['start'] > 600) { $bucket = ['count' => 0, 'start' => $now]; }
         $bucket['count']++;
         $_SESSION['cab_rate_limit'] = $bucket;
-        if ($bucket['count'] > 3) {
-            $cabFormErrors[] = 'Too many submissions. Please wait a few minutes and try again.';
-        }
+        if ($bucket['count'] > 3) { $cabFormErrors[] = 'Too many submissions. Please wait a few minutes and try again.'; }
 
         if (!$cabFormErrors) {
             try {
                 $pdo = get_db();
-                $stmt = $pdo->prepare(
+                $days = cab_days($service, $dateValue, $returnValue);
+                $est = cab_estimate($pdo, $vehicle, $service, $days, $kmValue); // recalculated here; the browser preview is never trusted
+                $pdo->beginTransaction();
+                $ref = cab_new_reference($pdo);
+                $pdo->prepare(
                     'INSERT INTO cab_booking_requests
-                        (full_name, mobile_number, email, vehicle_type, service_type, pickup_location, destination, journey_date, passengers, message, ip_address)
-                     VALUES
-                        (:name, :mobile, :email, :vehicle, :service, :pickup, :destination, :date, :passengers, :message, :ip)'
-                );
-                $stmt->execute([
-                    ':name'        => $name,
-                    ':mobile'      => $mobile,
-                    ':email'       => $email !== '' ? $email : null,
-                    ':vehicle'     => $vehicle !== '' ? $vehicle : null,
-                    ':service'     => $service !== '' ? $service : null,
-                    ':pickup'      => $pickup !== '' ? $pickup : null,
-                    ':destination' => $destination !== '' ? $destination : null,
-                    ':date'        => $dateValue,
-                    ':passengers'  => $passengersValue,
-                    ':message'     => $message !== '' ? $message : null,
-                    ':ip'          => $_SERVER['REMOTE_ADDR'] ?? null,
+                        (reference, full_name, mobile_number, email, vehicle_type, service_type, pickup_location, destination, journey_date, pickup_time, return_date, end_date, days,
+                         passengers, distance_km, message, source, status, ip_address, created_at, updated_at)
+                     VALUES (:ref, :name, :mobile, :email, :vehicle, :service, :pickup, :destination, :date, :time, :ret, :end, :days, :pax, :km, :message, \'website\', \'new\', :ip, NOW(), NOW())'
+                )->execute([
+                    ':ref' => $ref, ':name' => $name, ':mobile' => $mobile, ':email' => $email !== '' ? $email : null, ':vehicle' => $vehicle, ':service' => $service,
+                    ':pickup' => $pickup, ':destination' => $destination !== '' ? $destination : null, ':date' => $dateValue, ':time' => $timeValue, ':ret' => $returnValue,
+                    ':end' => cab_end_date($dateValue, $days), ':days' => $days, ':pax' => $passengersValue, ':km' => $kmValue, ':message' => $message !== '' ? $message : null,
+                    ':ip' => $_SERVER['REMOTE_ADDR'] ?? null,
                 ]);
+                $newId = (int) $pdo->lastInsertId();
+                if ($est['ok'] && ($cabSettings['public_show_price'] ?? '1') === '1') {
+                    $pdo->prepare('UPDATE cab_booking_requests SET base_fare = :b, gst_pct = :g, security_deposit = :s, fare_source = \'estimate\' WHERE id = :id')
+                        ->execute([':b' => $est['base'], ':g' => $est['gst_pct'], ':s' => $est['deposit'], ':id' => $newId]);
+                    cab_recalc($pdo, $newId);
+                }
+                cab_timeline($pdo, $newId, 'new', 'Booking request received', null, true, null);
+                $pdo->commit();
 
-                $_SESSION['cab_flash_success'] = true;
+                $row = $pdo->query('SELECT * FROM cab_booking_requests WHERE id = ' . $newId)->fetch();
+                $_SESSION['cab_flash_booking'] = ['reference' => $ref, 'total' => (float) $row['total_fare'], 'mobile' => $mobile, 'email' => $email];
                 $_SESSION['cab_csrf_token'] = bin2hex(random_bytes(32));
                 header('Location: ' . $_SERVER['PHP_SELF'] . '#booking');
+
+                // send the browser on its way first; SMTP can be slow and must never delay or break the booking
+                session_write_close();
+                if (function_exists('fastcgi_finish_request')) { fastcgi_finish_request(); }
+                elseif (function_exists('litespeed_finish_request')) { litespeed_finish_request(); }
+                else { header('Connection: close'); header('Content-Length: 0'); @ob_end_flush(); @flush(); }
+                try { cab_mail_customer_received($row); cab_mail_admin_new($row); } catch (Throwable $mailErr) { error_log('cab mail: ' . $mailErr->getMessage()); }
                 exit;
 
-            } catch (PDOException $e) {
+            } catch (Throwable $e) {
+                if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) { $pdo->rollBack(); }
                 error_log('Cab booking insert failed: ' . $e->getMessage());
-                $cabFormErrors[] = 'Something went wrong on our end. Please try again later.';
+                $cabFormErrors[] = 'Something went wrong on our end. Please try again later or call us.';
             }
         }
     }
@@ -1482,12 +1505,26 @@ function cb_e(string $value): string
                             Cab Booking Form
                         </h3>
 
+                        <?php if ($cabBooking): ?>
+                            <div class="text-center py-4" id="cabConfirmed">
+                                <div class="rounded-circle bg-success d-inline-flex align-items-center justify-content-center mb-3" style="width:76px;height:76px"><i class="fa fa-check fa-2x text-white"></i></div>
+                                <h3 class="mb-2">Booking request received!</h3>
+                                <p class="text-muted mb-3">Your reference number</p>
+                                <div class="display-6 fw-bold text-success mb-3" style="letter-spacing:.04em"><?= cb_e($cabBooking['reference']) ?></div>
+                                <?php if ($cabBooking['total'] > 0): ?><p class="mb-1">Estimated fare: <strong>&#8377;<?= cb_e(number_format($cabBooking['total'], 2)) ?></strong> <small class="text-muted">(incl. GST)</small></p><?php endif; ?>
+                                <p class="text-muted">Our team will call you shortly to confirm availability and the final fare. Please save your reference number.</p>
+                                <div class="d-flex flex-wrap gap-2 justify-content-center">
+                                    <a class="btn btn-success rounded-pill px-4" href="cab-track?ref=<?= cb_e(rawurlencode($cabBooking['reference'])) ?>"><i class="fa fa-location-arrow me-2"></i>Track booking</a>
+                                    <a class="btn btn-outline-success rounded-pill px-4" href="https://wa.me/<?= cb_e($cabSettings['whatsapp_number']) ?>?text=<?= cb_e(rawurlencode('Hello, my cab booking reference is ' . $cabBooking['reference'])) ?>" target="_blank" rel="noopener"><i class="fab fa-whatsapp me-2"></i>WhatsApp us</a>
+                                </div>
+                            </div>
+                        <?php else: ?>
                         <?php if ($cabFormSuccess): ?>
                                 <div class="alert alert-success">Thank you! Your booking request has been received. Our team will contact you shortly.</div>
                             <?php endif; ?>
 
                             <?php if ($cabFormErrors): ?>
-                                <div class="alert alert-danger">
+                                <div class="alert alert-danger" role="alert">
                                     <ul class="mb-0">
                                         <?php foreach ($cabFormErrors as $err): ?>
                                             <li><?= cb_e($err) ?></li>
@@ -1496,69 +1533,132 @@ function cb_e(string $value): string
                                 </div>
                             <?php endif; ?>
 
-                            <form method="post" action="">
+                            <form method="post" action="" id="cabForm" novalidate>
                                 <input type="hidden" name="csrf_token" value="<?= cb_e($cabCsrfToken) ?>">
                                 <input type="hidden" name="cab_form_submit" value="1">
+                                <div style="position:absolute;left:-9999px;height:0;overflow:hidden" aria-hidden="true"><label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
 
                                 <div class="row g-4">
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold">Full Name</label>
-                                        <input type="text" name="name" class="form-control py-3" placeholder="Enter your name" maxlength="150" required value="<?= cb_e($cabFormValues['name']) ?>">
+                                        <label class="form-label fw-bold" for="cabName">Full Name *</label>
+                                        <input type="text" id="cabName" name="name" class="form-control py-3" placeholder="Enter your name" maxlength="150" required autocomplete="name" value="<?= cb_e($cabFormValues['name']) ?>">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold">Mobile Number</label>
-                                        <input type="tel" name="mobile" class="form-control py-3" placeholder="+91 XXXXX XXXXX" maxlength="20" required value="<?= cb_e($cabFormValues['mobile']) ?>">
+                                        <label class="form-label fw-bold" for="cabMobile">Mobile Number *</label>
+                                        <input type="tel" id="cabMobile" name="mobile" class="form-control py-3" placeholder="+91 XXXXX XXXXX" maxlength="20" required autocomplete="tel" inputmode="tel" value="<?= cb_e($cabFormValues['mobile']) ?>">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold">Email Address</label>
-                                        <input type="email" name="email" class="form-control py-3" placeholder="Email" maxlength="150" value="<?= cb_e($cabFormValues['email']) ?>">
+                                        <label class="form-label fw-bold" for="cabEmail">Email Address <small class="text-muted fw-normal">(for confirmation)</small></label>
+                                        <input type="email" id="cabEmail" name="email" class="form-control py-3" placeholder="Email" maxlength="150" autocomplete="email" value="<?= cb_e($cabFormValues['email']) ?>">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold">Vehicle Type</label>
-                                        <select class="form-select py-3" name="vehicle">
-                                            <option value="" <?= $cabFormValues['vehicle'] === '' ? 'selected' : '' ?>>Select Vehicle</option>
+                                        <label class="form-label fw-bold" for="cabVehicle">Vehicle Type *</label>
+                                        <select class="form-select py-3" id="cabVehicle" name="vehicle" required>
+                                            <option value="">Select Vehicle</option>
                                             <?php foreach ($cabAllowedVehicles as $v): ?>
                                                 <option value="<?= cb_e($v) ?>" <?= $cabFormValues['vehicle'] === $v ? 'selected' : '' ?>><?= cb_e($v) ?></option>
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold">Service Type</label>
-                                        <select class="form-select py-3" name="service">
-                                            <option value="" <?= $cabFormValues['service'] === '' ? 'selected' : '' ?>>Select Service</option>
+                                        <label class="form-label fw-bold" for="cabService">Service Type *</label>
+                                        <select class="form-select py-3" id="cabService" name="service" required>
+                                            <option value="">Select Service</option>
                                             <?php foreach ($cabAllowedServices as $s): ?>
                                                 <option value="<?= cb_e($s) ?>" <?= $cabFormValues['service'] === $s ? 'selected' : '' ?>><?= cb_e($s) ?></option>
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold">Pickup Location</label>
-                                        <input type="text" name="pickup" class="form-control py-3" placeholder="Pickup Address" maxlength="200" value="<?= cb_e($cabFormValues['pickup']) ?>">
+                                        <label class="form-label fw-bold" for="cabPassengers">Number of Passengers</label>
+                                        <input type="number" id="cabPassengers" name="passengers" class="form-control py-3" placeholder="Passengers" min="1" max="100" value="<?= cb_e($cabFormValues['passengers']) ?>">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold">Destination</label>
-                                        <input type="text" name="destination" class="form-control py-3" placeholder="Drop Location" maxlength="200" value="<?= cb_e($cabFormValues['destination']) ?>">
+                                        <label class="form-label fw-bold" for="cabPickup">Pickup Location *</label>
+                                        <input type="text" id="cabPickup" name="pickup" class="form-control py-3" placeholder="Pickup Address" maxlength="200" required value="<?= cb_e($cabFormValues['pickup']) ?>">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold">Journey Date</label>
-                                        <input type="date" name="date" class="form-control py-3" value="<?= cb_e($cabFormValues['date']) ?>">
+                                        <label class="form-label fw-bold" for="cabDest">Destination</label>
+                                        <input type="text" id="cabDest" name="destination" class="form-control py-3" placeholder="Drop Location" maxlength="200" value="<?= cb_e($cabFormValues['destination']) ?>">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold" for="cabDate">Journey Date *</label>
+                                        <input type="date" id="cabDate" name="date" class="form-control py-3" required min="<?= cb_e($cabMinDate) ?>" max="<?= cb_e($cabMaxDate) ?>" value="<?= cb_e($cabFormValues['date']) ?>">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold" for="cabTime">Pickup Time</label>
+                                        <input type="time" id="cabTime" name="time" class="form-control py-3" value="<?= cb_e($cabFormValues['time']) ?>">
+                                    </div>
+                                    <div class="col-md-4" id="cabReturnWrap">
+                                        <label class="form-label fw-bold" for="cabReturn">Return Date <small class="text-muted fw-normal">(multi-day)</small></label>
+                                        <input type="date" id="cabReturn" name="return" class="form-control py-3" min="<?= cb_e($cabMinDate) ?>" max="<?= cb_e($cabMaxDate) ?>" value="<?= cb_e($cabFormValues['return']) ?>">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold">Number of Passengers</label>
-                                        <input type="number" name="passengers" class="form-control py-3" placeholder="Passengers" min="1" max="100" value="<?= cb_e($cabFormValues['passengers']) ?>">
+                                        <label class="form-label fw-bold" for="cabKm">Approx. Distance (km) <small class="text-muted fw-normal">(helps price accurately)</small></label>
+                                        <input type="number" id="cabKm" name="km" class="form-control py-3" min="0" max="20000" step="1" placeholder="e.g. 250" value="<?= cb_e($cabFormValues['km']) ?>">
                                     </div>
                                     <div class="col-12">
-                                        <label class="form-label fw-bold">Additional Requirements</label>
-                                        <textarea name="message" class="form-control" rows="5" maxlength="2000" placeholder="Write your travel requirements..."><?= cb_e($cabFormValues['message']) ?></textarea>
+                                        <div id="cabEstimate" class="rounded-4 p-3 border" style="background:#f4faf6;display:none" aria-live="polite"></div>
                                     </div>
                                     <div class="col-12">
-                                        <button class="btn btn-success btn-lg rounded-pill w-100 py-3" type="submit">
+                                        <label class="form-label fw-bold" for="cabMessage">Additional Requirements</label>
+                                        <textarea id="cabMessage" name="message" class="form-control" rows="4" maxlength="2000" placeholder="Write your travel requirements..."><?= cb_e($cabFormValues['message']) ?></textarea>
+                                    </div>
+                                    <div class="col-12">
+                                        <button class="btn btn-success btn-lg rounded-pill w-100 py-3" type="submit" id="cabSubmit">
                                             <i class="fa fa-paper-plane me-2"></i>
                                             Request Vehicle
                                         </button>
+                                        <p class="text-muted small text-center mt-2 mb-0">No payment now. We confirm availability and the final fare by phone. Need help? Call <?= cb_e($cabSettings['support_phone']) ?>.</p>
                                     </div>
                                 </div>
                             </form>
+
+                            <script>
+                            (function () {
+                                var f = document.getElementById('cabForm'); if (!f) { return; }
+                                var box = document.getElementById('cabEstimate'), t = null, seq = 0;
+                                var fixed = {'Rental Car (Daily)': 1, 'Rental Car (Weekly)': 7, 'Rental Car (Monthly)': 30};
+                                var $ = function (id) { return document.getElementById(id); };
+                                var inr = function (n) { return '\u20B9' + Number(n).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}); };
+                                var esc = function (s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+                                function syncReturn() {
+                                    var s = $('cabService').value, w = $('cabReturnWrap');
+                                    var hide = s in fixed; w.style.display = hide ? 'none' : ''; if (hide) { $('cabReturn').value = ''; }
+                                    if ($('cabDate').value) { $('cabReturn').min = $('cabDate').value; }
+                                }
+                                function show(html) { box.style.display = html ? 'block' : 'none'; box.innerHTML = html; }
+                                function run() {
+                                    syncReturn();
+                                    if (!$('cabVehicle').value || !$('cabService').value) { show(''); return; }
+                                    var q = new URLSearchParams({vehicle: $('cabVehicle').value, service: $('cabService').value, date: $('cabDate').value, 'return': $('cabReturn').value, km: $('cabKm').value});
+                                    var my = ++seq;
+                                    fetch('cab-api.php?' + q.toString(), {headers: {'Accept': 'application/json'}, credentials: 'same-origin'})
+                                        .then(function (r) { return r.json(); })
+                                        .then(function (d) {
+                                            if (my !== seq) { return; }
+                                            if (!d.ok) { show('<i class="fa fa-info-circle text-success me-2"></i>' + esc(d.error || 'Fare on request.')); return; }
+                                            var h = '<div class="fw-bold mb-2"><i class="fa fa-calculator text-success me-2"></i>Estimated fare</div><table class="w-100 small">';
+                                            d.lines.forEach(function (l) { h += '<tr><td>' + esc(l.label) + '</td><td class="text-end">' + inr(l.amount) + '</td></tr>'; });
+                                            h += '<tr><td>GST @ ' + d.gst_pct + '%</td><td class="text-end">' + inr(d.gst) + '</td></tr>';
+                                            h += '<tr class="fw-bold fs-6 border-top"><td class="pt-2">Total</td><td class="text-end pt-2">' + inr(d.total) + '</td></tr></table>';
+                                            if (d.note) { h += '<div class="text-muted small mt-2">' + esc(d.note) + '</div>'; }
+                                            if (d.deposit > 0) { h += '<div class="text-muted small">Refundable security deposit: ' + inr(d.deposit) + '</div>'; }
+                                            h += '<div class="text-muted small">Estimate only. Final fare is confirmed by our team.</div>';
+                                            show(h);
+                                        }).catch(function () { if (my === seq) { show(''); } });
+                                }
+                                function later() { clearTimeout(t); t = setTimeout(run, 350); }
+                                ['cabVehicle', 'cabService', 'cabDate', 'cabReturn', 'cabKm'].forEach(function (id) { $(id).addEventListener('change', later); $(id).addEventListener('input', later); });
+                                f.addEventListener('submit', function (e) {
+                                    var btn = $('cabSubmit');
+                                    if (!f.checkValidity()) { e.preventDefault(); f.reportValidity(); return; }
+                                    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
+                                });
+                                syncReturn(); run();
+                            })();
+                            </script>
+                        <?php endif; ?>
 
                     </div>
 
