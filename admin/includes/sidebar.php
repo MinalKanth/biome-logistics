@@ -66,6 +66,7 @@ $curStatus = (string) ($_GET['status'] ?? '');
       <!-- Bamboo Trading -->
       <div class="sidebar-section-label">Bamboo Trading</div>
       <ul>
+        <li><a href="bamboo_dashboard.php" class="nav-item<?= $navActive('bamboo_dashboard.php') ?>"><i class="fa-solid fa-gauge-high"></i> Bamboo Dashboard</a></li>
         <li>
           <a href="bamboo_enquiries.php" class="nav-item<?= $navActive('bamboo_enquiries.php') ?>">
             <i class="fa-solid fa-seedling"></i> Enquiries
@@ -82,6 +83,11 @@ $curStatus = (string) ($_GET['status'] ?? '');
           </a>
         </li>
         <li><a href="bamboo_products.php" class="nav-item<?= $navActive('bamboo_products.php') ?>"><i class="fa-solid fa-boxes-stacked"></i> Products &amp; Stock</a></li>
+        <li><a href="bamboo_stock.php" class="nav-item<?= $navActive('bamboo_stock.php') ?>"><i class="fa-solid fa-boxes-packing"></i> Stock Ledger</a></li>
+        <li><a href="bamboo_customers.php" class="nav-item<?= $navActive('bamboo_customers.php') ?>"><i class="fa-solid fa-address-book"></i> Customers</a></li>
+        <li><a href="bamboo_reports.php" class="nav-item<?= $navActive('bamboo_reports.php') ?>"><i class="fa-solid fa-chart-column"></i> Bamboo Reports</a></li>
+        <li><a href="bamboo_settings.php" class="nav-item<?= $navActive('bamboo_settings.php') ?>"><i class="fa-solid fa-sliders"></i> Bamboo Settings</a></li>
+        <li><a href="../bamboo-trading" target="_blank" rel="noopener" class="nav-item"><i class="fa-solid fa-arrow-up-right-from-square"></i> Public Bamboo Page</a></li>
       </ul>
 
       <!-- Cab Services -->

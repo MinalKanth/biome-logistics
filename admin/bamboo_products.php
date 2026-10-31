@@ -33,26 +33,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             if (!$errors) {
                 $p = [':n' => $name, ':c' => $cat ?: null, ':d' => $desc ?: null, ':h' => substr($hsn, 0, 12) ?: null, ':u' => $unit,
-                      ':pr' => $num('price'), ':mo' => $num('min_order'), ':st' => $num('stock_qty'), ':la' => $num('low_stock_alert'), ':t' => $track, ':a' => $active];
+                      ':pr' => $num('price'), ':mo' => $num('min_order'), ':st' => $num('stock_qty'), ':la' => $num('low_stock_alert'), ':t' => $track, ':a' => $active, ':cp' => $num('cost_price')];
+                $newStock = $p[':st'];
+                unset($p[':st']);   // stock only changes through the stock ledger
                 if ($rid > 0) {
-                    $pdo->prepare('UPDATE bamboo_products SET name=:n, category=:c, description=:d, hsn=:h, unit=:u, price=:pr, min_order=:mo, stock_qty=:st, low_stock_alert=:la, track_stock=:t, is_active=:a, updated_at=NOW() WHERE id=:id')
+                    $pdo->prepare('UPDATE bamboo_products SET name=:n, category=:c, description=:d, hsn=:h, unit=:u, price=:pr, min_order=:mo, cost_price=:cp, low_stock_alert=:la, track_stock=:t, is_active=:a, updated_at=NOW() WHERE id=:id')
                         ->execute($p + [':id' => $rid]);
+                    $old = $pdo->prepare('SELECT stock_qty FROM bamboo_products WHERE id = :id');
+                    $old->execute([':id' => $rid]);
+                    $delta = round($newStock - (float) $old->fetchColumn(), 2);
+                    if ($delta != 0.0) {
+                        $pdo->beginTransaction();
+                        bb_stock_move($pdo, $rid, $delta, 'correction', null, null, 'Edited on product form', (int) $_SESSION['admin_id'], null, null, true);
+                        $pdo->commit();
+                    }
                 } else {
-                    $pdo->prepare('INSERT INTO bamboo_products (name, category, description, hsn, unit, price, min_order, stock_qty, low_stock_alert, track_stock, is_active, sort_order, created_at, updated_at) VALUES (:n,:c,:d,:h,:u,:pr,:mo,:st,:la,:t,:a,99,NOW(),NOW())')
+                    $pdo->prepare('INSERT INTO bamboo_products (name, category, description, hsn, unit, price, min_order, stock_qty, cost_price, low_stock_alert, track_stock, is_active, sort_order, created_at, updated_at) VALUES (:n,:c,:d,:h,:u,:pr,:mo,0,:cp,:la,:t,:a,99,NOW(),NOW())')
                         ->execute($p);
+                    if ($newStock > 0) {
+                        $pdo->beginTransaction();
+                        bb_stock_move($pdo, (int) $pdo->lastInsertId(), $newStock, 'opening', null, null, 'Opening stock', (int) $_SESSION['admin_id']);
+                        $pdo->commit();
+                    }
                 }
                 log_activity((int) $_SESSION['admin_id'], 'bamboo_product_saved', $name);
                 $_SESSION['flash_success_page'] = 'Product saved.';
             }
         } elseif ($action === 'adjust' && $rid > 0) {
-            $delta = (isset($_POST['delta']) && is_numeric($_POST['delta'])) ? (float) $_POST['delta'] : 0.0;
+            $delta = (isset($_POST['delta']) && is_numeric($_POST['delta'])) ? round((float) $_POST['delta'], 2) : 0.0;
             if ($delta != 0.0) {
-                $pdo->prepare('UPDATE bamboo_products SET stock_qty = GREATEST(0, stock_qty + :d), track_stock = 1, updated_at = NOW() WHERE id = :id')->execute([':d' => $delta, ':id' => $rid]);
+                $pdo->beginTransaction();
+                bb_stock_move($pdo, $rid, $delta, $delta > 0 ? 'purchase' : 'correction', null, null, 'Quick adjust', (int) $_SESSION['admin_id']);
+                $pdo->prepare('UPDATE bamboo_products SET track_stock = 1 WHERE id = :id')->execute([':id' => $rid]);
+                $pdo->commit();
                 log_activity((int) $_SESSION['admin_id'], 'bamboo_stock_adjusted', "product={$rid} delta={$delta}");
                 $_SESSION['flash_success_page'] = 'Stock updated.';
             }
         }
+    } catch (RuntimeException $e) {
+        if ($pdo->inTransaction()) { $pdo->rollBack(); }
+        $errors[] = $e->getMessage();
     } catch (Throwable $e) {
+        if ($pdo->inTransaction()) { $pdo->rollBack(); }
         error_log('bamboo products: ' . $e->getMessage());
         $errors[] = 'Something went wrong while saving.';
     }
@@ -81,7 +103,7 @@ foreach ($products as $p) {
     }
 }
 
-tl_shell_top('Products & Stock', 'Products & Stock', ['Bamboo Trading' => 'bamboo_orders.php']);
+tl_shell_top('Products & Stock', 'Products & Stock', ['Bamboo Trading' => 'bamboo_dashboard.php'], '<a class="btn btn-secondary" href="bamboo_stock.php"><i class="fa-solid fa-boxes-packing"></i> Stock ledger</a>');
 ?>
 <?php if ($errors): ?><div class="tx-flash err"><?php foreach ($errors as $m): ?><div><?= e($m) ?></div><?php endforeach; ?></div><?php endif; ?>
 <?php if ($low): ?><div class="tx-flash err" style="background:#fff8e1;border-color:#ffe08a;color:#7a5b00"><i class="fa-solid fa-triangle-exclamation"></i> <?= $low ?> product(s) at or below the low-stock level.</div><?php endif; ?>
@@ -96,7 +118,8 @@ tl_shell_top('Products & Stock', 'Products & Stock', ['Bamboo Trading' => 'bambo
     <div><label>Selling price / unit (₹)</label><input name="price" type="number" step="0.01" min="0" value="<?= e($edit['price'] ?? '0') ?>"></div>
     <div><label>HSN</label><input name="hsn" maxlength="12" value="<?= e($edit['hsn'] ?? bb_settings()['hsn']) ?>"></div>
     <div><label>Minimum order</label><input name="min_order" type="number" step="0.01" min="0" value="<?= e($edit['min_order'] ?? '0') ?>"></div>
-    <div><label>Stock in hand</label><input name="stock_qty" type="number" step="0.01" min="0" value="<?= e($edit['stock_qty'] ?? '0') ?>"></div>
+    <div><label>Stock in hand <small style="text-transform:none">(changes are logged)</small></label><input name="stock_qty" type="number" step="0.01" min="0" value="<?= e($edit['stock_qty'] ?? '0') ?>"></div>
+    <div><label>Cost price / unit (&#8377;)</label><input name="cost_price" type="number" step="0.01" min="0" value="<?= e($edit['cost_price'] ?? '0') ?>"></div>
     <div><label>Low-stock alert at</label><input name="low_stock_alert" type="number" step="0.01" min="0" value="<?= e($edit['low_stock_alert'] ?? '0') ?>"></div>
     <div class="full"><label>Description</label><textarea name="description" rows="2" maxlength="1000"><?= e($edit['description'] ?? '') ?></textarea></div>
     <div class="full" style="display:flex;gap:22px;flex-wrap:wrap;align-items:center">

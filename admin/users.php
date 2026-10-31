@@ -31,18 +31,19 @@ $offset = ($page - 1) * $perPage;
 
 if ($search !== '') {
     $likeTerm = '%' . $search . '%';
-    $countStmt = $pdo->prepare('SELECT COUNT(*) FROM users WHERE full_name LIKE :s OR email LIKE :s');
-    $countStmt->execute([':s' => $likeTerm]);
+    $countStmt = $pdo->prepare('SELECT COUNT(*) FROM users WHERE full_name LIKE :s1 OR email LIKE :s2');
+    $countStmt->execute([':s1' => $likeTerm, ':s2' => $likeTerm]);
     $totalRows = (int) $countStmt->fetchColumn();
 
     $stmt = $pdo->prepare(
         'SELECT id, full_name, email, phone, status, created_at
          FROM users
-         WHERE full_name LIKE :s OR email LIKE :s
+         WHERE full_name LIKE :s1 OR email LIKE :s2
          ORDER BY id DESC
          LIMIT :limit OFFSET :offset'
     );
-    $stmt->bindValue(':s', $likeTerm, PDO::PARAM_STR);
+    $stmt->bindValue(':s1', $likeTerm, PDO::PARAM_STR);
+    $stmt->bindValue(':s2', $likeTerm, PDO::PARAM_STR);
     $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();

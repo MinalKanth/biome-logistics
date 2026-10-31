@@ -133,8 +133,11 @@ $where  = ['tb.deleted_at IS NULL'];
 $params = [];
 
 if ($search !== '') {
-    $where[] = '(tb.tracking_id LIKE :s OR tb.enquiry_reference LIKE :s OR tb.customer_name LIKE :s OR tb.phone LIKE :s OR tb.company_name LIKE :s)';
-    $params[':s'] = '%' . $search . '%';
+    // one distinct placeholder per column: native prepared statements reject a reused :name
+    $where[] = '(tb.tracking_id LIKE :s1 OR tb.enquiry_reference LIKE :s2 OR tb.customer_name LIKE :s3 OR tb.phone LIKE :s4 OR tb.company_name LIKE :s5)';
+    foreach ([':s1', ':s2', ':s3', ':s4', ':s5'] as $__k) {
+        $params[$__k] = '%' . $search . '%';
+    }
 }
 if ($fStatus !== '') {
     $where[] = 'tb.status = :status';

@@ -22,8 +22,10 @@ $perPage = 20;
 $where  = ['deleted_at IS NULL', 'grand_total > 0'];
 $params = [];
 if ($q !== '') {
-    $where[] = '(tracking_id LIKE :q OR invoice_number LIKE :q OR customer_name LIKE :q OR company_name LIKE :q OR phone LIKE :q)';
-    $params[':q'] = '%' . $q . '%';
+    $where[] = '(tracking_id LIKE :q1 OR invoice_number LIKE :q2 OR customer_name LIKE :q3 OR company_name LIKE :q4 OR phone LIKE :q5)';
+    foreach ([':q1', ':q2', ':q3', ':q4', ':q5'] as $__k) {
+        $params[$__k] = '%' . $q . '%';
+    }
 }
 if (in_array($filter, ['unpaid', 'partial', 'paid'], true)) {
     $where[] = 'payment_status = :ps';

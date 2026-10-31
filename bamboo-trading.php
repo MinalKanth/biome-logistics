@@ -9,6 +9,7 @@ $seo = new EliteEnterpriseSeoEngine();
 $seo->sendEnterpriseHeaders();
 
 require_once __DIR__ . '/admin/config/database.php';
+require_once __DIR__ . '/admin/includes/bamboo_lib.php';
 
 // =========================================================================
 // 2. FORM & SECURE SESSION LOGIC
@@ -23,8 +24,10 @@ $bambooCsrfToken = $_SESSION['bamboo_csrf_token'];
 
 $bambooFormErrors = [];
 $bambooFormSuccess = false;
+$bambooEnquiryRef = '';
 if (!empty($_SESSION['bamboo_flash_success'])) {
     $bambooFormSuccess = true;
+    $bambooEnquiryRef = is_string($_SESSION['bamboo_flash_success']) ? $_SESSION['bamboo_flash_success'] : '';
     unset($_SESSION['bamboo_flash_success']);
 }
 
@@ -41,16 +44,30 @@ $bambooFormValues = [
     'message'            => '',
 ];
 
+// products come from Bamboo > Products & Stock (active ones); the original list is the fallback
 $bambooAllowedProducts = [
     'Raw Long Bamboo', 'Raw Bamboo Pieces', 'Bamboo Poles', 'Bamboo Sticks',
     'Bamboo Fence', 'Bamboo Mats', 'Bamboo Furniture', 'Bamboo Handicrafts',
 ];
+try {
+    $dbProducts = get_db()->query('SELECT name FROM bamboo_products WHERE is_active = 1 ORDER BY sort_order, name')->fetchAll(PDO::FETCH_COLUMN);
+    if ($dbProducts) {
+        $bambooAllowedProducts = array_map('strval', $dbProducts);
+    }
+} catch (Throwable $e) {
+    // module not installed yet: fallback list is used
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bamboo_form_submit'])) {
 
     $postedToken = $_POST['csrf_token'] ?? '';
     if (!hash_equals($_SESSION['bamboo_csrf_token'], $postedToken)) {
         $bambooFormErrors[] = 'Your session expired. Please refresh the page and try again.';
+    } elseif (trim((string) ($_POST['website'] ?? '')) !== '') {
+        // honeypot filled in: pretend success so bots learn nothing
+        $_SESSION['bamboo_flash_success'] = true;
+        header('Location: ' . $_SERVER['PHP_SELF'] . '#enquiry');
+        exit;
     } else {
 
         $fullName  = trim((string) ($_POST['full_name'] ?? ''));
@@ -83,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bamboo_form_submit'])
         if ($fullName === '' || mb_strlen($fullName) > 150) {
             $bambooFormErrors[] = 'Full name is required (max 150 characters).';
         }
-        if ($mobile === '' || !preg_match('/^[0-9+\-\s()]{7,20}$/', $mobile)) {
+        if ($mobile === '' || !preg_match('/^[0-9+\-\s()]{7,20}$/', $mobile) || strlen(preg_replace('/\D/', '', $mobile)) < 10) {
             $bambooFormErrors[] = 'Please enter a valid mobile number.';
         }
         if ($email !== '' && (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 150)) {
@@ -122,13 +139,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bamboo_form_submit'])
         if (!$bambooFormErrors) {
             try {
                 $pdo = get_db();
+                $pdo->beginTransaction();
+                $enquiryRef = tl_next_sequence($pdo, 'bamboo_enquiry', 'BEQ');
                 $stmt = $pdo->prepare(
                     'INSERT INTO bamboo_enquiries
-                        (full_name, mobile_number, email, company_name, state, city, products_selected, quantity_required, delivery_location, additional_requirements, ip_address)
+                        (reference, status, source, full_name, mobile_number, email, company_name, state, city, products_selected, quantity_required, delivery_location, additional_requirements, ip_address, created_at, updated_at)
                      VALUES
-                        (:full_name, :mobile_number, :email, :company_name, :state, :city, :products, :quantity, :delivery, :message, :ip)'
+                        (:ref, \'new\', \'website\', :full_name, :mobile_number, :email, :company_name, :state, :city, :products, :quantity, :delivery, :message, :ip, NOW(), NOW())'
                 );
                 $stmt->execute([
+                    ':ref'         => $enquiryRef,
                     ':full_name'   => $fullName,
                     ':mobile_number' => $mobile,
                     ':email'       => $email !== '' ? $email : null,
@@ -141,13 +161,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bamboo_form_submit'])
                     ':message'     => $message !== '' ? $message : null,
                     ':ip'          => $_SERVER['REMOTE_ADDR'] ?? null,
                 ]);
+                $pdo->commit();
+                $enquiryRow = [
+                    'reference' => $enquiryRef, 'full_name' => $fullName, 'mobile_number' => $mobile, 'email' => $email, 'company_name' => $company,
+                    'products_selected' => implode(', ', $products), 'quantity_required' => $quantity, 'delivery_location' => $delivery,
+                ];
 
-                $_SESSION['bamboo_flash_success'] = true;
+                $_SESSION['bamboo_flash_success'] = $enquiryRef;
                 $_SESSION['bamboo_csrf_token'] = bin2hex(random_bytes(32));
                 header('Location: ' . $_SERVER['PHP_SELF'] . '#enquiry');
+
+                // let the visitor go first; SMTP is slow and must never delay or break an enquiry
+                session_write_close();
+                if (function_exists('fastcgi_finish_request')) { fastcgi_finish_request(); }
+                elseif (function_exists('litespeed_finish_request')) { litespeed_finish_request(); }
+                else { header('Connection: close'); header('Content-Length: 0'); @ob_end_flush(); @flush(); }
+                try { bb_mail_admin_enquiry($enquiryRow); bb_mail_customer_enquiry($enquiryRow); } catch (Throwable $mailErr) { error_log('bamboo mail: ' . $mailErr->getMessage()); }
                 exit;
 
             } catch (PDOException $e) {
+                if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) { $pdo->rollBack(); }
                 error_log('Bamboo enquiry insert failed: ' . $e->getMessage());
                 $bambooFormErrors[] = 'Something went wrong on our end. Please try again later.';
             }
@@ -1154,7 +1187,7 @@ function bf_e(string $value): string
                         </h3>
 
                         <?php if ($bambooFormSuccess): ?>
-                            <div class="alert alert-success">Thank you! Your enquiry has been received. Our sales team will contact you shortly.</div>
+                            <div class="alert alert-success">Thank you! Your enquiry has been received<?php if ($bambooEnquiryRef !== ''): ?> &mdash; reference <strong><?= bf_e($bambooEnquiryRef) ?></strong><?php endif; ?>. Our sales team will contact you shortly with availability and a quotation.</div>
                         <?php endif; ?>
 
                         <?php if ($bambooFormErrors): ?>
@@ -1170,6 +1203,7 @@ function bf_e(string $value): string
                         <form method="post" action="" id="bambooEnquiryForm" novalidate>
                             <input type="hidden" name="csrf_token" value="<?= bf_e($bambooCsrfToken) ?>">
                             <input type="hidden" name="bamboo_form_submit" value="1">
+                            <div style="position:absolute;left:-9999px;height:0;overflow:hidden" aria-hidden="true"><label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
 
                             <div class="row g-4">
 

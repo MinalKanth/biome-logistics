@@ -31,6 +31,7 @@ $SCHEMA = [
         'stock_qty' => 'DECIMAL(14,2) NOT NULL DEFAULT 0.00', 'low_stock_alert' => 'DECIMAL(12,2) NOT NULL DEFAULT 0.00',
         'track_stock' => 'TINYINT(1) NOT NULL DEFAULT 0', 'is_active' => 'TINYINT(1) NOT NULL DEFAULT 1',
         'sort_order' => 'INT NOT NULL DEFAULT 0', 'created_at' => 'DATETIME NULL', 'updated_at' => 'DATETIME NULL',
+        'cost_price' => $M,
     ],
     'bamboo_orders' => [
         'quote_number' => 'VARCHAR(40) NULL', 'order_number' => 'VARCHAR(40) NULL', 'invoice_number' => 'VARCHAR(40) NULL', 'invoice_date' => 'DATE NULL',
@@ -45,6 +46,8 @@ $SCHEMA = [
         'accepted_at' => 'DATETIME NULL', 'transport_booking_id' => 'INT UNSIGNED NULL', 'stock_deducted' => 'TINYINT(1) NOT NULL DEFAULT 0',
         'terms' => 'TEXT NULL', 'notes' => 'TEXT NULL', 'internal_notes' => 'TEXT NULL',
         'created_by' => 'INT UNSIGNED NULL', 'created_at' => 'DATETIME NULL', 'updated_at' => 'DATETIME NULL', 'deleted_at' => 'DATETIME NULL',
+        'cancel_reason' => 'VARCHAR(255) NULL', 'quote_sent_at' => 'DATETIME NULL', 'quote_viewed_at' => 'DATETIME NULL',
+        'customer_response' => 'VARCHAR(20) NULL', 'customer_message' => 'TEXT NULL', 'responded_at' => 'DATETIME NULL', 'due_date' => 'DATE NULL',
     ],
     'bamboo_order_items' => [
         'order_id' => 'INT UNSIGNED NOT NULL', 'product_id' => 'INT UNSIGNED NULL', 'description' => 'VARCHAR(255) NULL', 'hsn' => 'VARCHAR(12) NULL',
@@ -55,6 +58,19 @@ $SCHEMA = [
         'order_id' => 'INT UNSIGNED NOT NULL', 'receipt_number' => 'VARCHAR(40) NULL', 'amount' => $M, 'payment_mode' => 'VARCHAR(30) NULL',
         'reference' => 'VARCHAR(100) NULL', 'payment_date' => 'DATETIME NULL', 'remarks' => 'TEXT NULL',
         'created_by' => 'INT UNSIGNED NULL', 'created_at' => 'DATETIME NULL',
+        'entry_type' => "VARCHAR(10) NOT NULL DEFAULT 'payment'",
+    ],
+    'bamboo_settings' => [
+        'setting_key' => 'VARCHAR(60) NOT NULL', 'setting_value' => 'TEXT NULL', 'updated_at' => 'DATETIME NULL',
+    ],
+    'bamboo_stock_ledger' => [
+        'product_id' => 'INT UNSIGNED NOT NULL', 'qty_change' => 'DECIMAL(14,2) NOT NULL DEFAULT 0.00', 'balance_after' => 'DECIMAL(14,2) NOT NULL DEFAULT 0.00',
+        'reason' => 'VARCHAR(30) NOT NULL', 'ref_type' => 'VARCHAR(20) NULL', 'ref_id' => 'INT UNSIGNED NULL', 'party' => 'VARCHAR(150) NULL',
+        'unit_cost' => 'DECIMAL(14,2) NULL', 'note' => 'VARCHAR(255) NULL', 'created_by' => 'INT UNSIGNED NULL', 'created_at' => 'DATETIME NULL',
+    ],
+    'bamboo_order_events' => [
+        'order_id' => 'INT UNSIGNED NOT NULL', 'event' => 'VARCHAR(30) NULL', 'title' => 'VARCHAR(180) NOT NULL', 'description' => 'TEXT NULL',
+        'customer_visible' => 'TINYINT(1) NOT NULL DEFAULT 1', 'created_by' => 'INT UNSIGNED NULL', 'created_at' => 'DATETIME NULL',
     ],
     // shared with the transport module (created here too, so this installer works on its own)
     'transport_sequences' => [
@@ -69,6 +85,7 @@ $INDEXES = [
     'idx_bo_status' => ['bamboo_orders', 'status, deleted_at'], 'idx_bo_token' => ['bamboo_orders', 'public_token'],
     'idx_bo_enq' => ['bamboo_orders', 'enquiry_id'], 'idx_boi_order' => ['bamboo_order_items', 'order_id'],
     'idx_bp_order' => ['bamboo_payments', 'order_id'],
+    'idx_bsl_product' => ['bamboo_stock_ledger', 'product_id, id'], 'idx_boe_order' => ['bamboo_order_events', 'order_id'],
 ];
 
 function bi_table(PDO $pdo, string $t): bool
@@ -143,6 +160,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (Throwable $e) {
             $log[] = ['err', "index $name: " . $e->getMessage()];
         }
+    }
+
+    // settings need a unique key for upserts
+    try {
+        $s = $pdo->prepare("SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'bamboo_settings' AND index_name = 'uq_bs_key'");
+        $s->execute();
+        if ((int) $s->fetchColumn() === 0) {
+            $pdo->exec('ALTER TABLE bamboo_settings ADD UNIQUE KEY uq_bs_key (setting_key)');
+            $log[] = ['ok', 'Added unique key on bamboo_settings'];
+        }
+    } catch (Throwable $e) {
+        $log[] = ['err', 'settings key: ' . $e->getMessage()];
+    }
+
+    // existing stock gets an "opening balance" ledger line so the ledger always adds up
+    try {
+        $n = (int) $pdo->exec("INSERT INTO bamboo_stock_ledger (product_id, qty_change, balance_after, reason, note, created_at)
+            SELECT p.id, p.stock_qty, p.stock_qty, 'opening', 'Opening balance when stock ledger was introduced', NOW()
+            FROM bamboo_products p WHERE p.stock_qty <> 0 AND NOT EXISTS (SELECT 1 FROM bamboo_stock_ledger l WHERE l.product_id = p.id)");
+        if ($n) { $log[] = ['ok', "Opening stock ledger lines created for $n product(s)"]; }
+        // existing orders get a first timeline entry
+        $n = (int) $pdo->exec("INSERT INTO bamboo_order_events (order_id, event, title, customer_visible, created_at)
+            SELECT o.id, 'created', 'Quotation created', 1, COALESCE(o.created_at, NOW()) FROM bamboo_orders o
+            WHERE NOT EXISTS (SELECT 1 FROM bamboo_order_events e WHERE e.order_id = o.id)");
+        if ($n) { $log[] = ['ok', "Timeline started for $n existing order(s)"]; }
+    } catch (Throwable $e) {
+        $log[] = ['err', 'backfill: ' . $e->getMessage()];
+    }
+
+    // The original table had status as a fixed list (new / contacted / closed). The sales pipeline
+    // needs quoted / negotiation / won / lost too, so convert it to plain text. Existing values are kept.
+    try {
+        $s = $pdo->prepare("SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'bamboo_enquiries' AND COLUMN_NAME = 'status'");
+        $s->execute();
+        if ($s->fetchColumn() === 'enum') {
+            $pdo->exec("ALTER TABLE bamboo_enquiries MODIFY COLUMN status VARCHAR(20) NOT NULL DEFAULT 'new'");
+            $log[] = ['ok', 'Converted bamboo_enquiries.status to flexible text (existing values kept)'];
+        }
+    } catch (Throwable $e) {
+        $log[] = ['err', 'enquiry status: ' . $e->getMessage()];
     }
 
     // Give old enquiries a reference number and a status

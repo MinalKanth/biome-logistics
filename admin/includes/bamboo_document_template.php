@@ -74,7 +74,10 @@ $paid = (float) $o['paid_amount']; $balance = max(0, (float) $o['grand_total'] -
     <tr><td>Subtotal</td><td><?= number_format((float) $o['subtotal'], 2) ?></td></tr>
     <?php if ((float) $o['discount'] > 0): ?><tr><td>Discount</td><td>- <?= number_format((float) $o['discount'], 2) ?></td></tr><?php endif; ?>
     <?php if ((float) $o['transport_charge'] > 0): ?><tr><td>Transport charges</td><td><?= number_format((float) $o['transport_charge'], 2) ?></td></tr><?php endif; ?>
-    <tr><td>GST @ <?= tl_e(bb_num($o['gst_pct'])) ?>%</td><td><?= number_format((float) $o['gst_amount'], 2) ?></td></tr>
+    <?php $tx = bb_tax_split($o); if ($tx['type'] === 'intra'): ?>
+      <tr><td>CGST @ <?= tl_e(bb_num($tx['half'])) ?>%</td><td><?= number_format($tx['cgst'], 2) ?></td></tr>
+      <tr><td>SGST @ <?= tl_e(bb_num($tx['half'])) ?>%</td><td><?= number_format($tx['sgst'], 2) ?></td></tr>
+    <?php else: ?><tr><td>IGST @ <?= tl_e(bb_num($tx['pct'])) ?>%</td><td><?= number_format($tx['igst'], 2) ?></td></tr><?php endif; ?>
     <tr class="grand"><td>Grand total</td><td><?= tl_e(tl_inr($o['grand_total'])) ?></td></tr>
     <?php if ($isInvoice): ?><tr class="paid"><td>Received</td><td><?= tl_e(tl_inr($paid)) ?></td></tr>
     <tr class="bal"><td>Balance due</td><td><?= tl_e(tl_inr($balance)) ?></td></tr><?php endif; ?>

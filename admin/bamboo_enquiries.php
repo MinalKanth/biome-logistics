@@ -32,9 +32,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['flash_success_page'] = 'Enquiry updated.';
             }
         } elseif ($action === 'delete' && $id > 0) {
-            $pdo->prepare('DELETE FROM bamboo_enquiries WHERE id = :id')->execute([':id' => $id]);
-            log_activity((int) $_SESSION['admin_id'], 'bamboo_enquiry_deleted', "id={$id}");
-            $_SESSION['flash_success_page'] = 'Enquiry deleted.';
+            $lk = $pdo->prepare('SELECT order_id FROM bamboo_enquiries WHERE id = :id');
+            $lk->execute([':id' => $id]);
+            if ($lk->fetchColumn()) {
+                $_SESSION['flash_error_page'] = 'This enquiry has a quotation linked to it, so it cannot be deleted. Mark it Lost instead.';
+            } else {
+                $pdo->prepare('DELETE FROM bamboo_enquiries WHERE id = :id')->execute([':id' => $id]);
+                log_activity((int) $_SESSION['admin_id'], 'bamboo_enquiry_deleted', "id={$id}");
+                $_SESSION['flash_success_page'] = 'Enquiry deleted.';
+            }
         }
     } catch (Throwable $e) {
         error_log('bamboo enquiries: ' . $e->getMessage());
@@ -59,10 +65,25 @@ if ($fs === 'due') {
     $par[':st'] = $fs;
 }
 if ($q !== '') {
-    $where[] = '(full_name LIKE :q OR mobile_number LIKE :q OR email LIKE :q OR company_name LIKE :q OR reference LIKE :q OR products_selected LIKE :q OR city LIKE :q)';
-    $par[':q'] = '%' . $q . '%';
+    $where[] = bb_like(['full_name', 'mobile_number', 'email', 'company_name', 'reference', 'products_selected', 'city'], $q, $par);
 }
 $wsql = implode(' AND ', $where);
+
+if (($_GET['export'] ?? '') === 'csv') {
+    $ex = $pdo->prepare("SELECT reference, status, full_name, company_name, mobile_number, email, city, state, products_selected, quantity_required, delivery_location, additional_requirements, follow_up_date, created_at FROM bamboo_enquiries WHERE $wsql ORDER BY id DESC");
+    $ex->execute($par);
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="bamboo-enquiries-' . date('Ymd') . '.csv"');
+    $out = fopen('php://output', 'w');
+    fwrite($out, "\xEF\xBB\xBF");
+    $first = true;
+    while ($r = $ex->fetch()) {
+        if ($first) { fputcsv($out, array_keys($r)); $first = false; }
+        fputcsv($out, array_map('bb_csv_safe', $r));
+    }
+    fclose($out);
+    exit;
+}
 
 $scalar = function (string $sql, array $p = []) use ($pdo): int {
     try {
@@ -103,7 +124,7 @@ try {
 
 $qs = static fn(array $x): string => http_build_query(array_merge(['s' => $fs, 'q' => $q], $x));
 tl_shell_top('Bamboo Enquiries', 'Bamboo Enquiries', ['Bamboo Trading' => 'bamboo_orders.php'],
-    '<a class="btn btn-primary" href="bamboo_order_form.php"><i class="fa-solid fa-file-circle-plus"></i> New quotation</a>');
+    '<a class="btn btn-secondary" href="?' . e($qs(['export' => 'csv'])) . '"><i class="fa-solid fa-file-csv"></i> Export CSV</a><a class="btn btn-primary" href="bamboo_order_form.php"><i class="fa-solid fa-file-circle-plus"></i> New quotation</a>');
 ?>
 <div class="tx-kpis">
   <div class="tx-kpi"><div class="l">Total enquiries</div><div class="v"><?= $cTotal ?></div></div>
