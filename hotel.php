@@ -9,6 +9,39 @@ $seo = new EliteEnterpriseSeoEngine();
 $seo->sendEnterpriseHeaders();
 
 require_once __DIR__ . '/admin/config/database.php';
+require_once __DIR__ . '/hotel-shell.php';
+
+// live properties (added in Admin > Hotels). While there are none, the "coming soon" block below stays.
+$htlProps = [];
+$htlSp = ['ci' => null, 'co' => null, 'rooms' => 1, 'adults' => 2, 'children' => 0, 'has' => false, 'error' => null];
+try {
+    $htlPdo = get_db();
+    $htlProps = $htlPdo->query('SELECT p.* FROM hotel_properties p WHERE p.is_active = 1 AND p.deleted_at IS NULL ORDER BY p.sort_order, p.name')->fetchAll();
+    $htlSp = hs_search_params($htlPdo);
+    foreach ($htlProps as $k => $p) {
+        $rt = $htlPdo->prepare('SELECT * FROM hotel_room_types WHERE property_id = :p AND is_active = 1 AND deleted_at IS NULL AND base_rate > 0');
+        $rt->execute([':p' => $p['id']]);
+        $best = null; $from = null;
+        foreach ($rt->fetchAll() as $room) {
+            $from = $from === null ? (float) $room['base_rate'] : min($from, (float) $room['base_rate']);
+            if ($htlSp['has'] && !$htlSp['error']) {
+                $av = htl_availability($htlPdo, $room, (string) $htlSp['ci'], (string) $htlSp['co']);
+                if ($av['min'] >= $htlSp['rooms']) {
+                    $q = htl_quote($htlPdo, $room, (string) $htlSp['ci'], (string) $htlSp['co'], $htlSp['rooms'], $htlSp['adults'], $htlSp['children']);
+                    if ($q['ok'] && ($best === null || $q['total'] < $best['total'])) { $best = $q + ['room' => $room['name']]; }
+                }
+            }
+        }
+        $htlProps[$k]['from_rate'] = $from;
+        $htlProps[$k]['best'] = $best;
+    }
+    if ($htlSp['has'] && !$htlSp['error']) {   // available properties first
+        usort($htlProps, static fn($a, $b) => (($b['best'] ? 1 : 0) <=> ($a['best'] ? 1 : 0)));
+    }
+} catch (Throwable $e) {
+    error_log('hotel.php: ' . $e->getMessage());
+    $htlProps = [];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -374,6 +407,45 @@ require_once __DIR__ . '/admin/config/database.php';
         </div>
     </div>
 
+    <?php if ($htlProps): hs_css(); ?>
+    <!-- Live properties -->
+    <div class="container-fluid py-5" style="background:#f4f8f6">
+        <div class="container">
+            <div class="htl-card" style="margin-top:-10px">
+                <h4 class="mb-3" style="font-weight:800">Find your stay</h4>
+                <?php hs_search_form($htlSp, 'hotel'); ?>
+                <?php if ($htlSp['error']): ?><div class="alert alert-warning mt-3 mb-0"><?= hs_e($htlSp['error']) ?></div><?php endif; ?>
+            </div>
+            <?php foreach ($htlProps as $p):
+                $qs = $htlSp['has'] && !$htlSp['error'] ? '&ci=' . $htlSp['ci'] . '&co=' . $htlSp['co'] . '&rooms=' . $htlSp['rooms'] . '&adults=' . $htlSp['adults'] . '&children=' . $htlSp['children'] : '';
+                $dated = $htlSp['has'] && !$htlSp['error']; ?>
+                <div class="htl-prop">
+                    <img src="<?= hs_e(htl_image_url($p['image'])) ?>" alt="<?= hs_e($p['name']) ?>" loading="lazy">
+                    <div class="body">
+                        <span class="htl-badge"><?= hs_e(htl_property_types()[$p['property_type']] ?? 'Hotel') ?></span><?php if ((int) $p['star_rating'] > 0): ?><span class="htl-badge warn"><?= str_repeat('&#9733;', (int) $p['star_rating']) ?></span><?php endif; ?>
+                        <h4 class="mt-2 mb-1" style="font-weight:800"><a href="hotel-stay?p=<?= hs_e(rawurlencode($p['slug'])) ?><?= hs_e($qs) ?>" style="color:#0f4c2d;text-decoration:none"><?= hs_e($p['name']) ?></a></h4>
+                        <div class="htl-muted mb-2"><i class="fa fa-map-marker-alt text-success me-1"></i><?= hs_e(trim(($p['city'] ?? '') . ', ' . ($p['state'] ?? ''), ' ,')) ?></div>
+                        <p class="mb-2" style="font-size:.92rem"><?= hs_e($p['short_desc']) ?></p>
+                        <div><?= hs_amenities($p['amenities'], 6) ?></div>
+                    </div>
+                    <div class="price">
+                        <?php if ($dated && $p['best']): ?>
+                            <span class="htl-badge">Available</span>
+                            <div class="htl-muted mt-2"><?= (int) $p['best']['nights'] ?> night<?= $p['best']['nights'] > 1 ? 's' : '' ?>, <?= (int) $htlSp['rooms'] ?> room<?= $htlSp['rooms'] > 1 ? 's' : '' ?> from</div>
+                            <div class="htl-total">&#8377;<?= hs_e(number_format($p['best']['total'], 0)) ?></div><div class="htl-muted mb-2">incl. taxes</div>
+                            <a class="htl-btn green" href="hotel-stay?p=<?= hs_e(rawurlencode($p['slug'])) ?><?= hs_e($qs) ?>">View rooms</a>
+                        <?php elseif ($dated): ?>
+                            <span class="htl-badge bad">Sold out for these dates</span><a class="htl-btn ghost mt-3" href="hotel-stay?p=<?= hs_e(rawurlencode($p['slug'])) ?><?= hs_e($qs) ?>">Details</a>
+                        <?php else: ?>
+                            <?php if ($p['from_rate']): ?><div class="htl-muted">from</div><div class="htl-total">&#8377;<?= hs_e(number_format((float) $p['from_rate'], 0)) ?></div><div class="htl-muted mb-2">per night + taxes</div><?php endif; ?>
+                            <a class="htl-btn green" href="hotel-stay?p=<?= hs_e(rawurlencode($p['slug'])) ?>">View rooms</a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php else: ?>
     <!-- Coming Soon Start -->
     <div class="container-fluid py-5 bg-light min-vh-100 d-flex align-items-center">
 
@@ -418,6 +490,7 @@ require_once __DIR__ . '/admin/config/database.php';
 
     </div>
     <!-- Coming Soon End -->
+    <?php endif; ?>
 
 
  

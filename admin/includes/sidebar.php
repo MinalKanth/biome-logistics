@@ -37,6 +37,8 @@ $sidebarPendingCount = sidebar_safe_count($pdo, "SELECT COUNT(*) FROM transport_
 $sidebarLiveCount = isset($sidebarLiveCount) ? $sidebarLiveCount : sidebar_safe_count($pdo, "SELECT COUNT(*) FROM transport_bookings WHERE deleted_at IS NULL AND status = 'in_transit'");
 $sidebarCabNew   = sidebar_safe_count($pdo, "SELECT COUNT(*) FROM cab_booking_requests WHERE deleted_at IS NULL AND status = 'new'");
 $sidebarCabToday = sidebar_safe_count($pdo, "SELECT COUNT(*) FROM cab_booking_requests WHERE deleted_at IS NULL AND status IN ('confirmed','assigned','on_trip') AND journey_date <= CURDATE() AND COALESCE(end_date, journey_date) >= CURDATE()");
+$sidebarHtlPending = sidebar_safe_count($pdo, "SELECT COUNT(*) FROM hotel_reservations WHERE deleted_at IS NULL AND status = 'pending'");
+$sidebarHtlArriving = sidebar_safe_count($pdo, "SELECT COUNT(*) FROM hotel_reservations WHERE deleted_at IS NULL AND check_in = CURDATE() AND status IN ('pending','confirmed')");
 $sidebarBambooNewCount   = sidebar_safe_count($pdo, "SELECT COUNT(*) FROM bamboo_enquiries WHERE status = 'new'");
 $sidebarBambooDueCount   = sidebar_safe_count($pdo, "SELECT COUNT(*) FROM bamboo_enquiries WHERE follow_up_date IS NOT NULL AND follow_up_date <= CURDATE() AND status NOT IN ('won','lost')");
 $sidebarBambooOpenOrders = sidebar_safe_count($pdo, "SELECT COUNT(*) FROM bamboo_orders WHERE deleted_at IS NULL AND status NOT IN ('delivered','cancelled')");
@@ -88,6 +90,23 @@ $curStatus = (string) ($_GET['status'] ?? '');
         <li><a href="bamboo_reports.php" class="nav-item<?= $navActive('bamboo_reports.php') ?>"><i class="fa-solid fa-chart-column"></i> Bamboo Reports</a></li>
         <li><a href="bamboo_settings.php" class="nav-item<?= $navActive('bamboo_settings.php') ?>"><i class="fa-solid fa-sliders"></i> Bamboo Settings</a></li>
         <li><a href="../bamboo-trading" target="_blank" rel="noopener" class="nav-item"><i class="fa-solid fa-arrow-up-right-from-square"></i> Public Bamboo Page</a></li>
+      </ul>
+
+      <!-- Hotels & Homestays -->
+      <div class="sidebar-section-label">Hotels &amp; Homestays</div>
+      <ul>
+        <li><a href="hotel_dashboard.php" class="nav-item<?= $navActive('hotel_dashboard.php') ?>"><i class="fa-solid fa-gauge-high"></i> Hotel Dashboard</a></li>
+        <li>
+          <a href="hotel_reservations.php" class="nav-item<?= in_array($currentPage, ['hotel_reservations.php', 'hotel_view.php', 'hotel_form.php'], true) ? ' active' : '' ?>">
+            <i class="fa-solid fa-bell-concierge"></i> Reservations
+            <?php if ($sidebarHtlPending > 0): ?><span class="pill" style="background:#f59e0b;color:#fff;"><?= e((string) $sidebarHtlPending) ?> new</span><?php elseif ($sidebarHtlArriving > 0): ?><span class="pill"><?= e((string) $sidebarHtlArriving) ?> today</span><?php endif; ?>
+          </a>
+        </li>
+        <li><a href="hotel_calendar.php" class="nav-item<?= $navActive('hotel_calendar.php') ?>"><i class="fa-solid fa-calendar-days"></i> Availability Calendar</a></li>
+        <li><a href="hotel_properties.php" class="nav-item<?= in_array($currentPage, ['hotel_properties.php', 'hotel_rooms.php', 'hotel_rates.php'], true) ? ' active' : '' ?>"><i class="fa-solid fa-hotel"></i> Properties &amp; Rooms</a></li>
+        <li><a href="hotel_reports.php" class="nav-item<?= $navActive('hotel_reports.php') ?>"><i class="fa-solid fa-chart-column"></i> Hotel Reports</a></li>
+        <li><a href="hotel_settings.php" class="nav-item<?= $navActive('hotel_settings.php') ?>"><i class="fa-solid fa-sliders"></i> Hotel Settings</a></li>
+        <li><a href="../hotel" target="_blank" rel="noopener" class="nav-item"><i class="fa-solid fa-arrow-up-right-from-square"></i> Public Hotel Page</a></li>
       </ul>
 
       <!-- Cab Services -->
